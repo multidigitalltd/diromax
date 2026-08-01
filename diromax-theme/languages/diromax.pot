@@ -1,14 +1,16 @@
 # Diromax theme — translation template.
 # Copyright (C) Diromax
 # This file is distributed under the GPL-2.0-or-later license.
+#
+# Note: the site's marketing copy is not here. It is editable in the admin under
+# "תוכן האתר", with the theme defaults in inc/content.php. This file covers the
+# interface chrome only — labels, ARIA text and admin strings.
 msgid ""
 msgstr ""
-"Project-Id-Version: Diromax 2.0.0\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: Diromax 2.1.0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language-Team: \n"
 "X-Domain: diromax\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -36,16 +38,7 @@ msgstr ""
 msgid "(נפתח בחלון חדש)"
 msgstr ""
 
-#: template-parts/site-footer.php:71
-msgid "© %s דירומקס. כל הזכויות שמורות."
-msgstr ""
-
-#: 404.php:18
-msgid "אבל אם יש לך נכס עם פוטנציאל — הגעת למקום הנכון."
-msgstr ""
-
 #: inc/customizer.php:48
-#: page-templates/template-contact.php:43
 msgid "אזור פעילות"
 msgstr ""
 
@@ -53,33 +46,16 @@ msgstr ""
 msgid "אחרי"
 msgstr ""
 
-#: template-parts/page-improvement.php:32
-msgid "איך התהליך עובד"
-msgstr ""
-
-#: template-parts/page-improvement.php:89
-msgid "איך זה עובד בפועל"
-msgstr ""
-
-#: index.php:30
-#: page-templates/template-articles.php:29
-msgid "איך חושבים על נכס שיש לו עוד מה לתת."
-msgstr ""
-
 #: inc/leads.php:41
 msgid "אין לידים עדיין."
 msgstr ""
 
-#: inc/setup.php:431
-msgid "אין לך הרשאה לבצע את הפעולה הזו."
-msgstr ""
-
-#: inc/setup.php:375
+#: inc/content-admin.php:472
 msgid "אין לך הרשאה לגשת לעמוד הזה."
 msgstr ""
 
-#: template-parts/page-improvement.php:208
-msgid "אין לך תקציב להשבחה? זה לא סוף הדרך."
+#: inc/content-admin.php:299
+msgid "אין לך הרשאה לערוך את תוכן האתר."
 msgstr ""
 
 #: inc/accessibility.php:227
@@ -90,58 +66,12 @@ msgstr ""
 msgid "אל תמלא שדה זה"
 msgstr ""
 
-#: template-parts/page-improvement.php:249
-msgid "אם אתה מחזיק אחד מאלה — יש על מה לדבר."
-msgstr ""
-
-#: template-parts/page-improvement.php:85
-msgid "אם לא תרים אותו — מישהו אחר ירוויח אותו במקומך."
-msgstr ""
-
-#: template-parts/page-improvement.php:27
-msgid "אנחנו בודקים מה באמת מותר לבנות על הנכס שלך, בונים תוכנית עבודה, מחתימים שכנים, מוציאים היתר, מנהלים את הביצוע — ואז מוכרים בשווי החדש."
-msgstr ""
-
-#: template-parts/page-improvement.php:230
-msgid "אנחנו לא מייעצים ונעלמים.<br>אנחנו לוקחים את הנכס עד הסוף."
-msgstr ""
-
-#: page-templates/template-broker.php:19
-msgid "אנחנו מוכרים וקונים נכסים כל יום — אבל בודקים אותם בעין של יזם. לפני שמפרסמים מודעה, אנחנו שואלים אם יש כאן צעד קטן שיכול להעלות את המחיר."
-msgstr ""
-
-#: footer.php:26
-#: header.php:71
-msgid "בדיקת פוטנציאל"
-msgstr ""
-
-#: template-parts/lead-form.php:60
-msgid "בדיקת פוטנציאל הנכס"
-msgstr ""
-
-#: template-parts/page-improvement.php:31
-msgid "בדיקת פוטנציאל הנכס — ללא עלות"
+#: inc/content-admin.php:414
+msgid "אפשרות אחת בכל שורה."
 msgstr ""
 
 #: inc/seo.php:55
 msgid "בדיקת פוטנציאל השבחה לנכס שלך — ללא עלות וללא התחייבות."
-msgstr ""
-
-#: single.php:49
-msgid "בדיקת פוטנציאל — ללא עלות"
-msgstr ""
-
-#: template-parts/lead-form.php:126
-msgid "במה נוכל לעזור"
-msgstr ""
-
-#: template-parts/page-improvement.php:75
-#: template-parts/page-improvement.php:81
-msgid "בשורה אחת"
-msgstr ""
-
-#: template-parts/page-improvement.php:200
-msgid "בשורה התחתונה: מה שאנחנו חוסכים לך בתמחור, בניהול ובטעויות — לרוב גדול ממה שאנחנו עולים."
 msgstr ""
 
 #: inc/accessibility.php:193
@@ -158,24 +88,19 @@ msgstr ""
 
 #: inc/customizer.php:43
 #: page-templates/template-accessibility.php:74
-#: page-templates/template-contact.php:39
 msgid "דוא״ל"
 msgstr ""
 
-#: inc/customizer.php:185
+#: inc/customizer.php:216
 msgid "דוא״ל לפניות נגישות (ריק = הדוא״ל הראשי)"
 msgstr ""
 
-#: inc/customizer.php:149
+#: inc/customizer.php:180
 msgid "דירומקס — נגישות"
 msgstr ""
 
 #: inc/customizer.php:25
 msgid "דירומקס — פרטי קשר"
-msgstr ""
-
-#: template-parts/site-footer.php:20
-msgid "דירומקס — תיווך, יזמות וניהול השבחת נכסים. לקבל את המקסימום מהנכס."
 msgstr ""
 
 #: inc/customizer.php:84
@@ -186,33 +111,8 @@ msgstr ""
 msgid "דלג לתוכן הראשי"
 msgstr ""
 
-#: template-parts/site-footer.php:76
-msgid "האמור באתר הוא מידע כללי ואינו מהווה ייעוץ תכנוני, משפטי או מיסויי."
-msgstr ""
-
-#: template-parts/site-footer.php:24
-msgid "האתר"
-msgstr ""
-
-#: index.php:54
-#: page-templates/template-articles.php:52
-msgid "הבא"
-msgstr ""
-
-#: template-parts/page-improvement.php:228
-msgid "הבידול שלנו"
-msgstr ""
-
 #: inc/accessibility.php:202
 msgid "הגדלת גודל הטקסט"
-msgstr ""
-
-#: inc/setup.php:394
-msgid "הגדרת עמוד הבית ותפריט פוטר."
-msgstr ""
-
-#: 404.php:17
-msgid "הגעת לכתובת שלא קיימת."
 msgstr ""
 
 #: inc/accessibility.php:52
@@ -223,67 +123,35 @@ msgstr ""
 msgid "הדגשת קישורים"
 msgstr ""
 
+#: inc/content-admin.php:457
+msgid "הוספת שורה"
+msgstr ""
+
+#: inc/content-admin.php:536
+msgid "החזרת המקטע לטקסט המקורי"
+msgstr ""
+
 #: inc/accessibility.php:28
 msgid "היפוך צבעים"
 msgstr ""
 
-#: template-parts/page-improvement.php:116
-msgid "הכלים שמעלים שווי של נכס."
-msgstr ""
-
-#: template-parts/page-improvement.php:218
-msgid "הכלל אצלנו פשוט: חוסר תקציב לא צריך להיות הסיבה שהנכס שלך נשאר בלי מיצוי."
-msgstr ""
-
-#: template-parts/page-improvement.php:186
-msgid "הליווי שלנו לא מוסיף לעלות. הוא מקטין אותה."
-msgstr ""
-
-#: single.php:71
-msgid "המאמר הבא"
-msgstr ""
-
-#: single.php:65
-msgid "המאמר הקודם"
-msgstr ""
-
-#: template-parts/page-improvement.php:99
-msgid "הנכס שלך כנראה מחזיק שווי שלא נבנה מעולם."
-msgstr ""
-
-#: template-parts/page-improvement.php:185
-msgid "העלות מול החיסכון"
-msgstr ""
-
-#: 404.php:16
-msgid "העמוד לא נמצא"
-msgstr ""
-
-#: inc/setup.php:396
-msgid "הפעולה בטוחה להרצה חוזרת: מה שכבר קיים לא ייווצר פעם שנייה ולא יידרס."
-msgstr ""
-
-#: inc/setup.php:389
-msgid "הפעולה יוצרת את כל מבנה האתר עם התוכן האמיתי שלו:"
+#: inc/content-admin.php:496
+msgid "המקטע הוחזר לטקסטים המקוריים של הערכה."
 msgstr ""
 
 #: inc/customizer.php:26
 msgid "הפרטים האלה מופיעים בפוטר, בעמוד צור קשר, בסרגל התחתון ובסימון הסכמה (Schema)."
 msgstr ""
 
-#: inc/customizer.php:150
+#: inc/customizer.php:181
 msgid "הפרטים כאן מוזנים אוטומטית להצהרת הנגישות, כנדרש בתקנות."
 msgstr ""
 
-#: template-parts/lead-form.php:161
-msgid "הפרטים נשמרים אצלנו בלבד ומשמשים ליצירת קשר בנוגע לנכס."
-msgstr ""
-
-#: inc/customizer.php:122
+#: inc/customizer.php:153
 msgid "הצגת מקטע \"לפני ואחרי\""
 msgstr ""
 
-#: inc/customizer.php:165
+#: inc/customizer.php:196
 msgid "הצגת סרגל כלי הנגישות"
 msgstr ""
 
@@ -292,86 +160,24 @@ msgstr ""
 msgid "הצהרת נגישות"
 msgstr ""
 
-#: index.php:53
-#: page-templates/template-articles.php:51
-msgid "הקודם"
-msgstr ""
-
 #: inc/accessibility.php:197
 msgid "הקטנת גודל הטקסט"
 msgstr ""
 
-#: template-parts/page-improvement.php:317
-msgid "השאר פרטים ונחזור אליך עם תמונת מצב ראשונית על הנכס — בלי עלות ובלי התחייבות."
-msgstr ""
-
-#: template-parts/lead-form.php:58
-msgid "השארת פרטים"
-msgstr ""
-
-#: template-parts/page-improvement.php:88
-msgid "השבחה היא לא שיפוץ. זו הפעולה שמשנה את השווי של הנכס עצמו — לפני שמוכרים אותו. מי שקונה נכס לא מנוצל, קונה את הפוטנציאל שלך במחיר של היום."
-msgstr ""
-
-#: inc/helpers.php:250
-msgid "השבחת נכסים"
-msgstr ""
-
-#: template-parts/page-improvement.php:149
-msgid "השוואה"
-msgstr ""
-
-#: template-parts/page-improvement.php:160
-msgid "השוואה בין ניהול השבחה עצמאי לבין ליווי של דירומקס, לפי שלבי התהליך."
-msgstr ""
-
-#: template-parts/page-improvement.php:163
-msgid "השלב"
-msgstr ""
-
-#: template-parts/page-improvement.php:131
-msgid "התהליך"
-msgstr ""
-
-#: inc/setup.php:385
-msgid "התוכן הותקן. אפשר לעבור לאתר ולבדוק."
+#: inc/content-admin.php:494
+msgid "התוכן נשמר."
 msgstr ""
 
 #: inc/projects.php:69
 msgid "התמונה הראשית (Featured) משמשת כברירת מחדל ל\"אחרי\"."
 msgstr ""
 
-#: inc/setup.php:411
-msgid "התקנת התוכן"
-msgstr ""
-
-#: inc/setup.php:361
-#: inc/setup.php:362
-#: inc/setup.php:381
-msgid "התקנת תוכן דירומקס"
-msgstr ""
-
-#: footer.php:22
-#: page-templates/template-contact.php:30
-#: template-parts/page-improvement.php:324
-#: template-parts/site-footer.php:40
-msgid "וואטסאפ"
-msgstr ""
-
 #: inc/customizer.php:38
 msgid "וואטסאפ (פורמט בינלאומי, לדוגמה 972541234567)"
 msgstr ""
 
-#: template-parts/page-improvement.php:187
-msgid "זו השאלה שכל בעל נכס שואל: למה לשלם על ניהול. התשובה נמצאת בפער בין המחיר שאתה מקבל מספק — לבין המחיר שאנחנו מקבלים מאותו ספק."
-msgstr ""
-
 #: inc/leads.php:40
 msgid "חיפוש לידים"
-msgstr ""
-
-#: inc/setup.php:391
-msgid "חמישה עמודים עם התבניות המתאימות: ניהול השבחת נכסים, תיווך, שאלות ותשובות, מאמרים, צור קשר."
 msgstr ""
 
 #: template-parts/page-improvement.php:158
@@ -381,9 +187,6 @@ msgstr ""
 #: inc/leads.php:184
 #: inc/leads.php:384
 #: page-templates/template-accessibility.php:70
-#: page-templates/template-contact.php:26
-#: template-parts/lead-form.php:89
-#: template-parts/page-improvement.php:320
 msgid "טלפון"
 msgstr ""
 
@@ -391,7 +194,7 @@ msgstr ""
 msgid "טלפון להצגה"
 msgstr ""
 
-#: inc/customizer.php:179
+#: inc/customizer.php:210
 msgid "טלפון רכז/ת הנגישות (ריק = הטלפון הראשי)"
 msgstr ""
 
@@ -399,24 +202,16 @@ msgstr ""
 msgid "טקסט וקריאות"
 msgstr ""
 
-#: template-parts/page-improvement.php:28
-msgid "יזמות בלי להיות יזם: אתה לא מתעסק בכלום — אתה רק מחליט."
-msgstr ""
-
-#: template-parts/site-footer.php:35
-msgid "יצירת קשר"
-msgstr ""
-
 #: footer.php:19
 msgid "יצירת קשר מהירה"
 msgstr ""
 
-#: page-templates/template-faq.php:28
-msgid "יש לי שאלה אחרת — דברו איתי"
+#: inc/content-admin.php:500
+msgid "כל טקסט שמופיע באתר נמצא כאן. שדה שלא נגעת בו ממשיך להשתמש בטקסט המקורי של הערכה."
 msgstr ""
 
-#: page-templates/template-faq.php:18
-msgid "כל מה שבעל נכס צריך לדעת לפני שמתחילים."
+#: inc/content-admin.php:406
+msgid "כל שורה חדשה תוצג כשבירת שורה בכותרת."
 msgstr ""
 
 #: inc/accessibility.php:173
@@ -425,7 +220,6 @@ msgid "כלי נגישות"
 msgstr ""
 
 #: inc/leads.php:185
-#: template-parts/lead-form.php:109
 msgid "כתובת הנכס"
 msgstr ""
 
@@ -436,30 +230,6 @@ msgstr ""
 #: inc/leads.php:217
 #: inc/leads.php:361
 msgid "לא הצלחנו לשמור את הפנייה. אפשר להתקשר אלינו ישירות."
-msgstr ""
-
-#: template-parts/page-improvement.php:209
-msgid "לא כל בעל נכס יכול להוציא כסף מהבית על תכנון ועל ביצוע, וזה לגיטימי לחלוטין. במקרים כאלה אנחנו לא סוגרים את הדלת — אנחנו בונים מסלול שמתאים למצב שלך, כך שההשבחה תמומן מתוך הפרויקט ולא מהכיס."
-msgstr ""
-
-#: index.php:68
-msgid "לא נמצאו מאמרים."
-msgstr ""
-
-#: template-parts/lead-form.php:104
-msgid "לדוגמה: 054-1234567"
-msgstr ""
-
-#: inc/setup.php:405
-msgid "להעביר לסל המיחזור גם את תוכן הדוגמה של וורדפרס (\"Hello world!\" ו-\"Sample Page\")"
-msgstr ""
-
-#: template-parts/page-improvement.php:164
-msgid "להשביח לבד"
-msgstr ""
-
-#: template-parts/page-improvement.php:150
-msgid "להשביח לבד, או איתנו."
 msgstr ""
 
 #: inc/leads.php:38
@@ -475,51 +245,15 @@ msgstr ""
 msgid "לידים"
 msgstr ""
 
-#: template-parts/page-improvement.php:302
-msgid "לכל השאלות והתשובות"
-msgstr ""
-
-#: template-parts/page-improvement.php:248
-msgid "למי זה מתאים"
-msgstr ""
-
-#: inc/setup.php:461
-msgid "למסך ההתקנה"
-msgstr ""
-
-#: template-parts/page-improvement.php:25
-msgid "לנכס שלך יש זכויות<br>שאתה לא מנצל."
-msgstr ""
-
-#: 404.php:20
-#: page-templates/template-broker.php:41
-msgid "לעמוד השבחת נכסים"
-msgstr ""
-
 #: inc/projects.php:137
 msgid "לפני"
-msgstr ""
-
-#: template-parts/page-improvement.php:278
-msgid "לפני ואחרי."
-msgstr ""
-
-#: page-templates/template-broker.php:40
-msgid "לפני שאתה מוכן למכור — תן לנו לבדוק אם כדאי קודם להשביח."
 msgstr ""
 
 #: inc/leads.php:189
 msgid "מאיזה עמוד"
 msgstr ""
 
-#: single.php:23
-msgid "מאמר"
-msgstr ""
-
-#: inc/helpers.php:253
-#: inc/seo.php:224
-#: index.php:18
-#: page-templates/template-articles.php:28
+#: inc/seo.php:234
 msgid "מאמרים"
 msgstr ""
 
@@ -531,28 +265,8 @@ msgstr ""
 msgid "מאמרים על זכויות בנייה, פיצול דירות, החתמת שכנים והיתרי בנייה."
 msgstr ""
 
-#: template-parts/page-improvement.php:115
-msgid "מה אנחנו עושים בפועל"
-msgstr ""
-
-#: inc/projects.php:105
-msgid "מה נעשה בנכס ומה השתנה בשווי — להשלמה עם פרטי פרויקט אמיתי."
-msgstr ""
-
-#: inc/setup.php:415
-msgid "מה נשאר להשלים ידנית"
-msgstr ""
-
-#: page-templates/template-contact.php:49
-msgid "מה קורה אחרי שמשאירים פרטים"
-msgstr ""
-
-#: template-parts/page-improvement.php:98
-msgid "מה רוב בעלי הנכסים לא יודעים"
-msgstr ""
-
-#: template-parts/page-improvement.php:301
-msgid "מה שבעלי נכסים שואלים אותנו קודם."
+#: inc/customizer.php:110
+msgid "מוצגת בכרטיס ובראש המאמר כשלפוסט אין תמונה ראשית. יחס רוחב-גובה 8:5."
 msgstr ""
 
 #: inc/projects.php:66
@@ -563,16 +277,12 @@ msgstr ""
 msgid "מזהה תמונת \"לפני\" (Media ID)"
 msgstr ""
 
-#: template-parts/site-footer.php:52
-msgid "מידע"
+#: inc/content-admin.php:446
+msgid "מחיקה"
 msgstr ""
 
 #: template-parts/site-footer.php:51
 msgid "מידע משפטי ונגישות"
-msgstr ""
-
-#: template-parts/page-improvement.php:206
-msgid "מסלול לבעלי נכס בלי תקציב"
 msgstr ""
 
 #: inc/leads.php:177
@@ -580,21 +290,16 @@ msgstr ""
 msgid "מספר הטלפון לא נראה תקין. אפשר לבדוק אותו שוב?"
 msgstr ""
 
-#: template-parts/page-improvement.php:133
-msgid "מרגע שנכנסנו לנכס ועד שהכסף אצלך — אתה מקבל דיווח, לא משימות."
+#: inc/content-admin.php:306
+msgid "מקטע לא מוכר."
+msgstr ""
+
+#: inc/content-admin.php:503
+msgid "מקטעי התוכן"
 msgstr ""
 
 #: inc/assets.php:123
 msgid "משהו לא עבד. אפשר להתקשר אלינו ישירות."
-msgstr ""
-
-#: page-templates/template-broker.php:18
-msgid "מתווך שיודע מה הנכס יכול להיות שווה."
-msgstr ""
-
-#: inc/assets.php:125
-#: template-parts/lead-form.php:35
-msgid "נבדוק את הנכס מול המידע התכנוני ונחזור אליך עם תמונת מצב ראשונית ושאלות ממוקדות."
 msgstr ""
 
 #: page-templates/template-accessibility.php:33
@@ -606,21 +311,8 @@ msgstr ""
 msgid "נושא"
 msgstr ""
 
-#: inc/assets.php:127
-#: template-parts/lead-form.php:32
-msgid "נחזור אליך בהקדם עם השאלות הראשונות על הנכס."
-msgstr ""
-
 #: inc/accessibility.php:24
 msgid "ניגודיות גבוהה"
-msgstr ""
-
-#: template-parts/site-footer.php:28
-msgid "ניהול השבחת נכסים"
-msgstr ""
-
-#: template-parts/page-improvement.php:22
-msgid "ניהול השבחת נכסים · מא׳ עד ת׳"
 msgstr ""
 
 #: inc/seo.php:51
@@ -640,14 +332,6 @@ msgstr ""
 msgid "ניווט ותנועה"
 msgstr ""
 
-#: template-parts/page-improvement.php:58
-msgid "נכס אחרי השבחה"
-msgstr ""
-
-#: template-parts/page-improvement.php:83
-msgid "נכס שלא מנוצל הוא כסף על הרצפה."
-msgstr ""
-
 #: inc/leads.php:151
 #: inc/leads.php:358
 msgid "נשלחו כבר כמה פניות מהמכשיר הזה. נסה שוב מאוחר יותר או התקשר אלינו."
@@ -655,14 +339,6 @@ msgstr ""
 
 #: page-templates/template-accessibility.php:79
 msgid "נשתדל להשיב לכל פנייה בהקדם ולתקן את הליקוי במהירות האפשרית."
-msgstr ""
-
-#: page-templates/template-contact.php:21
-msgid "נתחיל בשיחה על הנכס שלך."
-msgstr ""
-
-#: template-parts/page-improvement.php:316
-msgid "נתחיל מבדיקה אחת:<br>מה מותר לבנות אצלך."
 msgstr ""
 
 #: page-templates/template-accessibility.php:60
@@ -674,7 +350,6 @@ msgid "סגירת כלי הנגישות"
 msgstr ""
 
 #: inc/leads.php:186
-#: template-parts/lead-form.php:152
 msgid "סוג הנכס"
 msgstr ""
 
@@ -682,32 +357,12 @@ msgstr ""
 msgid "סימון מוגבר לניווט במקלדת"
 msgstr ""
 
-#: page-templates/template-contact.php:22
-msgid "ספר לנו איפה הנכס ומה מצבו. נבדוק את המידע התכנוני ונחזור אליך עם תמונת מצב ראשונית — ללא עלות וללא התחייבות."
-msgstr ""
-
 #: inc/accessibility.php:60
 msgid "סרגל קריאה"
 msgstr ""
 
-#: inc/customizer.php:121
+#: inc/customizer.php:152
 msgid "סרגל קשר קבוע בתחתית המסך"
-msgstr ""
-
-#: page-templates/template-articles.php:68
-msgid "עדיין אין מאמרים. אפשר להוסיף אותם מלוח הניהול, תחת \"פוסטים\"."
-msgstr ""
-
-#: template-parts/lead-form.php:119
-msgid "עיר, רחוב"
-msgstr ""
-
-#: template-parts/page-improvement.php:165
-msgid "עם דירומקס"
-msgstr ""
-
-#: inc/setup.php:392
-msgid "עמוד הצהרת נגישות, מדיניות פרטיות ותנאי שימוש."
 msgstr ""
 
 #: template-parts/site-footer.php:23
@@ -722,17 +377,9 @@ msgstr ""
 msgid "עריכת פרויקט"
 msgstr ""
 
-#: inc/setup.php:459
-msgid "ערכת דירומקס מותקנת. נותר להתקין את תוכן העמודים."
-msgstr ""
-
 #: inc/leads.php:138
 #: inc/leads.php:357
 msgid "פג תוקף הטופס. רענן את העמוד ונסה שוב."
-msgstr ""
-
-#: inc/setup.php:317
-msgid "פוטר — מידע"
 msgstr ""
 
 #: inc/customizer.php:96
@@ -741,6 +388,10 @@ msgstr ""
 
 #: page-templates/template-accessibility.php:59
 msgid "פניות בנושא נגישות"
+msgstr ""
+
+#: inc/content-admin.php:424
+msgid "פעולה"
 msgstr ""
 
 #: inc/projects.php:21
@@ -752,30 +403,11 @@ msgid "פרויקט חדש"
 msgstr ""
 
 #: inc/projects.php:20
-#: template-parts/page-improvement.php:277
 msgid "פרויקטים"
-msgstr ""
-
-#: inc/setup.php:417
-msgid "פרטי קשר אמיתיים: עיצוב ← התאמה אישית ← דירומקס — פרטי קשר."
-msgstr ""
-
-#: inc/setup.php:418
-msgid "פרטי רכז/ת הנגישות ותאריך ההצהרה: דירומקס — נגישות."
 msgstr ""
 
 #: inc/leads.php:188
 msgid "פרטים"
-msgstr ""
-
-#: template-parts/lead-form.php:136
-msgid "פרטים על הנכס"
-msgstr ""
-
-#: 404.php:21
-#: inc/helpers.php:254
-#: page-templates/template-contact.php:20
-msgid "צור קשר"
 msgstr ""
 
 #: inc/leads.php:164
@@ -787,22 +419,12 @@ msgstr ""
 msgid "קו תחתון לקישורים"
 msgstr ""
 
-#: inc/assets.php:124
 #: inc/leads.php:356
-#: template-parts/lead-form.php:34
 msgid "קיבלנו. נחזור אליך."
 msgstr ""
 
-#: inc/setup.php:420
-msgid "קישורים ידידותיים: הגדרות ← קישורים ידידותיים ← שם הפוסט."
-msgstr ""
-
-#: inc/seo.php:215
+#: inc/seo.php:225
 msgid "ראשי"
-msgstr ""
-
-#: single.php:48
-msgid "רוצה לדעת מה אפשר לעשות עם הנכס שלך?"
 msgstr ""
 
 #: inc/accessibility.php:40
@@ -813,68 +435,35 @@ msgstr ""
 msgid "רכז/ת נגישות"
 msgstr ""
 
-#: inc/setup.php:408
-msgid "רק אם הם עדיין במצבם המקורי ולא נערכו. אפשר לשחזר אותם מסל המיחזור בכל רגע."
-msgstr ""
-
-#: inc/helpers.php:252
-#: page-templates/template-faq.php:17
-msgid "שאלות ותשובות"
+#: inc/customizer.php:128
+msgid "רק אם התמונה נושאת מידע. אם היא דקורטיבית — להשאיר ריק."
 msgstr ""
 
 #: inc/seo.php:53
 msgid "שאלות ותשובות על השבחת נכסים: זכויות בנייה, פיצול, חריגות, לוחות זמנים ועלויות."
 msgstr ""
 
-#: template-parts/page-improvement.php:300
-msgid "שאלות נפוצות"
-msgstr ""
-
-#: template-parts/page-improvement.php:132
-msgid "שבעה שלבים. כולם אצלנו."
-msgstr ""
-
 #: inc/assets.php:122
 msgid "שולח…"
-msgstr ""
-
-#: footer.php:20
-msgid "שיחה"
 msgstr ""
 
 #: page-templates/template-broker.php:23
 msgid "שירותי התיווך"
 msgstr ""
 
-#: inc/setup.php:393
-msgid "שישה מאמרים מלאים עם קטגוריות ותקצירים."
-msgstr ""
-
-#: template-parts/lead-form.php:160
-msgid "שלחו לי בדיקת פוטנציאל"
-msgstr ""
-
-#: template-parts/lead-form.php:147
-msgid "שליחה"
-msgstr ""
-
 #: inc/leads.php:183
 msgid "שם"
 msgstr ""
 
-#: inc/projects.php:104
-msgid "שם הפרויקט · אזור"
-msgstr ""
-
-#: template-parts/lead-form.php:73
-msgid "שם מלא"
-msgstr ""
-
-#: inc/customizer.php:173
+#: inc/customizer.php:204
 msgid "שם רכז/ת הנגישות"
 msgstr ""
 
-#: inc/customizer.php:191
+#: inc/content-admin.php:534
+msgid "שמירת התוכן"
+msgstr ""
+
+#: inc/customizer.php:222
 msgid "תאריך עדכון ההצהרה"
 msgstr ""
 
@@ -882,36 +471,29 @@ msgstr ""
 msgid "תאריך עדכון ההצהרה: %s"
 msgstr ""
 
-#: inc/assets.php:126
-#: template-parts/lead-form.php:31
-msgid "תודה. הפרטים אצלנו."
+#: inc/content-admin.php:224
+#: inc/content-admin.php:225
+#: inc/content-admin.php:491
+msgid "תוכן האתר"
 msgstr ""
 
-#: index.php:26
-msgid "תוצאות חיפוש: %s"
-msgstr ""
-
-#: inc/customizer.php:114
+#: inc/customizer.php:145
 msgid "תיאור קצר של מה שרואים בתמונה — נדרש לנגישות."
 msgstr ""
 
-#: inc/customizer.php:113
+#: inc/customizer.php:127
+msgid "תיאור תמונת ברירת המחדל"
+msgstr ""
+
+#: inc/customizer.php:144
 msgid "תיאור תמונת ההירו (טקסט חלופי)"
-msgstr ""
-
-#: inc/helpers.php:251
-msgid "תיווך"
-msgstr ""
-
-#: page-templates/template-broker.php:17
-msgid "תיווך נכסים"
 msgstr ""
 
 #: inc/seo.php:52
 msgid "תיווך נכסים בעין של יזם — מכירה, איתור נכס לקנייה והשבחה לפני מכירה."
 msgstr ""
 
-#: inc/seo.php:178
+#: inc/seo.php:188
 msgid "תיווך, יזמות וניהול השבחת נכסים."
 msgstr ""
 
@@ -919,12 +501,12 @@ msgstr ""
 msgid "תמונות לפני / אחרי"
 msgstr ""
 
-#: inc/customizer.php:95
-msgid "תמונת הירו (עמוד השבחה)"
+#: inc/customizer.php:109
+msgid "תמונת ברירת מחדל למאמרים"
 msgstr ""
 
-#: inc/setup.php:419
-msgid "תמונת הירו ותמונות לפני/אחרי לפרויקטים."
+#: inc/customizer.php:95
+msgid "תמונת הירו (עמוד השבחה)"
 msgstr ""
 
 #: template-parts/page-improvement.php:66

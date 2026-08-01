@@ -69,7 +69,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<div class="dx-header__cta">
 			<a class="dx-btn dx-btn--orange dx-btn--sm" href="<?php echo esc_url( dx_view_url( 'contact' ) ); ?>">
-				<?php esc_html_e( 'בדיקת פוטנציאל', 'diromax' ); ?>
+				<?php dx_the_text( 'general.header_cta' ); ?>
 			</a>
 		</div>
 

@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DX_VERSION', '2.0.0' );
+define( 'DX_VERSION', '2.1.0' );
 define( 'DX_DIR', get_template_directory() );
 define( 'DX_URI', get_template_directory_uri() );
 
@@ -26,8 +26,8 @@ require_once DX_DIR . '/inc/leads.php';
 require_once DX_DIR . '/inc/projects.php';
 
 if ( is_admin() ) {
-	// Content installer is an admin-only screen; never parsed on front-end requests.
-	require_once DX_DIR . '/inc/setup.php';
+	// Content editor is an admin-only screen; never parsed on a front-end request.
+	require_once DX_DIR . '/inc/content-admin.php';
 }
 
 /**

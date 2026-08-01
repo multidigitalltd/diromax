@@ -101,8 +101,8 @@ add_action( 'save_post_dx_project', 'dx_project_save' );
  * @param WP_Post|null $post Project, or null for the placeholder.
  */
 function dx_project_card( $post = null ) {
-	$title     = __( 'שם הפרויקט · אזור', 'diromax' );
-	$desc      = __( 'מה נעשה בנכס ומה השתנה בשווי — להשלמה עם פרטי פרויקט אמיתי.', 'diromax' );
+	$title     = (string) dx_content( 'improve.project_title' );
+	$desc      = (string) dx_content( 'improve.project_desc' );
 	$before_id = 0;
 	$after_id  = 0;
 

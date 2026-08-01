@@ -25,8 +25,8 @@ $dx_posts = new WP_Query(
 
 <section class="dx-section" aria-labelledby="dx-articles-title">
 	<div class="dx-wrap dx-pad-sm">
-		<?php dx_eyebrow( __( 'מאמרים', 'diromax' ), 'teal', 'dx-eyebrow--page' ); ?>
-		<h1 class="dx-h1--page dx-mw-24" id="dx-articles-title"><?php esc_html_e( 'איך חושבים על נכס שיש לו עוד מה לתת.', 'diromax' ); ?></h1>
+		<?php dx_eyebrow( dx_content( 'articles.eyebrow' ), 'teal', 'dx-eyebrow--page' ); ?>
+		<h1 class="dx-h1--page dx-mw-24" id="dx-articles-title"><?php dx_the_lines( 'articles.title' ); ?></h1>
 	</div>
 </section>
 
@@ -48,8 +48,8 @@ $dx_posts = new WP_Query(
 				array(
 					'total'     => $dx_posts->max_num_pages,
 					'current'   => $dx_paged,
-					'prev_text' => __( 'הקודם', 'diromax' ),
-					'next_text' => __( 'הבא', 'diromax' ),
+					'prev_text' => dx_content( 'general.post_prev' ),
+					'next_text' => dx_content( 'general.post_next' ),
 				)
 			);
 
@@ -65,7 +65,7 @@ $dx_posts = new WP_Query(
 			?>
 
 		<?php else : ?>
-			<p class="dx-intro"><?php esc_html_e( 'עדיין אין מאמרים. אפשר להוסיף אותם מלוח הניהול, תחת "פוסטים".', 'diromax' ); ?></p>
+			<p class="dx-intro"><?php dx_the_text( 'articles.empty' ); ?></p>
 		<?php endif; ?>
 	</div>
 </section>

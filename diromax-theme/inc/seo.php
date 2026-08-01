@@ -74,6 +74,16 @@ function dx_social_image() {
 		}
 	}
 
+	// A post without its own image still shares the configured default.
+	$default = dx_default_thumb_id();
+	if ( is_singular( 'post' ) && $default ) {
+		$src = wp_get_attachment_image_src( $default, 'full' );
+
+		if ( $src ) {
+			return $src[0];
+		}
+	}
+
 	$hero = (int) get_theme_mod( 'dx_hero_image' );
 	if ( $hero ) {
 		$src = wp_get_attachment_image_src( $hero, 'full' );

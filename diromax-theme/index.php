@@ -15,7 +15,7 @@ get_header();
 
 <section class="dx-section" aria-labelledby="dx-archive-title">
 	<div class="dx-wrap dx-pad-sm">
-		<?php dx_eyebrow( __( 'מאמרים', 'diromax' ), 'teal', 'dx-eyebrow--page' ); ?>
+		<?php dx_eyebrow( dx_content( 'articles.eyebrow' ), 'teal', 'dx-eyebrow--page' ); ?>
 		<h1 class="dx-h1--page dx-mw-24" id="dx-archive-title">
 			<?php
 			if ( is_category() || is_tag() || is_tax() ) {
@@ -23,11 +23,11 @@ get_header();
 			} elseif ( is_search() ) {
 				printf(
 					/* translators: %s: search term. */
-					esc_html__( 'תוצאות חיפוש: %s', 'diromax' ),
+					esc_html( (string) dx_content( 'articles.search' ) ),
 					esc_html( get_search_query() )
 				);
 			} else {
-				esc_html_e( 'איך חושבים על נכס שיש לו עוד מה לתת.', 'diromax' );
+				dx_the_lines( 'articles.title' );
 			}
 			?>
 		</h1>
@@ -50,8 +50,8 @@ get_header();
 			<?php
 			$dx_pagination = paginate_links(
 				array(
-					'prev_text' => __( 'הקודם', 'diromax' ),
-					'next_text' => __( 'הבא', 'diromax' ),
+					'prev_text' => dx_content( 'general.post_prev' ),
+					'next_text' => dx_content( 'general.post_next' ),
 				)
 			);
 
@@ -65,7 +65,7 @@ get_header();
 			?>
 
 		<?php else : ?>
-			<p class="dx-intro"><?php esc_html_e( 'לא נמצאו מאמרים.', 'diromax' ); ?></p>
+			<p class="dx-intro"><?php dx_the_text( 'articles.none' ); ?></p>
 		<?php endif; ?>
 	</div>
 </section>

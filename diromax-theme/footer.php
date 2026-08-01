@@ -17,13 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php if ( dx_show_sticky() ) : ?>
 	<nav class="dx-sticky" aria-label="<?php esc_attr_e( 'יצירת קשר מהירה', 'diromax' ); ?>">
-		<a href="tel:<?php echo esc_attr( dx_phone_tel() ); ?>"><?php esc_html_e( 'שיחה', 'diromax' ); ?></a>
+		<a href="tel:<?php echo esc_attr( dx_phone_tel() ); ?>"><?php dx_the_text( 'general.sticky_call' ); ?></a>
 		<a class="dx-sticky__wa" href="<?php echo esc_url( dx_wa_url() ); ?>" target="_blank" rel="noopener">
-			<?php esc_html_e( 'וואטסאפ', 'diromax' ); ?>
+			<?php dx_the_text( 'general.sticky_wa' ); ?>
 			<span class="dx-sr-only"><?php esc_html_e( '(נפתח בחלון חדש)', 'diromax' ); ?></span>
 		</a>
 		<a class="dx-sticky__cta" href="<?php echo esc_url( dx_view_url( 'contact' ) ); ?>">
-			<?php esc_html_e( 'בדיקת פוטנציאל', 'diromax' ); ?>
+			<?php dx_the_text( 'general.sticky_cta' ); ?>
 		</a>
 	</nav>
 	<div class="dx-sticky-spacer" aria-hidden="true"></div>

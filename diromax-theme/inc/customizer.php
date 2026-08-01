@@ -100,6 +100,37 @@ function dx_customize_register( $wp_customize ) {
 		)
 	);
 
+	$wp_customize->add_setting( 'dx_default_thumb', array( 'sanitize_callback' => 'absint' ) );
+	$wp_customize->add_control(
+		new WP_Customize_Media_Control(
+			$wp_customize,
+			'dx_default_thumb',
+			array(
+				'label'       => __( 'תמונת ברירת מחדל למאמרים', 'diromax' ),
+				'description' => __( 'מוצגת בכרטיס ובראש המאמר כשלפוסט אין תמונה ראשית. יחס רוחב-גובה 8:5.', 'diromax' ),
+				'section'     => 'dx_layout',
+				'mime_type'   => 'image',
+			)
+		)
+	);
+
+	$wp_customize->add_setting(
+		'dx_default_thumb_alt',
+		array(
+			'default'           => '',
+			'sanitize_callback' => 'sanitize_text_field',
+		)
+	);
+	$wp_customize->add_control(
+		'dx_default_thumb_alt',
+		array(
+			'label'       => __( 'תיאור תמונת ברירת המחדל', 'diromax' ),
+			'description' => __( 'רק אם התמונה נושאת מידע. אם היא דקורטיבית — להשאיר ריק.', 'diromax' ),
+			'section'     => 'dx_layout',
+			'type'        => 'text',
+		)
+	);
+
 	$wp_customize->add_setting(
 		'dx_hero_alt',
 		array(

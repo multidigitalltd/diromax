@@ -28,11 +28,11 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 		<div class="dx-sent" role="status">
 			<div class="dx-rule" aria-hidden="true"></div>
 			<?php if ( $dx_is_blue ) : ?>
-				<h2><?php esc_html_e( 'תודה. הפרטים אצלנו.', 'diromax' ); ?></h2>
-				<p><?php esc_html_e( 'נחזור אליך בהקדם עם השאלות הראשונות על הנכס.', 'diromax' ); ?></p>
+				<h2><?php dx_the_text( 'form.ok_blue_h' ); ?></h2>
+				<p><?php dx_the_text( 'form.ok_blue_p' ); ?></p>
 			<?php else : ?>
-				<h3><?php esc_html_e( 'קיבלנו. נחזור אליך.', 'diromax' ); ?></h3>
-				<p><?php esc_html_e( 'נבדוק את הנכס מול המידע התכנוני ונחזור אליך עם תמונת מצב ראשונית ושאלות ממוקדות.', 'diromax' ); ?></p>
+				<h3><?php dx_the_text( 'form.ok_light_h' ); ?></h3>
+				<p><?php dx_the_text( 'form.ok_light_p' ); ?></p>
 			<?php endif; ?>
 		</div>
 
@@ -55,9 +55,9 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 			</p>
 
 			<?php if ( $dx_is_blue ) : ?>
-				<h2 id="<?php echo esc_attr( $dx_uid ); ?>-title"><?php esc_html_e( 'השארת פרטים', 'diromax' ); ?></h2>
+				<h2 id="<?php echo esc_attr( $dx_uid ); ?>-title"><?php dx_the_text( 'form.blue_title' ); ?></h2>
 			<?php else : ?>
-				<h3 id="<?php echo esc_attr( $dx_uid ); ?>-title"><?php esc_html_e( 'בדיקת פוטנציאל הנכס', 'diromax' ); ?></h3>
+				<h3 id="<?php echo esc_attr( $dx_uid ); ?>-title"><?php dx_the_text( 'form.light_title' ); ?></h3>
 			<?php endif; ?>
 
 			<div class="dx-fields">
@@ -70,7 +70,7 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 
 				<p class="dx-label">
 					<label for="<?php echo esc_attr( $dx_uid ); ?>-name">
-						<?php esc_html_e( 'שם מלא', 'diromax' ); ?>
+						<?php dx_the_text( 'form.label_name' ); ?>
 						<span class="dx-req"><?php esc_html_e( '(חובה)', 'diromax' ); ?></span>
 					</label>
 					<input
@@ -86,7 +86,7 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 
 				<p class="dx-label">
 					<label for="<?php echo esc_attr( $dx_uid ); ?>-phone">
-						<?php esc_html_e( 'טלפון', 'diromax' ); ?>
+						<?php dx_the_text( 'form.label_phone' ); ?>
 						<span class="dx-req"><?php esc_html_e( '(חובה)', 'diromax' ); ?></span>
 					</label>
 					<input
@@ -101,12 +101,12 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 						aria-describedby="<?php echo esc_attr( $dx_uid ); ?>-phone-hint"
 						maxlength="20">
 					<span class="dx-hint" id="<?php echo esc_attr( $dx_uid ); ?>-phone-hint">
-						<?php esc_html_e( 'לדוגמה: 054-1234567', 'diromax' ); ?>
+						<?php dx_the_text( 'form.hint_phone' ); ?>
 					</span>
 				</p>
 
 				<p class="dx-label">
-					<label for="<?php echo esc_attr( $dx_uid ); ?>-address"><?php esc_html_e( 'כתובת הנכס', 'diromax' ); ?></label>
+					<label for="<?php echo esc_attr( $dx_uid ); ?>-address"><?php dx_the_text( 'form.label_address' ); ?></label>
 					<input
 						class="dx-input"
 						type="text"
@@ -116,14 +116,14 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 						aria-describedby="<?php echo esc_attr( $dx_uid ); ?>-address-hint"
 						maxlength="150">
 					<span class="dx-hint" id="<?php echo esc_attr( $dx_uid ); ?>-address-hint">
-						<?php esc_html_e( 'עיר, רחוב', 'diromax' ); ?>
+						<?php dx_the_text( 'form.hint_address' ); ?>
 					</span>
 				</p>
 
 				<?php if ( $dx_is_blue ) : ?>
 
 					<p class="dx-label">
-						<label for="<?php echo esc_attr( $dx_uid ); ?>-subject"><?php esc_html_e( 'במה נוכל לעזור', 'diromax' ); ?></label>
+						<label for="<?php echo esc_attr( $dx_uid ); ?>-subject"><?php dx_the_text( 'form.label_subject' ); ?></label>
 						<select class="dx-input" id="<?php echo esc_attr( $dx_uid ); ?>-subject" name="dx_subject">
 							<?php foreach ( dx_contact_subjects() as $dx_subject ) : ?>
 								<option value="<?php echo esc_attr( $dx_subject ); ?>"><?php echo esc_html( $dx_subject ); ?></option>
@@ -133,7 +133,7 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 
 					<p class="dx-label">
 						<label for="<?php echo esc_attr( $dx_uid ); ?>-message">
-							<?php esc_html_e( 'פרטים על הנכס', 'diromax' ); ?>
+							<?php dx_the_text( 'form.label_message' ); ?>
 							<span class="dx-opt"><?php esc_html_e( '(לא חובה)', 'diromax' ); ?></span>
 						</label>
 						<textarea
@@ -144,12 +144,12 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 							maxlength="2000"></textarea>
 					</p>
 
-					<button class="dx-btn dx-btn--orange dx-btn--block" type="submit"><?php esc_html_e( 'שליחה', 'diromax' ); ?></button>
+					<button class="dx-btn dx-btn--orange dx-btn--block" type="submit"><?php dx_the_text( 'form.btn_blue' ); ?></button>
 
 				<?php else : ?>
 
 					<p class="dx-label">
-						<label for="<?php echo esc_attr( $dx_uid ); ?>-type"><?php esc_html_e( 'סוג הנכס', 'diromax' ); ?></label>
+						<label for="<?php echo esc_attr( $dx_uid ); ?>-type"><?php dx_the_text( 'form.label_type' ); ?></label>
 						<select class="dx-input" id="<?php echo esc_attr( $dx_uid ); ?>-type" name="dx_type">
 							<?php foreach ( dx_property_types() as $dx_type ) : ?>
 								<option value="<?php echo esc_attr( $dx_type ); ?>"><?php echo esc_html( $dx_type ); ?></option>
@@ -157,8 +157,8 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 						</select>
 					</p>
 
-					<button class="dx-btn dx-btn--blue dx-btn--block" type="submit"><?php esc_html_e( 'שלחו לי בדיקת פוטנציאל', 'diromax' ); ?></button>
-					<p class="dx-note"><?php esc_html_e( 'הפרטים נשמרים אצלנו בלבד ומשמשים ליצירת קשר בנוגע לנכס.', 'diromax' ); ?></p>
+					<button class="dx-btn dx-btn--blue dx-btn--block" type="submit"><?php dx_the_text( 'form.btn_light' ); ?></button>
+					<p class="dx-note"><?php dx_the_text( 'form.note' ); ?></p>
 
 				<?php endif; ?>
 			</div>

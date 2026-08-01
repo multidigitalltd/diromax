@@ -230,6 +230,45 @@ function dx_show_projects() {
 }
 
 /**
+ * Attachment ID of the image used when a post has no featured image.
+ *
+ * @return int
+ */
+function dx_default_thumb_id() {
+	return (int) get_theme_mod( 'dx_default_thumb', 0 );
+}
+
+/**
+ * Render the featured image, or the configured default, or nothing.
+ *
+ * @param string $size  Image size.
+ * @param array  $attrs Extra image attributes.
+ * @return bool True when an image was printed.
+ */
+function dx_post_thumbnail( $size = 'dx-card', array $attrs = array() ) {
+	if ( has_post_thumbnail() ) {
+		the_post_thumbnail( $size, $attrs );
+
+		return true;
+	}
+
+	$fallback = dx_default_thumb_id();
+
+	if ( ! $fallback ) {
+		return false;
+	}
+
+	// A generic image carries no information about this particular post, so it
+	// is decorative unless the client wrote an alt text for it.
+	$attrs['alt']   = dx_opt( 'default_thumb_alt', '' );
+	$attrs['class'] = trim( ( $attrs['class'] ?? '' ) . ' dx-thumb--default' );
+
+	echo wp_get_attachment_image( $fallback, $size, false, $attrs );
+
+	return true;
+}
+
+/**
  * @return bool Whether the accessibility toolbar is shown.
  */
 function dx_a11y_enabled() {
@@ -247,11 +286,11 @@ function dx_a11y_enabled() {
  */
 function dx_nav_items() {
 	return array(
-		'improve'  => __( 'השבחת נכסים', 'diromax' ),
-		'broker'   => __( 'תיווך', 'diromax' ),
-		'faq'      => __( 'שאלות ותשובות', 'diromax' ),
-		'articles' => __( 'מאמרים', 'diromax' ),
-		'contact'  => __( 'צור קשר', 'diromax' ),
+		'improve'  => (string) dx_content( 'general.nav_improve' ),
+		'broker'   => (string) dx_content( 'general.nav_broker' ),
+		'faq'      => (string) dx_content( 'general.nav_faq' ),
+		'articles' => (string) dx_content( 'general.nav_articles' ),
+		'contact'  => (string) dx_content( 'general.nav_contact' ),
 	);
 }
 

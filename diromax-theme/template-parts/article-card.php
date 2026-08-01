@@ -17,9 +17,7 @@ $dx_cat  = $dx_cats ? $dx_cats[0]->name : '';
 ?>
 <article class="dx-article">
 	<div class="dx-article__thumb">
-		<?php if ( has_post_thumbnail() ) : ?>
-			<?php the_post_thumbnail( 'dx-card', array( 'loading' => 'lazy' ) ); ?>
-		<?php else : ?>
+		<?php if ( ! dx_post_thumbnail( 'dx-card', array( 'loading' => 'lazy' ) ) ) : ?>
 			<span class="dx-article__ph" aria-hidden="true">ARTICLE IMAGE</span>
 		<?php endif; ?>
 	</div>

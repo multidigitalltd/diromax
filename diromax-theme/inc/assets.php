@@ -121,10 +121,11 @@ function dx_enqueue_assets() {
 					'strings' => array(
 						'sending'    => __( 'שולח…', 'diromax' ),
 						'error'      => __( 'משהו לא עבד. אפשר להתקשר אלינו ישירות.', 'diromax' ),
-						'thanksTtl'  => __( 'קיבלנו. נחזור אליך.', 'diromax' ),
-						'thanksTxt'  => __( 'נבדוק את הנכס מול המידע התכנוני ונחזור אליך עם תמונת מצב ראשונית ושאלות ממוקדות.', 'diromax' ),
-						'thanksTtl2' => __( 'תודה. הפרטים אצלנו.', 'diromax' ),
-						'thanksTxt2' => __( 'נחזור אליך בהקדם עם השאלות הראשונות על הנכס.', 'diromax' ),
+						// The confirmation copy is editable under "תוכן האתר".
+						'thanksTtl'  => (string) dx_content( 'form.ok_light_h' ),
+						'thanksTxt'  => (string) dx_content( 'form.ok_light_p' ),
+						'thanksTtl2' => (string) dx_content( 'form.ok_blue_h' ),
+						'thanksTxt2' => (string) dx_content( 'form.ok_blue_p' ),
 					),
 				)
 			) . ';',
@@ -221,14 +222,18 @@ add_action( 'wp', 'dx_drop_global_styles' );
 add_filter( 'should_load_separate_core_block_assets', '__return_true' );
 
 /**
- * The design is right-to-left whatever the admin locale is set to, so the
+ * The design is right-to-left whatever the site locale is set to, so the
  * document direction is stated explicitly when the locale did not supply one.
+ *
+ * Front end only: wp-admin renders through language_attributes() as well, and
+ * flipping it there would put an English admin into RTL without the matching
+ * admin stylesheet.
  *
  * @param string $output Attribute string from language_attributes().
  * @return string
  */
 function dx_force_rtl_attributes( $output ) {
-	if ( false === strpos( $output, 'dir=' ) ) {
+	if ( ! is_admin() && false === strpos( $output, 'dir=' ) ) {
 		$output .= ' dir="rtl"';
 	}
 
