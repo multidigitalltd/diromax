@@ -17,3 +17,5 @@ wp-content/
 
 # Build output is committed on purpose (style.min.css, *.min.js) so the theme
 # works the moment it is unzipped, without a build step on the server.
+# The upload package is not: rebuild it with bin/build-zip.sh.
+dist/
