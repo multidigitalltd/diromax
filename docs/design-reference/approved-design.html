@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>דירומקס · ניהול השבחת נכסים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&family=Archivo:wght@700;800&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  @font-face { font-family: 'Anomalia'; src: url('uploads/anomalia-medium-aaa.woff') format('woff'); font-weight: 400 500; font-display: swap; }
+  @font-face { font-family: 'Anomalia'; src: url('uploads/anomalia-demibold-aaa.woff') format('woff'); font-weight: 600 700; font-display: swap; }
+  @font-face { font-family: 'Anomalia'; src: url('uploads/anomalia-bold-aaa.woff') format('woff'); font-weight: 800 900; font-display: swap; }
+  html { direction: rtl; scroll-behavior: smooth; }
+  h1, h2, h3, h4 { font-family: 'Anomalia', 'Heebo', sans-serif; }
+  body { margin: 0; background: #f4f4f2; color: #15171c; font-family: 'Heebo', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  h1, h2, h3, h4, p, ul, li { margin: 0; padding: 0; }
+  ul { list-style: none; }
+  a { color: #1d3a8f; text-decoration: none; }
+  a:hover { color: #ee7c1a; }
+  button { font-family: inherit; }
+  ::selection { background: #ee7c1a; color: #fff; }
+  :focus-visible { outline: 2px solid #ee7c1a; outline-offset: 2px; }
+  summary::-webkit-details-marker { display: none; }
+  summary { list-style: none; cursor: pointer; }
+  button, a, summary, input, select, textarea { transition: background-color .16s ease, color .16s ease, border-color .16s ease, opacity .16s ease, transform .1s ease; }
+  button:active, a:active { transform: translateY(1px); }
+  summary:hover { color: #1d3a8f; }
+  input:hover, select:hover, textarea:hover { border-color: #1d3a8f !important; }
+  input:focus, select:focus, textarea:focus { border-color: #1d3a8f !important; }
+  details[open] summary { color: #1d3a8f; }
+</style>
+</helmet>
+
+<div dir="rtl" style="background:#f4f4f2;color:#15171c;font-family:'Heebo',sans-serif;min-height:100vh;text-wrap:pretty">
+
+  <div style="display:flex;height:6px">
+    <span style="flex:1;background:#1d3a8f"></span>
+    <span style="flex:1;background:#2fa6c7"></span>
+    <span style="flex:1;background:#ee7c1a"></span>
+  </div>
+
+  <header style="position:sticky;top:0;z-index:50;background:#f4f4f2;border-bottom:2px solid #15171c">
+    <div style="max-width:1280px;margin:0 auto;padding:0 clamp(18px,4vw,44px);display:flex;flex-wrap:wrap;align-items:stretch;justify-content:space-between;gap:0 clamp(12px,2.4vw,36px);min-height:76px">
+      <button onClick="{{ goImprove }}" style="display:flex;align-items:center;gap:12px;background:none;border:none;padding:0;cursor:pointer" style-hover="opacity:0.7">
+        <img src="uploads/logo-1785440629454.jpg" alt="דירומקס" style="height:46px;width:auto;mix-blend-mode:multiply;display:block">
+        <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:19px;letter-spacing:0.06em;color:#1d3a8f;line-height:1;white-space:nowrap">DIROMAX</span>
+      </button>
+
+      <nav style="display:flex;align-items:stretch;flex-wrap:nowrap;flex:0 1 auto;min-width:0;justify-content:flex-end">
+        <button onClick="{{ goImprove }}" style="position:relative;background:none;border:none;padding:0 clamp(6px,1vw,14px);font-size:15.5px;font-weight:700;color:#15171c;cursor:pointer;white-space:nowrap" style-hover="color:#ee7c1a" style-active="color:#d66a10">
+          השבחת נכסים
+          <sc-if value="{{ isImprove }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;bottom:0;right:clamp(6px,1vw,14px);left:clamp(6px,1vw,14px);height:4px;background:#ee7c1a"></span></sc-if>
+        </button>
+        <button onClick="{{ goBroker }}" style="position:relative;background:none;border:none;padding:0 clamp(6px,1vw,14px);font-size:15.5px;font-weight:500;color:#15171c;cursor:pointer;white-space:nowrap" style-hover="color:#ee7c1a" style-active="color:#d66a10">
+          תיווך
+          <sc-if value="{{ isBroker }}"><span style="position:absolute;bottom:0;right:clamp(6px,1vw,14px);left:clamp(6px,1vw,14px);height:4px;background:#ee7c1a"></span></sc-if>
+        </button>
+        <button onClick="{{ goFaq }}" style="position:relative;background:none;border:none;padding:0 clamp(6px,1vw,14px);font-size:15.5px;font-weight:500;color:#15171c;cursor:pointer;white-space:nowrap" style-hover="color:#ee7c1a" style-active="color:#d66a10">
+          שאלות ותשובות
+          <sc-if value="{{ isFaq }}"><span style="position:absolute;bottom:0;right:clamp(6px,1vw,14px);left:clamp(6px,1vw,14px);height:4px;background:#ee7c1a"></span></sc-if>
+        </button>
+        <button onClick="{{ goArticles }}" style="position:relative;background:none;border:none;padding:0 clamp(6px,1vw,14px);font-size:15.5px;font-weight:500;color:#15171c;cursor:pointer;white-space:nowrap" style-hover="color:#ee7c1a" style-active="color:#d66a10">
+          מאמרים
+          <sc-if value="{{ isArticles }}"><span style="position:absolute;bottom:0;right:clamp(6px,1vw,14px);left:clamp(6px,1vw,14px);height:4px;background:#ee7c1a"></span></sc-if>
+        </button>
+        <button onClick="{{ goContact }}" style="position:relative;background:none;border:none;padding:0 clamp(6px,1vw,14px);font-size:15.5px;font-weight:500;color:#15171c;cursor:pointer;white-space:nowrap" style-hover="color:#ee7c1a" style-active="color:#d66a10">
+          צור קשר
+          <sc-if value="{{ isContact }}"><span style="position:absolute;bottom:0;right:clamp(6px,1vw,14px);left:clamp(6px,1vw,14px);height:4px;background:#ee7c1a"></span></sc-if>
+        </button>
+      </nav>
+
+      <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto;border-inline-start:2px solid #15171c;padding-inline-start:clamp(14px,2vw,26px)">
+        <button onClick="{{ goContact }}" style="background:#ee7c1a;color:#15171c;border:none;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;text-align:right;white-space:nowrap;flex:0 0 auto" style-hover="background:#f7972e" style-active="background:#d66a10">בדיקת פוטנציאל</button>
+      </div>
+    </div>
+  </header>
+
+  <sc-if value="{{ isImprove }}" hint-placeholder-val="{{ true }}">
+  <main>
+
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:0 clamp(18px,4vw,44px)">
+        <div style="display:flex;flex-wrap:wrap;align-items:stretch">
+          <div style="flex:1 1 470px;min-width:0;padding:clamp(44px,6vw,84px) 0;padding-inline-end:clamp(24px,4vw,64px)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px">
+              <span style="width:11px;height:11px;background:#ee7c1a;display:block"></span>
+              <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#1d3a8f;white-space:nowrap">ניהול השבחת נכסים · מא׳ עד ת׳</span>
+            </div>
+            <h1 style="font-size:clamp(38px,4.9vw,68px);font-weight:900;line-height:1.07;letter-spacing:-0.015em;margin-bottom:26px">
+              לנכס שלך יש זכויות<br>שאתה לא מנצל.
+            </h1>
+            <p style="font-size:clamp(17px,1.45vw,21px);line-height:1.55;color:#3a3d44;max-width:56ch;margin-bottom:20px">
+              אנחנו בודקים מה באמת מותר לבנות על הנכס שלך, בונים תוכנית עבודה, מחתימים שכנים, מוציאים היתר, מנהלים את הביצוע — ואז מוכרים בשווי החדש.
+            </p>
+            <p style="font-size:clamp(17px,1.45vw,21px);line-height:1.55;font-weight:700;margin-bottom:38px">
+              יזמות בלי להיות יזם: אתה לא מתעסק בכלום — אתה רק מחליט.
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:34px">
+              <button onClick="{{ goContact }}" style="background:#ee7c1a;color:#15171c;border:none;padding:19px 30px;font-size:17px;font-weight:800;cursor:pointer;text-align:right" style-hover="background:#f7972e" style-active="background:#d66a10">בדיקת פוטנציאל הנכס — ללא עלות</button>
+              <a href="#process" style="border:2px solid #15171c;color:#15171c;padding:19px 30px;font-size:17px;font-weight:700;text-align:right" style-hover="background:#15171c;color:#f4f4f2" style-active="background:#000000;color:#f4f4f2">איך התהליך עובד</a>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:0;border-top:2px solid #15171c">
+              <div style="padding:18px 0;padding-inline-end:28px;border-inline-end:1px solid #cfcdc8;flex:1;min-width:150px">
+                <div style="font-size:14px;font-weight:800;margin-bottom:4px">בדיקה לפני התחייבות</div>
+                <div style="font-size:13.5px;color:#55585f;line-height:1.4">קודם בודקים אם יש מה להשביח</div>
+              </div>
+              <div style="padding:18px 0;padding-inline:28px;border-inline-end:1px solid #cfcdc8;flex:1;min-width:150px">
+                <div style="font-size:14px;font-weight:800;margin-bottom:4px">איש קשר אחד</div>
+                <div style="font-size:13.5px;color:#55585f;line-height:1.4">אדריכל, יועצים, קבלן — דרכנו</div>
+              </div>
+              <div style="padding:18px 0;padding-inline-start:28px;flex:1;min-width:150px">
+                <div style="font-size:14px;font-weight:800;margin-bottom:4px">עד המימוש</div>
+                <div style="font-size:13.5px;color:#55585f;line-height:1.4">מהיתר בנייה ועד המכירה בפועל</div>
+              </div>
+            </div>
+          </div>
+          <sc-if value="{{ heroImage }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1 1 330px;align-self:stretch;border-inline-start:2px solid #15171c;position:relative;min-height:520px;min-width:0;overflow:hidden">
+            <image-slot id="dx-hero" shape="rect" placeholder="תמונת נכס · חזית בניין או פרויקט אחרי השבחה" style="position:absolute;inset:0;filter:grayscale(1) contrast(1.05)"></image-slot>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+    </section>
+
+    <section style="background:#1d3a8f;color:#fff;border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(44px,4.6vw,72px) clamp(18px,4vw,44px)">
+        <div style="display:flex;flex-wrap:wrap;gap:clamp(28px,4vw,56px);align-items:stretch;border-top:2px solid rgba(255,255,255,0.4);padding-top:clamp(26px,2.8vw,40px)">
+          <div style="flex:1 1 430px;min-width:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
+              <span style="width:11px;height:11px;background:#ee7c1a;display:block"></span>
+              <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#9fd4e6">בשורה אחת</span>
+            </div>
+            <p style="font-family:'Anomalia','Heebo',sans-serif;font-size:clamp(34px,4.7vw,66px);font-weight:900;line-height:1.08;letter-spacing:-0.015em;max-width:19ch">
+              נכס שלא מנוצל הוא כסף על הרצפה.
+            </p>
+            <div style="width:72px;height:5px;background:#ee7c1a;margin-top:26px"></div>
+            <p style="font-size:clamp(18px,1.9vw,27px);font-weight:700;line-height:1.35;color:#9fd4e6;max-width:34ch;margin-top:22px">
+              אם לא תרים אותו — מישהו אחר ירוויח אותו במקומך.
+            </p>
+          </div>
+          <div style="flex:0 1 270px;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:26px;border-inline-start:2px solid rgba(255,255,255,0.4);padding-inline-start:clamp(20px,2.4vw,34px)">
+            <p style="font-size:16.5px;line-height:1.6;color:#d8e2f4">
+              השבחה היא לא שיפוץ. זו הפעולה שמשנה את השווי של הנכס עצמו — לפני שמוכרים אותו. מי שקונה נכס לא מנוצל, קונה את הפוטנציאל שלך במחיר של היום.
+            </p>
+            <a href="#process" style="display:block;font-size:16.5px;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,0.6);padding:14px 18px;text-align:right" style-hover="background:#ee7c1a;color:#15171c;border-color:#ee7c1a">איך זה עובד בפועל ←</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+          <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">01</span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">מה רוב בעלי הנכסים לא יודעים</span>
+        </div>
+        <h2 style="font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.09;letter-spacing:-0.015em;max-width:24ch;margin-bottom:52px">
+          הנכס שלך כנראה מחזיק שווי שלא נבנה מעולם.
+        </h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));border-top:2px solid #15171c">
+          <div style="padding:32px 0;padding-inline-end:32px;border-inline-end:1px solid #cfcdc8">
+            <div style="width:44px;height:4px;background:#ee7c1a;margin-bottom:22px"></div>
+            <h3 style="font-size:22px;font-weight:800;line-height:1.2;margin-bottom:12px">זכויות בנייה שלא נוצלו</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">התוכניות באזור שלך מאפשרות לרוב יותר ממה שבנוי בשטח. ההפרש הזה שווה כסף — גם בלי לגעת בקירות.</p>
+          </div>
+          <div style="padding:32px;border-inline-end:1px solid #cfcdc8">
+            <div style="width:44px;height:4px;background:#ee7c1a;margin-bottom:22px"></div>
+            <h3 style="font-size:22px;font-weight:800;line-height:1.2;margin-bottom:12px">שטח שאפשר להפוך ליחידה</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">גג, מחסן, חצר, קרקע פנויה או דירה גדולה שאפשר לפצל. יחידה נוספת היא נכס נוסף — עם שווי ועם תשואה משלה.</p>
+          </div>
+          <div style="padding:32px 0;padding-inline-start:32px">
+            <div style="width:44px;height:4px;background:#ee7c1a;margin-bottom:22px"></div>
+            <h3 style="font-size:22px;font-weight:800;line-height:1.2;margin-bottom:12px">תוספות שמזיזות את המחיר</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">מרפסת, ממ״ד, תוספת חדר או הסדרת חריגה קיימת. שינויים ממוקדים שקונים מחפשים — ומוכנים לשלם עליהם.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="background:#eae9e6;border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+          <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">02</span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">מה אנחנו עושים בפועל</span>
+        </div>
+        <h2 style="font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.09;letter-spacing:-0.015em;max-width:26ch;margin-bottom:52px">
+          הכלים שמעלים שווי של נכס.
+        </h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:2px;background:#15171c;border:2px solid #15171c">
+          <div style="background:#f4f4f2;padding:30px 26px;transition:background-color .18s ease,box-shadow .18s ease" style-hover="background:#ffffff;box-shadow:inset 0 -7px 0 #ee7c1a">
+            <h3 style="font-size:20px;font-weight:800;margin-bottom:10px">הוספת יחידות דיור</h3>
+            <p style="font-size:16px;line-height:1.55;color:#3a3d44">מיצוי זכויות לבניית יחידה חדשה על הנכס הקיים — הצעד עם ההשפעה הגדולה ביותר על השווי.</p>
+          </div>
+          <div style="background:#f4f4f2;padding:30px 26px;transition:background-color .18s ease,box-shadow .18s ease" style-hover="background:#ffffff;box-shadow:inset 0 -7px 0 #ee7c1a">
+            <h3 style="font-size:20px;font-weight:800;margin-bottom:10px">פיצול דירה</h3>
+            <p style="font-size:16px;line-height:1.55;color:#3a3d44">הפיכת דירה אחת לשתי יחידות עם כניסה נפרדת — שתי הכנסות שכירות במקום אחת.</p>
+          </div>
+          <div style="background:#f4f4f2;padding:30px 26px;transition:background-color .18s ease,box-shadow .18s ease" style-hover="background:#ffffff;box-shadow:inset 0 -7px 0 #ee7c1a">
+            <h3 style="font-size:20px;font-weight:800;margin-bottom:10px">מרפסות</h3>
+            <p style="font-size:16px;line-height:1.55;color:#3a3d44">תוספת מרפסת או הרחבה — שטח מבוקש שמקבל תמורה מלאה בשוק.</p>
+          </div>
+          <div style="background:#f4f4f2;padding:30px 26px;transition:background-color .18s ease,box-shadow .18s ease" style-hover="background:#ffffff;box-shadow:inset 0 -7px 0 #ee7c1a">
+            <h3 style="font-size:20px;font-weight:800;margin-bottom:10px">ממ״ד ותוספות בנייה</h3>
+            <p style="font-size:16px;line-height:1.55;color:#3a3d44">ממ״ד, תוספת חדר או הרחבת שטח — שיפור שגם משנה את איכות החיים וגם את המחיר.</p>
+          </div>
+          <div style="background:#f4f4f2;padding:30px 26px;transition:background-color .18s ease,box-shadow .18s ease" style-hover="background:#ffffff;box-shadow:inset 0 -7px 0 #ee7c1a">
+            <h3 style="font-size:20px;font-weight:800;margin-bottom:10px">רישוי ושינוי ייעוד</h3>
+            <p style="font-size:16px;line-height:1.55;color:#3a3d44">טיפול מול הוועדה המקומית, בקשות והקלות, ושינוי ייעוד כשהוא אפשרי ומשתלם.</p>
+          </div>
+          <div style="background:#f4f4f2;padding:30px 26px;transition:background-color .18s ease,box-shadow .18s ease" style-hover="background:#ffffff;box-shadow:inset 0 -7px 0 #ee7c1a">
+            <h3 style="font-size:20px;font-weight:800;margin-bottom:10px">הסדרת חריגות</h3>
+            <p style="font-size:16px;line-height:1.55;color:#3a3d44">חריגת בנייה או תוספת לא מוסדרת חוסמת מכירה ומשכנתא. אנחנו מסדירים אותה בדרך.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="process" style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+          <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">03</span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">התהליך</span>
+        </div>
+        <h2 style="font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.09;letter-spacing:-0.015em;max-width:26ch;margin-bottom:16px">
+          שבעה שלבים. כולם אצלנו.
+        </h2>
+        <p style="font-size:18px;line-height:1.55;color:#3a3d44;max-width:60ch;margin-bottom:52px">מרגע שנכנסנו לנכס ועד שהכסף אצלך — אתה מקבל דיווח, לא משימות.</p>
+
+        <div style="border-top:2px solid #15171c">
+          <div style="display:flex;flex-wrap:wrap;row-gap:8px;column-gap:clamp(16px,3vw,44px);padding:30px 0;border-bottom:1px solid #cfcdc8;align-items:start">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(34px,3.6vw,50px);line-height:0.85;flex:0 0 auto;width:clamp(52px,6vw,110px);color:#1d3a8f">01</div>
+            <h3 style="flex:1 1 230px;min-width:0;font-size:clamp(19px,1.7vw,25px);font-weight:800;line-height:1.2">בדיקת פוטנציאל וזכויות בנייה</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">מוציאים מידע תכנוני, קוראים את התוכניות החלות על הנכס ומשווים למה שבנוי בפועל. בסוף השלב אתה יודע מה מותר, מה כדאי ומה זה שווה.</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;row-gap:8px;column-gap:clamp(16px,3vw,44px);padding:30px 0;border-bottom:1px solid #cfcdc8;align-items:start">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(34px,3.6vw,50px);line-height:0.85;flex:0 0 auto;width:clamp(52px,6vw,110px);color:#1d3a8f">02</div>
+            <h3 style="flex:1 1 230px;min-width:0;font-size:clamp(19px,1.7vw,25px);font-weight:800;line-height:1.2">אסטרטגיה ותוכנית עבודה</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">בוחרים את המסלול שמחזיר את המקסימום ביחס לעלות ולזמן, וקובעים תקציב, שלבים ולוח זמנים. אחרי השלב הזה יש תוכנית כתובה, לא רעיון.</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;row-gap:8px;column-gap:clamp(16px,3vw,44px);padding:30px 0;border-bottom:1px solid #cfcdc8;align-items:start">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(34px,3.6vw,50px);line-height:0.85;flex:0 0 auto;width:clamp(52px,6vw,110px);color:#1d3a8f">03</div>
+            <h3 style="flex:1 1 230px;min-width:0;font-size:clamp(19px,1.7vw,25px);font-weight:800;line-height:1.2">ליווי תכנוני — אדריכל ויועצים</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">אדריכל, מודד, יועץ קרקע ושאר הבעלי מקצוע שנדרשים — עובדים תחת הניהול שלנו ולפי התוכנית. אתה לא רץ בין ספקים ולא מתמחר אף אחד לבד.</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;row-gap:8px;column-gap:clamp(16px,3vw,44px);padding:30px 0;border-bottom:1px solid #cfcdc8;align-items:start">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(34px,3.6vw,50px);line-height:0.85;flex:0 0 auto;width:clamp(52px,6vw,110px);color:#1d3a8f">04</div>
+            <h3 style="flex:1 1 230px;min-width:0;font-size:clamp(19px,1.7vw,25px);font-weight:800;line-height:1.2">החתמת שכנים והסכמות</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">החלק שתוקע את רוב התהליכים. אנחנו מנהלים את השיחות, מסבירים לשכנים מה הם מקבלים ומביאים את החתימות — במקומך.</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;row-gap:8px;column-gap:clamp(16px,3vw,44px);padding:30px 0;border-bottom:1px solid #cfcdc8;align-items:start">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(34px,3.6vw,50px);line-height:0.85;flex:0 0 auto;width:clamp(52px,6vw,110px);color:#1d3a8f">05</div>
+            <h3 style="flex:1 1 230px;min-width:0;font-size:clamp(19px,1.7vw,25px);font-weight:800;line-height:1.2">הוצאת היתר בנייה</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">הגשה לוועדה המקומית, מעקב אחרי הדרישות, תיקונים והשלמות עד ההיתר בפועל. אנחנו רודפים אחרי התיק — לא אתה.</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;row-gap:8px;column-gap:clamp(16px,3vw,44px);padding:30px 0;border-bottom:1px solid #cfcdc8;align-items:start">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(34px,3.6vw,50px);line-height:0.85;flex:0 0 auto;width:clamp(52px,6vw,110px);color:#1d3a8f">06</div>
+            <h3 style="flex:1 1 230px;min-width:0;font-size:clamp(19px,1.7vw,25px);font-weight:800;line-height:1.2">ניהול ביצוע ופיקוח על הקבלנים</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">תמחור והשוואת קבלנים, חוזים, לוח זמנים ופיקוח בשטח על האיכות ועל התקציב. אנחנו עומדים מול הקבלן לאורך כל הביצוע.</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;row-gap:8px;column-gap:clamp(16px,3vw,44px);padding:30px 0;border-bottom:2px solid #15171c;align-items:start">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(34px,3.6vw,50px);line-height:0.85;flex:0 0 auto;width:clamp(52px,6vw,110px);color:#ee7c1a">07</div>
+            <h3 style="flex:1 1 230px;min-width:0;font-size:clamp(19px,1.7vw,25px);font-weight:800;line-height:1.2">שיווק ומכירה בשווי החדש</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">כאן ההשבחה הופכת לכסף. אנחנו מתמחרים את הנכס אחרי השינוי, משווקים אותו ומנהלים את המכירה — התיווך הוא הבית שלנו ממילא.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="background:#eae9e6;border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+          <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">04</span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">השוואה</span>
+        </div>
+        <h2 style="font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.09;letter-spacing:-0.015em;max-width:26ch;margin-bottom:52px">
+          להשביח לבד, או איתנו.
+        </h2>
+        <div style="border:2px solid #15171c;background:#f4f4f2;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:720px">
+            <thead>
+              <tr>
+                <th style="text-align:right;padding:20px 24px;font-size:14px;font-weight:800;letter-spacing:0.05em;color:#55585f;border-bottom:2px solid #15171c;width:24%">השלב</th>
+                <th style="text-align:right;padding:20px 24px;font-size:18px;font-weight:800;border-bottom:2px solid #15171c;border-inline-start:1px solid #cfcdc8">להשביח לבד</th>
+                <th style="text-align:right;padding:20px 24px;font-size:18px;font-weight:800;border-bottom:2px solid #15171c;background:#1d3a8f;color:#fff">עם דירומקס</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">זכויות בנייה</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">להזמין מידע תכנוני ולנסות לפענח לבד מה מותר</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">אנחנו מוציאים, מפענחים ומציגים לך מה מותר ומה זה שווה</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">תכנון ואדריכלות</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">לחפש אדריכל, להשוות הצעות ולנהל אותו בעצמך</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">צוות תכנון שאנחנו עובדים איתו, בניהול ובאחריות שלנו</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">מול הוועדה</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">בירוקרטיה, דרישות והשלמות שחוזרות שוב ושוב</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">אנחנו מגישים, מתקנים ורודפים אחרי ההיתר עד שהוא ביד</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">שכנים והסכמות</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">שיחות רגישות מול השכנים שלך, שיכולות לעצור הכל</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">אנחנו מנהלים את המשא ומתן ומביאים את החתימות</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">קבלן וביצוע</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">אתה מול הקבלן, בלי כלים לבדוק תמחור ואיכות</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">תמחור, בחירה, חוזה ופיקוח בשטח לאורך כל הביצוע</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">תקציב וזמנים</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">קל לחרוג — בכסף ובחודשים — בלי לשים לב</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">תוכנית, בקרה ודיווח שוטף על מה שקורה בפועל</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">המכירה</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">למכור נכס שהשתנה בלי לדעת לתמחר את השינוי</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">שיווק ומכירה בשווי החדש — התיווך הוא המקצוע שלנו</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">מחירי ספקים</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">פוגש כל ספק פעם אחת, בלי יכולת אמיתית להשוות מחירים</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">מכירים את השוק ומוציאים כמה הצעות על אותה עבודה בדיוק</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;border-bottom:1px solid #cfcdc8;vertical-align:top">העלות שלנו</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-bottom:1px solid #cfcdc8;border-inline-start:1px solid #cfcdc8;vertical-align:top">בלי שכר ניהול — אבל עם תמחור גבוה יותר כמעט בכל שלב</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;border-bottom:1px solid #cfcdc8;background:rgba(29,58,143,0.06);font-weight:500;vertical-align:top">שכר ניהול שנכנס לתקציב ויורד מהרווח — ולרוב קטן מהחיסכון</td>
+              </tr>
+              <tr>
+                <td style="padding:18px 24px;font-size:16px;font-weight:800;vertical-align:top">מה זה דורש ממך</td>
+                <td style="padding:18px 24px;font-size:16px;line-height:1.5;color:#55585f;border-inline-start:1px solid #cfcdc8;vertical-align:top">זמן, ידע מקצועי והרבה עצבים</td>
+                <td style="padding:18px 24px;font-size:17px;line-height:1.5;background:rgba(29,58,143,0.06);font-weight:800;vertical-align:top">החלטות. את השאר אנחנו עושים</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+          <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">05</span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">העלות מול החיסכון</span>
+        </div>
+        <h2 style="font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.09;letter-spacing:-0.015em;max-width:26ch;margin-bottom:20px">
+          הליווי שלנו לא מוסיף לעלות. הוא מקטין אותה.
+        </h2>
+        <p style="font-size:18px;line-height:1.6;color:#3a3d44;max-width:64ch;margin-bottom:52px">
+          זו השאלה שכל בעל נכס שואל: למה לשלם על ניהול. התשובה נמצאת בפער בין המחיר שאתה מקבל מספק — לבין המחיר שאנחנו מקבלים מאותו ספק.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:2px;background:transparent;border:2px solid #15171c;margin-bottom:36px">
+          <div style="background:#f4f4f2;box-shadow:0 0 0 1px #15171c;padding:32px 26px">
+            <div style="width:44px;height:4px;background:#cfcdc8;margin-bottom:22px"></div>
+            <h3 style="font-size:21px;font-weight:800;line-height:1.2;margin-bottom:12px">בלי ניסיון — משלמים יותר</h3>
+            <p style="font-size:16.5px;line-height:1.6;color:#3a3d44">בעל נכס שמנהל תהליך כזה לבד פוגש כל ספק פעם אחת בחיים. הוא לא יודע מה מחיר נכון, מה מיותר ואיפה מנפחים לו את ההצעה — ואין לו מול מה להשוות.</p>
+          </div>
+          <div style="background:#f4f4f2;box-shadow:0 0 0 1px #15171c;padding:32px 26px">
+            <div style="width:44px;height:4px;background:#2fa6c7;margin-bottom:22px"></div>
+            <h3 style="font-size:21px;font-weight:800;line-height:1.2;margin-bottom:12px">אנחנו בשוק הזה כל יום</h3>
+            <p style="font-size:16.5px;line-height:1.6;color:#3a3d44">מכירים את הקבלנים והספקים, יודעים מה עולה מה, ומוציאים כמה הצעות מחיר על אותה עבודה בדיוק. רק הפער בתמחור לרוב גדול יותר מעלות הליווי.</p>
+          </div>
+          <div style="background:#f4f4f2;box-shadow:0 0 0 1px #15171c;padding:32px 26px">
+            <div style="width:44px;height:4px;background:#ee7c1a;margin-bottom:22px"></div>
+            <h3 style="font-size:21px;font-weight:800;line-height:1.2;margin-bottom:12px">התשלום שלנו הוא חלק מהוצאות הפרויקט</h3>
+            <p style="font-size:16.5px;line-height:1.6;color:#3a3d44">אתה לא מוציא כסף מהכיס בנוסף לכל השאר. שכר הניהול נכנס לתקציב הפרויקט ויורד מהרווח בסוף — כמו כל הוצאה אחרת, ואתה רואה אותו בתקציב מהיום הראשון.</p>
+          </div>
+        </div>
+        <div style="border:2px solid #15171c;background:#ee7c1a;color:#15171c;padding:clamp(24px,3vw,34px)">
+          <p style="font-family:'Anomalia','Heebo',sans-serif;font-size:clamp(19px,2.1vw,29px);font-weight:800;line-height:1.3;letter-spacing:-0.01em;max-width:44ch">
+            בשורה התחתונה: מה שאנחנו חוסכים לך בתמחור, בניהול ובטעויות — לרוב גדול ממה שאנחנו עולים.
+          </p>
+        </div>
+
+        <div style="border:2px solid #15171c;background:#eae9e6;padding:clamp(26px,3.2vw,40px);margin-top:36px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+            <span style="width:11px;height:11px;background:#2fa6c7;display:block"></span>
+            <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#1d3a8f">מסלול לבעלי נכס בלי תקציב</span>
+          </div>
+          <h3 style="font-size:clamp(24px,2.8vw,38px);font-weight:900;line-height:1.08;letter-spacing:-0.015em;max-width:28ch;margin-bottom:16px">
+            אין לך תקציב להשבחה? זה לא סוף הדרך.
+          </h3>
+          <p style="font-size:17.5px;line-height:1.6;color:#3a3d44;max-width:66ch;margin-bottom:32px">
+            לא כל בעל נכס יכול להוציא כסף מהבית על תכנון ועל ביצוע, וזה לגיטימי לחלוטין. במקרים כאלה אנחנו לא סוגרים את הדלת — אנחנו בונים מסלול שמתאים למצב שלך, כך שההשבחה תמומן מתוך הפרויקט ולא מהכיס.
+          </p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px;background:transparent;border-top:2px solid #15171c">
+            <div style="background:#eae9e6;box-shadow:0 0 0 1px #cfcdc8;padding:26px 24px 0 0;padding-inline:0 24px">
+              <h4 style="font-size:19px;font-weight:800;line-height:1.25;margin-bottom:10px">מימון מתוך הפרויקט</h4>
+              <p style="font-size:16px;line-height:1.55;color:#3a3d44;padding-bottom:26px">בונים תוכנית שבה עלויות ההשבחה נפרעות מהתמורה בסוף התהליך, ולא נדרשות ממך מראש.</p>
+            </div>
+            <div style="background:#eae9e6;box-shadow:0 0 0 1px #cfcdc8;padding:26px 24px 0 24px">
+              <h4 style="font-size:19px;font-weight:800;line-height:1.25;margin-bottom:10px">מסלול מדורג</h4>
+              <p style="font-size:16px;line-height:1.55;color:#3a3d44;padding-bottom:26px">מפצלים את התהליך לשלבים לפי היכולת שלך — קודם הזכויות וההיתר, הביצוע כשנוח לך.</p>
+            </div>
+            <div style="background:#eae9e6;box-shadow:0 0 0 1px #cfcdc8;padding:26px 0 0 0;padding-inline:24px 0">
+              <h4 style="font-size:19px;font-weight:800;line-height:1.25;margin-bottom:10px">צירוף גורם משביח</h4>
+              <p style="font-size:16px;line-height:1.55;color:#3a3d44;padding-bottom:26px">כשזה מתאים, מצרפים גורם שנושא את העלות וחולק ברווח — עדיף על נכס שנשאר כמו שהוא.</p>
+            </div>
+          </div>
+          <p style="font-size:16.5px;line-height:1.6;font-weight:700;margin-top:28px;max-width:60ch">
+            הכלל אצלנו פשוט: חוסר תקציב לא צריך להיות הסיבה שהנכס שלך נשאר בלי מיצוי.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section style="background:#1d3a8f;color:#fff;border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px">
+          <span style="width:11px;height:11px;background:#ee7c1a;display:block"></span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#9fd4e6">הבידול שלנו</span>
+        </div>
+        <h2 style="font-size:clamp(30px,4vw,58px);font-weight:900;line-height:1.05;letter-spacing:-0.02em;max-width:30ch;margin-bottom:56px">
+          אנחנו לא מייעצים ונעלמים.<br>אנחנו לוקחים את הנכס עד הסוף.
+        </h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:2px;background:transparent">
+          <div style="background:#1d3a8f;box-shadow:0 0 0 1px rgba(255,255,255,0.28);padding:30px;padding-inline-start:0">
+            <div style="font-family:'Archivo',sans-serif;font-size:14px;font-weight:800;color:#ee7c1a;letter-spacing:0.05em;margin-bottom:16px">A</div>
+            <h3 style="font-size:21px;font-weight:800;margin-bottom:10px">אסטרטגיה, לא ניחוש</h3>
+            <p style="font-size:16px;line-height:1.6;color:#d8e2f4">קודם בודקים זכויות ומחשבים כלכלית. אם ההשבחה לא משתלמת — נגיד לך את זה מראש.</p>
+          </div>
+          <div style="background:#1d3a8f;box-shadow:0 0 0 1px rgba(255,255,255,0.28);padding:30px">
+            <div style="font-family:'Archivo',sans-serif;font-size:14px;font-weight:800;color:#ee7c1a;letter-spacing:0.05em;margin-bottom:16px">B</div>
+            <h3 style="font-size:21px;font-weight:800;margin-bottom:10px">כל התהליך במקום אחד</h3>
+            <p style="font-size:16px;line-height:1.6;color:#d8e2f4">תכנון, רישוי, שכנים, היתר, ביצוע ומכירה — גוף אחד שאחראי על הכל ואיש קשר אחד שלך.</p>
+          </div>
+          <div style="background:#1d3a8f;box-shadow:0 0 0 1px rgba(255,255,255,0.28);padding:30px;padding-inline-end:0">
+            <div style="font-family:'Archivo',sans-serif;font-size:14px;font-weight:800;color:#ee7c1a;letter-spacing:0.05em;margin-bottom:16px">C</div>
+            <h3 style="font-size:21px;font-weight:800;margin-bottom:10px">שקט מוחלט</h3>
+            <p style="font-size:16px;line-height:1.6;color:#d8e2f4">אתה לא מתווכח עם קבלן, לא רץ לוועדה ולא מחתים שכנים. אתה מקבל עדכונים והחלטות לאישור.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:clamp(24px,5vw,72px);align-items:start">
+          <div>
+            <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+              <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">06</span>
+              <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">למי זה מתאים</span>
+            </div>
+            <h2 style="font-size:clamp(28px,3.5vw,44px);font-weight:900;line-height:1.09;letter-spacing:-0.015em">
+              אם אתה מחזיק אחד מאלה — יש על מה לדבר.
+            </h2>
+          </div>
+          <div style="border-top:2px solid #15171c">
+            <div style="padding:26px 0;border-bottom:1px solid #cfcdc8">
+              <h3 style="font-size:21px;font-weight:800;margin-bottom:8px">בעלי דירות ובתים ישנים</h3>
+              <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">נכס שנבנה לפני עשרות שנים כמעט תמיד לא מנצל את הזכויות שיש לו היום.</p>
+            </div>
+            <div style="padding:26px 0;border-bottom:1px solid #cfcdc8">
+              <h3 style="font-size:21px;font-weight:800;margin-bottom:8px">יורשים ובעלי נכס במשותף</h3>
+              <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">נכס שהתקבל בירושה, לרוב בלי טיפול ובלי מיצוי — ולפעמים גם עם חריגות שצריך להסדיר לפני מכירה.</p>
+            </div>
+            <div style="padding:26px 0;border-bottom:1px solid #cfcdc8">
+              <h3 style="font-size:21px;font-weight:800;margin-bottom:8px">מי שמתכוון למכור בקרוב</h3>
+              <p style="font-size:16.5px;line-height:1.6;color:#3a3d44">לפני שמפרסמים מודעה שווה לבדוק אם צעד תכנוני אחד יכול להעלות את המחיר — במקום למכור את הפוטנציאל למישהו אחר.</p>
+            </div>
+            <div style="padding:26px 0;border-bottom:2px solid #15171c">
+              <h3 style="font-size:21px;font-weight:800;margin-bottom:8px">נכסים לא מנוצלים</h3>
+              <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">גג, מחסן, קרקע, חצר או שטח שעומד ריק ולא מייצר שקל. שם נמצא הפוטנציאל הכי גדול.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <sc-if value="{{ showProjects }}" hint-placeholder-val="{{ true }}">
+    <section style="background:#eae9e6;border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+          <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">07</span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">פרויקטים</span>
+        </div>
+        <h2 style="font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.09;letter-spacing:-0.015em;margin-bottom:52px">לפני ואחרי.</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:clamp(20px,3vw,40px)">
+          <div style="border:2px solid #15171c;background:#f4f4f2">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px;background:#15171c">
+              <div style="position:relative;aspect-ratio:1/1;min-width:0;overflow:hidden"><image-slot id="dx-p1-before" shape="rect" placeholder="לפני" style="filter:grayscale(1)"></image-slot></div>
+              <div style="position:relative;aspect-ratio:1/1;min-width:0;overflow:hidden"><image-slot id="dx-p1-after" shape="rect" placeholder="אחרי"></image-slot></div>
+            </div>
+            <div style="padding:22px 24px;border-top:2px solid #15171c">
+              <h3 style="font-size:20px;font-weight:800;margin-bottom:6px">שם הפרויקט · אזור</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">מה נעשה בנכס ומה השתנה בשווי — להשלמה עם פרטי פרויקט אמיתי.</p>
+            </div>
+          </div>
+          <div style="border:2px solid #15171c;background:#f4f4f2">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px;background:#15171c">
+              <div style="position:relative;aspect-ratio:1/1;min-width:0;overflow:hidden"><image-slot id="dx-p2-before" shape="rect" placeholder="לפני" style="filter:grayscale(1)"></image-slot></div>
+              <div style="position:relative;aspect-ratio:1/1;min-width:0;overflow:hidden"><image-slot id="dx-p2-after" shape="rect" placeholder="אחרי"></image-slot></div>
+            </div>
+            <div style="padding:22px 24px;border-top:2px solid #15171c">
+              <h3 style="font-size:20px;font-weight:800;margin-bottom:6px">שם הפרויקט · אזור</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">מה נעשה בנכס ומה השתנה בשווי — להשלמה עם פרטי פרויקט אמיתי.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </sc-if>
+
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(56px,6vw,96px) clamp(18px,4vw,44px)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:clamp(24px,5vw,72px);align-items:start">
+          <div>
+            <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px">
+              <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;letter-spacing:0.05em">08</span>
+              <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#55585f">שאלות נפוצות</span>
+            </div>
+            <h2 style="font-size:clamp(28px,3.2vw,42px);font-weight:900;line-height:1.09;letter-spacing:-0.015em;margin-bottom:22px">מה שבעלי נכסים שואלים אותנו קודם.</h2>
+            <button onClick="{{ goFaq }}" style="border:2px solid #15171c;background:none;color:#15171c;padding:15px 24px;font-size:16px;font-weight:700;cursor:pointer;text-align:right" style-hover="background:#15171c;color:#f4f4f2" style-active="background:#000000;color:#f4f4f2">לכל השאלות והתשובות</button>
+          </div>
+          <div style="border-top:2px solid #15171c">
+            <details style="border-bottom:1px solid #cfcdc8">
+              <summary style="padding:24px 0;font-size:19px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">כמה זמן לוקח תהליך השבחה?<span style="color:#ee7c1a;font-weight:900;font-size:24px;line-height:1">+</span></summary>
+              <p style="font-size:16.5px;line-height:1.65;color:#3a3d44;padding-bottom:24px;max-width:70ch">זה תלוי במסלול ובוועדה המקומית. תוספת ממוקדת היא תהליך קצר יחסית; הוספת יחידה או פיצול לוקחים יותר, כי יש שלב רישוי מלא. בסוף שלב הבדיקה תקבל לוח זמנים מוערך לפי הנכס שלך — ולא הבטחה כללית.</p>
+            </details>
+            <details style="border-bottom:1px solid #cfcdc8">
+              <summary style="padding:24px 0;font-size:19px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">הבדיקה הראשונית עולה כסף?<span style="color:#ee7c1a;font-weight:900;font-size:24px;line-height:1">+</span></summary>
+              <p style="font-size:16.5px;line-height:1.65;color:#3a3d44;padding-bottom:24px;max-width:70ch">לא. השיחה הראשונה ובדיקת הפוטנציאל הראשונית הן ללא עלות וללא התחייבות. אם נראה שאין כאן השבחה משתלמת — נגיד לך, וזה יסתיים שם.</p>
+            </details>
+            <details style="border-bottom:1px solid #cfcdc8">
+              <summary style="padding:24px 0;font-size:19px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">אני חייב למכור בסוף?<span style="color:#ee7c1a;font-weight:900;font-size:24px;line-height:1">+</span></summary>
+              <p style="font-size:16.5px;line-height:1.65;color:#3a3d44;padding-bottom:24px;max-width:70ch">לא. יש בעלי נכסים שמשביחים כדי למכור, ויש כאלה שמשביחים כדי להשכיר או להשאיר לילדים. אנחנו נבנה את התוכנית לפי המטרה שלך.</p>
+            </details>
+            <details style="border-bottom:2px solid #15171c">
+              <summary style="padding:24px 0;font-size:19px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">מה אם השכנים מתנגדים?<span style="color:#ee7c1a;font-weight:900;font-size:24px;line-height:1">+</span></summary>
+              <p style="font-size:16.5px;line-height:1.65;color:#3a3d44;padding-bottom:24px;max-width:70ch">זה חלק מהעבודה שלנו ולא הבעיה שלך. אנחנו יושבים עם השכנים, מסבירים מה משתנה ומה הם מקבלים, ומנהלים את ההחתמה. במקרים מסוימים יש מסלולים חלופיים שלא דורשים את כולם.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="background:#ee7c1a;color:#15171c;border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(52px,6vw,88px) clamp(18px,4vw,44px)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:clamp(28px,5vw,72px);align-items:start">
+          <div>
+            <h2 style="font-size:clamp(30px,3.8vw,54px);font-weight:900;line-height:1.07;letter-spacing:-0.02em;margin-bottom:22px">
+              נתחיל מבדיקה אחת:<br>מה מותר לבנות אצלך.
+            </h2>
+            <p style="font-size:18.5px;line-height:1.55;max-width:44ch;margin-bottom:28px">השאר פרטים ונחזור אליך עם תמונת מצב ראשונית על הנכס — בלי עלות ובלי התחייבות.</p>
+            <div style="border-top:2px solid rgba(21,23,28,0.4);padding-top:22px;display:flex;flex-wrap:wrap;gap:26px">
+              <div>
+                <div style="font-size:13px;font-weight:800;letter-spacing:0.05em;opacity:0.85;margin-bottom:5px">טלפון</div>
+                <a href="tel:0540000000" style="font-family:'Archivo',sans-serif;font-size:22px;font-weight:800;color:#15171c;direction:ltr;display:block">054-000-0000</a>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:800;letter-spacing:0.05em;opacity:0.85;margin-bottom:5px">וואטסאפ</div>
+                <a href="https://wa.me/972540000000" style="font-family:'Archivo',sans-serif;font-size:22px;font-weight:800;color:#15171c;direction:ltr;display:block">054-000-0000</a>
+              </div>
+            </div>
+          </div>
+          <div style="background:#f4f4f2;color:#15171c;border:2px solid #15171c;padding:clamp(24px,3vw,36px)">
+            <sc-if value="{{ leadOpen }}" hint-placeholder-val="{{ true }}">
+            <form onSubmit="{{ submitLead }}">
+              <h3 style="font-size:22px;font-weight:900;margin-bottom:22px">בדיקת פוטנציאל הנכס</h3>
+              <div style="display:grid;gap:16px">
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">שם מלא</span>
+                  <input type="text" required style="width:100%;border:2px solid #15171c;background:#fff;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                </label>
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">טלפון</span>
+                  <input type="tel" required style="width:100%;border:2px solid #15171c;background:#fff;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                </label>
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">כתובת הנכס</span>
+                  <input type="text" placeholder="עיר, רחוב" style="width:100%;border:2px solid #15171c;background:#fff;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                </label>
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">סוג הנכס</span>
+                  <select style="width:100%;border:2px solid #15171c;background:#fff;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                    <option>דירה בבניין</option>
+                    <option>דירת גג / גג צמוד</option>
+                    <option>דירת גן / חצר</option>
+                    <option>בית פרטי או דו־משפחתי</option>
+                    <option>מגרש או קרקע</option>
+                    <option>נכס מסחרי</option>
+                    <option>אחר</option>
+                  </select>
+                </label>
+                <button type="submit" style="background:#1d3a8f;color:#fff;border:none;padding:18px 24px;font-size:17px;font-weight:800;cursor:pointer;text-align:right;width:100%" style-hover="background:#162e73" style-active="background:#102454">שלחו לי בדיקת פוטנציאל</button>
+                <p style="font-size:13px;line-height:1.5;color:#55585f">הפרטים נשמרים אצלנו בלבד ומשמשים ליצירת קשר בנוגע לנכס.</p>
+              </div>
+            </form>
+            </sc-if>
+            <sc-if value="{{ leadSent }}">
+            <div style="padding:16px 0">
+              <div style="width:44px;height:4px;background:#ee7c1a;margin-bottom:20px"></div>
+              <h3 style="font-size:24px;font-weight:900;margin-bottom:12px">קיבלנו. נחזור אליך.</h3>
+              <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">נבדוק את הנכס מול המידע התכנוני ונחזור אליך עם תמונת מצב ראשונית ושאלות ממוקדות.</p>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isBroker }}">
+  <main>
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(48px,6vw,88px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+          <span style="width:11px;height:11px;background:#2fa6c7;display:block"></span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#1d3a8f">תיווך נכסים</span>
+        </div>
+        <h1 style="font-size:clamp(34px,4.4vw,62px);font-weight:900;line-height:1.07;letter-spacing:-0.018em;max-width:24ch;margin-bottom:24px">
+          מתווך שיודע מה הנכס יכול להיות שווה.
+        </h1>
+        <p style="font-size:clamp(17px,1.4vw,21px);line-height:1.55;color:#3a3d44;max-width:62ch">
+          אנחנו מוכרים וקונים נכסים כל יום — אבל בודקים אותם בעין של יזם. לפני שמפרסמים מודעה, אנחנו שואלים אם יש כאן צעד קטן שיכול להעלות את המחיר.
+        </p>
+      </div>
+    </section>
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:0 clamp(18px,4vw,44px)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))">
+          <div style="padding:clamp(32px,4vw,56px) 0;padding-inline-end:36px;border-inline-end:1px solid #cfcdc8">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;margin-bottom:20px">01</div>
+            <h3 style="font-size:23px;font-weight:800;margin-bottom:12px">מכירת נכס</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">תמחור לפי נתוני שוק אמיתיים, שיווק ממוקד וניהול המשא ומתן עד החתימה. בלי מספרים שנועדו רק לחתום על בלעדיות.</p>
+          </div>
+          <div style="padding:clamp(32px,4vw,56px) 36px;border-inline-end:1px solid #cfcdc8">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#197a95;margin-bottom:20px">02</div>
+            <h3 style="font-size:23px;font-weight:800;margin-bottom:12px">איתור נכס לקנייה</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">מחפשים לפי מה שאתה צריך, כולל נכסים עם פוטנציאל השבחה שאחרים מפספסים. אנחנו נדע להראות לך מה אפשר לעשות בהם.</p>
+          </div>
+          <div style="padding:clamp(32px,4vw,56px) 0;padding-inline-start:36px">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#ee7c1a;margin-bottom:20px">03</div>
+            <h3 style="font-size:23px;font-weight:800;margin-bottom:12px">השבחה לפני מכירה</h3>
+            <p style="flex:2 1 300px;min-width:0;font-size:16.5px;line-height:1.6;color:#3a3d44">השילוב שאנחנו מביאים: קודם משביחים את הנכס, ואז מוכרים אותו בשווי החדש. אותו גוף מטפל בשני החלקים.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section style="background:#1d3a8f;color:#fff;border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(44px,5vw,72px) clamp(18px,4vw,44px);display:flex;flex-wrap:wrap;gap:32px;align-items:center;justify-content:space-between">
+        <p style="font-size:clamp(21px,2.4vw,34px);font-weight:800;line-height:1.25;letter-spacing:-0.01em;max-width:32ch">
+          לפני שאתה מוכן למכור — תן לנו לבדוק אם כדאי קודם להשביח.
+        </p>
+        <button onClick="{{ goImprove }}" style="background:#ee7c1a;color:#15171c;border:none;padding:19px 30px;font-size:17px;font-weight:800;cursor:pointer;text-align:right" style-hover="background:#f7972e" style-active="background:#d66a10">לעמוד השבחת נכסים</button>
+      </div>
+    </section>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isFaq }}">
+  <main>
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(48px,6vw,80px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+          <span style="width:11px;height:11px;background:#2fa6c7;display:block"></span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#1d3a8f">שאלות ותשובות</span>
+        </div>
+        <h1 style="font-size:clamp(32px,4.2vw,58px);font-weight:900;line-height:1.07;letter-spacing:-0.018em;max-width:22ch">
+          כל מה שבעל נכס צריך לדעת לפני שמתחילים.
+        </h1>
+      </div>
+    </section>
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:960px;margin:0 auto;padding:clamp(32px,4vw,56px) clamp(18px,4vw,44px)">
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">מה זו בעצם השבחת נכס?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">כל פעולה תכנונית או בנייתית שמעלה את השווי של הנכס: מיצוי זכויות בנייה, הוספת יחידת דיור, פיצול, תוספת מרפסת או ממ״ד, הסדרת חריגות ולפעמים שינוי ייעוד. זה לא שיפוץ אסתטי — זה שינוי במה שהנכס הוא מבחינה תכנונית.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">איך אני יודע שיש לנכס שלי פוטנציאל?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">אי אפשר לדעת בלי לבדוק את המידע התכנוני. אנחנו מוציאים את התוכניות שחלות על הנכס, בודקים מה מותר מול מה שבנוי בפועל, ואז אומרים לך אם יש פער שאפשר לנצל. הבדיקה הראשונית ללא עלות.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">כמה זמן לוקח תהליך השבחה?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">תלוי במסלול ובוועדה המקומית. תוספת ממוקדת מתקדמת מהר יחסית; הוספת יחידה או פיצול דורשים רישוי מלא ולכן ארוכים יותר. בסוף שלב הבדיקה תקבל לוח זמנים מוערך לנכס שלך, ולא מספר כללי.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">מי משלם על התכנון ועל הביצוע?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">בשלב האסטרטגיה נציג לך תקציב מלא: אגרות והיטלים, יועצים, תכנון וביצוע — מול השווי הצפוי אחרי ההשבחה. הכל על השולחן לפני שמתחייבים, כדי שההחלטה תהיה כלכלית ולא רגשית.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">מה אם השכנים מתנגדים?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">זה החלק שתוקע את רוב האנשים שמנסים לבד, ולכן הוא באחריותנו. אנחנו יושבים עם השכנים, מסבירים מה משתנה ומה הם מקבלים, ומנהלים את ההחתמה. לפעמים יש מסלול חלופי שדורש פחות הסכמות.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">יש לי חריגת בנייה. זו בעיה?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">חריגה לא מוסדרת פוגעת במכירה, במשכנתא ובמחיר. במקרים רבים אפשר להסדיר אותה כחלק מהתהליך — ולפעמים ההסדרה לבדה מחזירה שווי משמעותי לנכס.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">אני צריך להתפנות מהנכס?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">בחלק מהמסלולים לא, ובחלק יש תקופת עבודות שדורשת פינוי חלקי או מלא. זה נכנס לתוכנית העבודה מראש, כולל לוחות זמנים, כדי שתדעו למה להיערך.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">אני חייב למכור בסוף התהליך?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">לא. אפשר להשביח כדי למכור, כדי להשכיר ולהגדיל תשואה, או כדי להשאיר נכס טוב יותר למשפחה. המטרה שלך קובעת את התוכנית.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">מה בדיוק אנחנו עושים ומה נשאר לי?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">אנחנו: בדיקת זכויות, אסטרטגיה, אדריכל ויועצים, החתמת שכנים, הגשה והיתר, בחירת קבלן ופיקוח על הביצוע, ואם רוצים — גם השיווק והמכירה. אתה: מאשר החלטות ותקציב.</p>
+        </details>
+        <details style="border-bottom:1px solid #cfcdc8">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">אין לי תקציב להשבחה — אפשר בכל זאת?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">כן, וזה מצב נפוץ. יש לנו מסלול לבעלי נכס שאין להם תקציב פנוי: מימון העלויות מתוך הפרויקט ופירעון מהתמורה בסוף, מסלול מדורג שמתקדם בקצב שלך, או צירוף גורם שנושא את העלות וחולק ברווח. נבחר את המסלול לפי הנכס ולפי מה שנוח לך — חוסר תקציב לא צריך להשאיר את הנכס בלי מיצוי.</p>
+        </details>
+        <details style="border-bottom:2px solid #15171c">
+          <summary style="padding:26px 0;font-size:20px;font-weight:800;display:flex;justify-content:space-between;gap:20px;align-items:center">איך מתחילים?<span style="color:#ee7c1a;font-weight:900;font-size:26px;line-height:1">+</span></summary>
+          <p style="font-size:17px;line-height:1.65;color:#3a3d44;padding-bottom:26px">משאירים פרטים או מתקשרים. שיחה קצרה על הנכס, ואם נראה שיש כאן משהו — אנחנו מוציאים את המידע התכנוני וחוזרים אליך עם תמונת מצב. עד כאן, בלי עלות ובלי התחייבות.</p>
+        </details>
+        <div style="padding-top:40px">
+          <button onClick="{{ goContact }}" style="background:#ee7c1a;color:#15171c;border:none;padding:19px 30px;font-size:17px;font-weight:800;cursor:pointer;text-align:right" style-hover="background:#f7972e" style-active="background:#d66a10">יש לי שאלה אחרת — דברו איתי</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isArticles }}">
+  <main>
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(48px,6vw,80px) clamp(18px,4vw,44px)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+          <span style="width:11px;height:11px;background:#2fa6c7;display:block"></span>
+          <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#1d3a8f">מאמרים</span>
+        </div>
+        <h1 style="font-size:clamp(32px,4.2vw,58px);font-weight:900;line-height:1.07;letter-spacing:-0.018em;max-width:24ch">
+          איך חושבים על נכס שיש לו עוד מה לתת.
+        </h1>
+      </div>
+    </section>
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(32px,4vw,56px) clamp(18px,4vw,44px)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:clamp(18px,2.4vw,32px)">
+          <article style="border:2px solid #15171c;background:#f4f4f2;display:flex;flex-direction:column">
+            <div style="height:150px;border-bottom:2px solid #15171c;background:repeating-linear-gradient(45deg,#eae9e6,#eae9e6 8px,#f4f4f2 8px,#f4f4f2 16px);display:flex;align-items:flex-end;padding:12px"><span style="font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;color:#55585f;letter-spacing:0.04em">ARTICLE IMAGE</span></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:10px;flex:1">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;color:#ee7c1a">זכויות בנייה</span>
+              <h3 style="font-size:21px;font-weight:800;line-height:1.25">איך בודקים מה מותר לבנות על נכס — צעד אחר צעד</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">מאיפה מוציאים מידע תכנוני, מה מחפשים בו, ואיפה בדרך כלל מסתתר הפער בין המותר לבנוי.</p>
+            </div>
+          </article>
+          <article style="border:2px solid #15171c;background:#f4f4f2;display:flex;flex-direction:column">
+            <div style="height:150px;border-bottom:2px solid #15171c;background:repeating-linear-gradient(45deg,#eae9e6,#eae9e6 8px,#f4f4f2 8px,#f4f4f2 16px);display:flex;align-items:flex-end;padding:12px"><span style="font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;color:#55585f;letter-spacing:0.04em">ARTICLE IMAGE</span></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:10px;flex:1">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;color:#ee7c1a">פיצול</span>
+              <h3 style="font-size:21px;font-weight:800;line-height:1.25">פיצול דירה: מה מותר, מה אסור ומה זה עושה לתשואה</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">התנאים שצריך כדי לפצל, מה נדרש מבחינת רישוי, ומתי זה באמת משתלם.</p>
+            </div>
+          </article>
+          <article style="border:2px solid #15171c;background:#f4f4f2;display:flex;flex-direction:column">
+            <div style="height:150px;border-bottom:2px solid #15171c;background:repeating-linear-gradient(45deg,#eae9e6,#eae9e6 8px,#f4f4f2 8px,#f4f4f2 16px);display:flex;align-items:flex-end;padding:12px"><span style="font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;color:#55585f;letter-spacing:0.04em">ARTICLE IMAGE</span></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:10px;flex:1">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;color:#ee7c1a">שכנים</span>
+              <h3 style="font-size:21px;font-weight:800;line-height:1.25">החתמת שכנים: איך לא נתקעים בשלב הזה</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">מה שכנים באמת מתנגדים לו, איך מציגים להם את התמונה, ומה עושים כשאין הסכמה מלאה.</p>
+            </div>
+          </article>
+          <article style="border:2px solid #15171c;background:#f4f4f2;display:flex;flex-direction:column">
+            <div style="height:150px;border-bottom:2px solid #15171c;background:repeating-linear-gradient(45deg,#eae9e6,#eae9e6 8px,#f4f4f2 8px,#f4f4f2 16px);display:flex;align-items:flex-end;padding:12px"><span style="font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;color:#55585f;letter-spacing:0.04em">ARTICLE IMAGE</span></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:10px;flex:1">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;color:#ee7c1a">תוספות בנייה</span>
+              <h3 style="font-size:21px;font-weight:800;line-height:1.25">ממ״ד ומרפסת: התוספות שמחזירות את ההשקעה</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">למה דווקא שתי התוספות האלה מזיזות את המחיר, ומה צריך כדי לבצע אותן.</p>
+            </div>
+          </article>
+          <article style="border:2px solid #15171c;background:#f4f4f2;display:flex;flex-direction:column">
+            <div style="height:150px;border-bottom:2px solid #15171c;background:repeating-linear-gradient(45deg,#eae9e6,#eae9e6 8px,#f4f4f2 8px,#f4f4f2 16px);display:flex;align-items:flex-end;padding:12px"><span style="font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;color:#55585f;letter-spacing:0.04em">ARTICLE IMAGE</span></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:10px;flex:1">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;color:#ee7c1a">ירושה</span>
+              <h3 style="font-size:21px;font-weight:800;line-height:1.25">קיבלתם נכס בירושה — לפני שממהרים למכור</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">מה כדאי לבדוק בנכס ירושה, ואיך הסדרה או השבחה קטנה משנות את מחיר המכירה.</p>
+            </div>
+          </article>
+          <article style="border:2px solid #15171c;background:#f4f4f2;display:flex;flex-direction:column">
+            <div style="height:150px;border-bottom:2px solid #15171c;background:repeating-linear-gradient(45deg,#eae9e6,#eae9e6 8px,#f4f4f2 8px,#f4f4f2 16px);display:flex;align-items:flex-end;padding:12px"><span style="font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;color:#55585f;letter-spacing:0.04em">ARTICLE IMAGE</span></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:10px;flex:1">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;color:#ee7c1a">רישוי</span>
+              <h3 style="font-size:21px;font-weight:800;line-height:1.25">היתר בנייה: מה קורה בפועל מול הוועדה</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#55585f">השלבים, הדרישות החוזרות, ולמה ליווי מקצועי מקצר את הדרך להיתר.</p>
+            </div>
+          </article>
+        </div>
+        <p style="font-size:14px;color:#55585f;margin-top:28px">התכנים ייכתבו במלואם בשלב הבא — הכותרות כאן מסמנות את הנושאים שמביאים בעלי נכסים לאתר.</p>
+      </div>
+    </section>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isContact }}">
+  <main>
+    <section style="border-bottom:2px solid #15171c">
+      <div style="max-width:1280px;margin:0 auto;padding:clamp(48px,6vw,80px) clamp(18px,4vw,44px)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:clamp(28px,5vw,72px);align-items:start">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+              <span style="width:11px;height:11px;background:#ee7c1a;display:block"></span>
+              <span style="font-size:13.5px;font-weight:800;letter-spacing:0.06em;color:#1d3a8f">צור קשר</span>
+            </div>
+            <h1 style="font-size:clamp(32px,4vw,54px);font-weight:900;line-height:1.07;letter-spacing:-0.018em;margin-bottom:22px">
+              נתחיל בשיחה על הנכס שלך.
+            </h1>
+            <p style="font-size:18.5px;line-height:1.55;color:#3a3d44;max-width:48ch;margin-bottom:40px">
+              ספר לנו איפה הנכס ומה מצבו. נבדוק את המידע התכנוני ונחזור אליך עם תמונת מצב ראשונית — ללא עלות וללא התחייבות.
+            </p>
+            <div style="border-top:2px solid #15171c">
+              <div style="display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid #cfcdc8">
+                <span style="font-size:14px;font-weight:800;letter-spacing:0.04em;color:#55585f">טלפון</span>
+                <a href="tel:0540000000" style="font-family:'Archivo',sans-serif;font-size:19px;font-weight:800;direction:ltr">054-000-0000</a>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid #cfcdc8">
+                <span style="font-size:14px;font-weight:800;letter-spacing:0.04em;color:#55585f">וואטסאפ</span>
+                <a href="https://wa.me/972540000000" style="font-family:'Archivo',sans-serif;font-size:19px;font-weight:800;direction:ltr">054-000-0000</a>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid #cfcdc8">
+                <span style="font-size:14px;font-weight:800;letter-spacing:0.04em;color:#55585f">דוא״ל</span>
+                <a href="mailto:info@diromax.co.il" style="font-family:'Archivo',sans-serif;font-size:19px;font-weight:800;direction:ltr">info@diromax.co.il</a>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:2px solid #15171c">
+                <span style="font-size:14px;font-weight:800;letter-spacing:0.04em;color:#55585f">אזור פעילות</span>
+                <span style="font-size:17px;font-weight:700">להשלמה</span>
+              </div>
+            </div>
+            <div style="margin-top:40px;background:#eae9e6;border:2px solid #15171c;padding:28px">
+              <h3 style="font-size:19px;font-weight:900;margin-bottom:18px">מה קורה אחרי שמשאירים פרטים</h3>
+              <div style="display:grid;gap:14px">
+                <div style="display:flex;gap:14px;align-items:baseline">
+                  <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;color:#197a95;flex:0 0 auto">01</span>
+                  <span style="font-size:16px;line-height:1.5">שיחה קצרה — מה הנכס, מה מצבו ומה המטרה שלך.</span>
+                </div>
+                <div style="display:flex;gap:14px;align-items:baseline">
+                  <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;color:#197a95;flex:0 0 auto">02</span>
+                  <span style="font-size:16px;line-height:1.5">בדיקת מידע תכנוני והצלבה עם מה שבנוי בפועל.</span>
+                </div>
+                <div style="display:flex;gap:14px;align-items:baseline">
+                  <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;color:#ee7c1a;flex:0 0 auto">03</span>
+                  <span style="font-size:16px;line-height:1.5">תמונת מצב: מה אפשר לעשות, מה זה דורש ומה זה שווה.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="background:#1d3a8f;color:#fff;border:2px solid #15171c;padding:clamp(24px,3vw,40px)">
+            <sc-if value="{{ contactOpen }}" hint-placeholder-val="{{ true }}">
+            <form onSubmit="{{ submitContact }}">
+              <h2 style="font-size:24px;font-weight:900;margin-bottom:24px">השארת פרטים</h2>
+              <div style="display:grid;gap:16px">
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">שם מלא</span>
+                  <input type="text" required style="width:100%;border:2px solid #15171c;background:#fff;color:#15171c;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                </label>
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">טלפון</span>
+                  <input type="tel" required style="width:100%;border:2px solid #15171c;background:#fff;color:#15171c;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                </label>
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">כתובת הנכס</span>
+                  <input type="text" placeholder="עיר, רחוב" style="width:100%;border:2px solid #15171c;background:#fff;color:#15171c;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                </label>
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">במה נוכל לעזור</span>
+                  <select style="width:100%;border:2px solid #15171c;background:#fff;color:#15171c;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0">
+                    <option>בדיקת פוטנציאל השבחה</option>
+                    <option>הוספת יחידה או פיצול</option>
+                    <option>הסדרת חריגות בנייה</option>
+                    <option>יש פוטנציאל אבל אין לי תקציב — לבדוק מסלול</option>
+                    <option>מכירת נכס</option>
+                    <option>קניית נכס</option>
+                    <option>משהו אחר</option>
+                  </select>
+                </label>
+                <label style="display:block">
+                  <span style="display:block;font-size:13.5px;font-weight:800;margin-bottom:7px">פרטים על הנכס <span style="font-weight:500;opacity:0.75">(לא חובה)</span></span>
+                  <textarea rows="3" style="width:100%;border:2px solid #15171c;background:#fff;color:#15171c;padding:13px 14px;font-size:16px;font-family:'Heebo',sans-serif;border-radius:0;resize:vertical"></textarea>
+                </label>
+                <button type="submit" style="background:#ee7c1a;color:#15171c;border:none;padding:18px 24px;font-size:17px;font-weight:800;cursor:pointer;text-align:right;width:100%" style-hover="background:#f7972e" style-active="background:#d66a10">שליחה</button>
+              </div>
+            </form>
+            </sc-if>
+            <sc-if value="{{ contactSent }}">
+            <div style="padding:20px 0">
+              <div style="width:44px;height:4px;background:#ee7c1a;margin-bottom:22px"></div>
+              <h2 style="font-size:26px;font-weight:900;margin-bottom:14px">תודה. הפרטים אצלנו.</h2>
+              <p style="font-size:17px;line-height:1.6;color:#d8e2f4">נחזור אליך בהקדם עם השאלות הראשונות על הנכס.</p>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  </sc-if>
+
+  <footer style="background:#15171c;color:#f4f4f2">
+    <div style="max-width:1280px;margin:0 auto;padding:clamp(44px,5vw,72px) clamp(18px,4vw,44px)">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:clamp(24px,4vw,56px);padding-bottom:40px;border-bottom:1px solid #3a3d44">
+        <div>
+          <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:26px;letter-spacing:0.06em;color:#fff;margin-bottom:12px">DIROMAX</div>
+          <p style="font-size:16px;line-height:1.6;color:#a8abb2;max-width:40ch">דירומקס — תיווך, יזמות וניהול השבחת נכסים. לקבל את המקסימום מהנכס.</p>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:800;letter-spacing:0.06em;color:#a8abb2;margin-bottom:16px">האתר</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+            <button onClick="{{ goImprove }}" style="background:none;border:none;padding:0;color:#f4f4f2;font-size:16px;font-weight:500;cursor:pointer" style-hover="color:#ee7c1a" style-active="color:#d66a10">ניהול השבחת נכסים</button>
+            <button onClick="{{ goBroker }}" style="background:none;border:none;padding:0;color:#f4f4f2;font-size:16px;font-weight:500;cursor:pointer" style-hover="color:#ee7c1a" style-active="color:#d66a10">תיווך</button>
+            <button onClick="{{ goFaq }}" style="background:none;border:none;padding:0;color:#f4f4f2;font-size:16px;font-weight:500;cursor:pointer" style-hover="color:#ee7c1a" style-active="color:#d66a10">שאלות ותשובות</button>
+            <button onClick="{{ goArticles }}" style="background:none;border:none;padding:0;color:#f4f4f2;font-size:16px;font-weight:500;cursor:pointer" style-hover="color:#ee7c1a" style-active="color:#d66a10">מאמרים</button>
+            <button onClick="{{ goContact }}" style="background:none;border:none;padding:0;color:#f4f4f2;font-size:16px;font-weight:500;cursor:pointer" style-hover="color:#ee7c1a" style-active="color:#d66a10">צור קשר</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:800;letter-spacing:0.06em;color:#a8abb2;margin-bottom:16px">יצירת קשר</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+            <a href="tel:0540000000" style="font-family:'Archivo',sans-serif;font-size:19px;font-weight:800;color:#fff;direction:ltr">054-000-0000</a>
+            <a href="mailto:info@diromax.co.il" style="font-size:16px;color:#f4f4f2;direction:ltr">info@diromax.co.il</a>
+            <a href="https://wa.me/972540000000" style="font-size:16px;color:#f4f4f2">וואטסאפ</a>
+          </div>
+        </div>
+      </div>
+      <div style="padding-top:24px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;font-size:13.5px;color:#a8abb2">
+        <span>© דירומקס. כל הזכויות שמורות.</span>
+        <span>האמור באתר הוא מידע כללי ואינו מהווה ייעוץ תכנוני, משפטי או מיסויי.</span>
+      </div>
+    </div>
+  </footer>
+
+  <sc-if value="{{ stickyBar }}" hint-placeholder-val="{{ true }}">
+  <div style="position:fixed;bottom:0;right:0;left:0;z-index:60;background:#1d3a8f;border-top:2px solid #15171c;display:flex">
+    <a href="tel:0540000000" style="flex:1;padding:16px;text-align:center;color:#fff;font-size:16px;font-weight:800" style-hover="background:#162e73" style-active="background:#102454">שיחה</a>
+    <a href="https://wa.me/972540000000" style="flex:1;padding:16px;text-align:center;color:#fff;font-size:16px;font-weight:800;border-inline-start:2px solid rgba(255,255,255,0.35)" style-hover="background:#162e73" style-active="background:#102454">וואטסאפ</a>
+    <button onClick="{{ goContact }}" style="flex:1.2;padding:16px;background:#ee7c1a;color:#15171c;border:none;font-size:16px;font-weight:800;cursor:pointer" style-hover="background:#f7972e" style-active="background:#d66a10">בדיקת פוטנציאל</button>
+  </div>
+  <div style="height:58px"></div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;startView&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;improve&quot;, &quot;broker&quot;, &quot;faq&quot;, &quot;articles&quot;, &quot;contact&quot;], &quot;default&quot;: &quot;improve&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;עמודים&quot; },
+  &quot;heroImage&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;עמוד השבחה&quot; },
+  &quot;showProjects&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;עמוד השבחה&quot; },
+  &quot;stickyContactBar&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;כללי&quot; }
+}">
+class Component extends DCLogic {
+  state = { view: null, leadSent: false, contactSent: false };
+
+  go(v) {
+    this.setState({ view: v }, () => {
+      if (typeof window === 'undefined') return;
+      const root = document.documentElement;
+      const prev = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      requestAnimationFrame(() => { root.style.scrollBehavior = prev; });
+    });
+  }
+
+  renderVals() {
+    const v = this.state.view || this.props.startView || 'improve';
+    return {
+      isImprove: v === 'improve',
+      isBroker: v === 'broker',
+      isFaq: v === 'faq',
+      isArticles: v === 'articles',
+      isContact: v === 'contact',
+      goImprove: () => this.go('improve'),
+      goBroker: () => this.go('broker'),
+      goFaq: () => this.go('faq'),
+      goArticles: () => this.go('articles'),
+      goContact: () => this.go('contact'),
+      heroImage: this.props.heroImage ?? true,
+      showProjects: this.props.showProjects ?? true,
+      stickyBar: this.props.stickyContactBar ?? true,
+      leadSent: this.state.leadSent,
+      leadOpen: !this.state.leadSent,
+      contactSent: this.state.contactSent,
+      contactOpen: !this.state.contactSent,
+      submitLead: (e) => { e.preventDefault(); this.setState({ leadSent: true }); },
+      submitContact: (e) => { e.preventDefault(); this.setState({ contactSent: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

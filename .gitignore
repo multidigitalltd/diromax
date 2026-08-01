@@ -1,0 +1,19 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Dependencies — the theme has none; this guards against accidental commits
+node_modules/
+vendor/
+
+# Local WordPress installs used for testing the theme
+wordpress/
+wp-content/
+*.sql
+*.sqlite
+
+# Build output is committed on purpose (style.min.css, *.min.js) so the theme
+# works the moment it is unzipped, without a build step on the server.
