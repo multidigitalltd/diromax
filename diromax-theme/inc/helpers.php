@@ -322,19 +322,24 @@ function dx_nav_links( $location = 'primary' ) {
 		}
 	}
 
-	if ( $links ) {
-		return $links;
+	if ( ! $links ) {
+		foreach ( dx_nav_items() as $view => $label ) {
+			$links[] = array(
+				'url'     => dx_view_url( $view ),
+				'label'   => $label,
+				'current' => ( $view === $current ),
+			);
+		}
 	}
 
-	foreach ( dx_nav_items() as $view => $label ) {
-		$links[] = array(
-			'url'     => dx_view_url( $view ),
-			'label'   => $label,
-			'current' => ( $view === $current ),
-		);
-	}
-
-	return $links;
+	/**
+	 * Filters the header and footer links. The client-portal plugin adds its
+	 * "אזור אישי" link here.
+	 *
+	 * @param array<int, array{url:string, label:string, current:bool}> $links    Links.
+	 * @param string                                                    $location Menu location.
+	 */
+	return (array) apply_filters( 'dx_nav_links', $links, $location );
 }
 
 /* -------------------------------------------------------------------------

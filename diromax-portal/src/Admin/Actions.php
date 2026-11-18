@@ -1,0 +1,571 @@
+<?php
+/**
+ * Admin form handlers.
+ *
+ * @package Diromax\Portal
+ */
+
+declare( strict_types = 1 );
+
+namespace Diromax\Portal\Admin;
+
+use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Plugin;
+use Diromax\Portal\Service\Errors;
+use Diromax\Portal\Service\UpdateService;
+use Diromax\Portal\Settings;
+use WP_Error;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * One admin-post handler per form (post/redirect/get).
+ *
+ * Each handler checks the nonce bound to its action and case, then calls a
+ * service; every service checks AccessPolicy itself before touching anything.
+ * Input is unslashed and sanitized here and validated by the service.
+ */
+final class Actions {
+
+	/** Action => [single-line fields, multi-line fields]. */
+	private const ACTIONS = array(
+		'create_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id' ), array() ),
+		'update_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'stage' ), array() ),
+		'case_status'         => array( array( 'status' ), array() ),
+		'add_member'          => array( array( 'email', 'name', 'role', 'notify', 'invite' ), array() ),
+		'remove_member'       => array( array( 'user_id' ), array() ),
+		'invite'              => array( array( 'user_id' ), array() ),
+		'save_budget'         => array( array(), array() ),
+		'add_entry'           => array( array( 'type', 'status', 'entry_date', 'due_date', 'amount', 'vat_mode', 'category', 'payee', 'description', 'funding', 'pay_to', 'method', 'reference', 'visible', 'notify' ), array( 'payment_details', 'internal_note' ) ),
+		'update_entry'        => array( array( 'entry_id', 'status', 'entry_date', 'due_date', 'amount', 'vat_mode', 'category', 'payee', 'description', 'funding', 'pay_to', 'method', 'reference', 'visible', 'notify' ), array( 'payment_details', 'internal_note' ) ),
+		'void_entry'          => array( array( 'entry_id', 'reason', 'notify' ), array() ),
+		'settle_request'      => array( array( 'entry_id', 'entry_date', 'category', 'method', 'reference', 'notify' ), array() ),
+		'add_update'          => array( array( 'title', 'stage', 'visible', 'notify' ), array( 'body' ) ),
+		'upload_document'     => array( array( 'kind', 'title', 'visible', 'notify' ), array() ),
+		'document_visibility' => array( array( 'document_id', 'visible' ), array() ),
+		'delete_document'     => array( array( 'document_id' ), array() ),
+		'send_now'            => array( array(), array() ),
+		'cancel_pending'      => array( array(), array() ),
+		'delete_case'         => array( array( 'confirm' ), array() ),
+	);
+
+	/**
+	 * Constructor.
+	 *
+	 * @param Plugin $app Object graph.
+	 */
+	public function __construct( private readonly Plugin $app ) {}
+
+	/**
+	 * Register the admin-post hooks.
+	 */
+	public function register(): void {
+		foreach ( array_keys( self::ACTIONS ) as $action ) {
+			add_action( 'admin_post_dx_portal_' . $action, fn() => $this->handle( $action ) );
+		}
+
+		add_action( 'admin_post_dx_portal_save_settings', array( $this, 'save_settings' ) );
+		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
+		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
+	}
+
+	/**
+	 * Common prologue: nonce, case, input; then the action; then the redirect.
+	 *
+	 * @param string $action Action key.
+	 */
+	private function handle( string $action ): void {
+		[ $lines, $blocks ] = self::ACTIONS[ $action ];
+
+		$case_id = isset( $_POST['case_id'] ) ? absint( $_POST['case_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified on the next line, bound to this case.
+		check_admin_referer( 'dx_portal_' . $action . '_' . $case_id );
+
+		$actor = get_current_user_id();
+		$input = self::input( $lines, $blocks );
+
+		if ( 'create_case' === $action ) {
+			$this->create_case( $input, $actor );
+			return;
+		}
+
+		$client_case = $this->app->cases->find( $case_id );
+
+		if ( null === $client_case || ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
+			wp_die( esc_html__( 'אין הרשאה לתיק הזה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		match ( $action ) {
+			'update_case'         => $this->update_case( $client_case, $input, $actor ),
+			'case_status'         => $this->case_status( $client_case, $input, $actor ),
+			'add_member'          => $this->add_member( $client_case, $input, $actor ),
+			'remove_member'       => $this->remove_member( $client_case, $input, $actor ),
+			'invite'              => $this->invite( $client_case, $input, $actor ),
+			'save_budget'         => $this->save_budget( $client_case, $actor ),
+			'add_entry'           => $this->add_entry( $client_case, $input, $actor ),
+			'update_entry'        => $this->update_entry( $client_case, $input, $actor ),
+			'void_entry'          => $this->void_entry( $client_case, $input, $actor ),
+			'settle_request'      => $this->settle_request( $client_case, $input, $actor ),
+			'add_update'          => $this->add_update( $client_case, $input, $actor ),
+			'upload_document'     => $this->upload_document( $client_case, $input, $actor ),
+			'document_visibility' => $this->document_visibility( $client_case, $input, $actor ),
+			'delete_document'     => $this->delete_document( $client_case, $input, $actor ),
+			'send_now'            => $this->send_now( $client_case, $actor ),
+			'cancel_pending'      => $this->cancel_pending( $client_case, $actor ),
+			'delete_case'         => $this->delete_case( $client_case, $input, $actor ),
+			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
+		};
+	}
+
+	/**
+	 * Open a case.
+	 *
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function create_case( array $input, int $actor ): void {
+		$result = $this->app->case_service->create( $input, $actor );
+
+		if ( $result instanceof WP_Error ) {
+			Flash::set( 'error', $result->get_error_message(), Errors::fields( $result ), $input, 'case' );
+			self::redirect( add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ) );
+		}
+
+		Flash::set( 'success', __( 'התיק נפתח. עכשיו אפשר להוסיף את הלקוחות ואת התקציב.', 'diromax-portal' ) );
+		self::redirect( Admin::case_url( $result->id, 'members' ) );
+	}
+
+	/**
+	 * Save details and stages.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function update_case( CaseRecord $client_case, array $input, int $actor ): void {
+		$skipped = isset( $_POST['skipped'] ) && is_array( $_POST['skipped'] ) ? array_map( 'absint', wp_unslash( $_POST['skipped'] ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in handle().
+
+		$input['skipped'] = implode( ',', $skipped );
+		$this->finish( $client_case, 'details', $this->app->case_service->update_details( $client_case, $input, $actor ), __( 'פרטי התיק נשמרו.', 'diromax-portal' ), 'details', $input );
+	}
+
+	/**
+	 * Change status.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function case_status( CaseRecord $client_case, array $input, int $actor ): void {
+		$this->finish( $client_case, 'details', $this->app->case_service->set_status( $client_case, $input['status'], $actor ), __( 'סטטוס התיק עודכן.', 'diromax-portal' ) );
+	}
+
+	/**
+	 * Add a member.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function add_member( CaseRecord $client_case, array $input, int $actor ): void {
+		$message = '1' === $input['invite'] ? __( 'הלקוח נוסף לתיק ונשלחה אליו הזמנה.', 'diromax-portal' ) : __( 'הלקוח נוסף לתיק.', 'diromax-portal' );
+		$this->finish( $client_case, 'members', $this->app->case_service->add_member( $client_case, $input, $actor ), $message, 'member', $input );
+	}
+
+	/**
+	 * Remove a member.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function remove_member( CaseRecord $client_case, array $input, int $actor ): void {
+		$this->finish( $client_case, 'members', $this->app->case_service->remove_member( $client_case, absint( $input['user_id'] ), $actor ), __( 'הלקוח הוסר מהתיק.', 'diromax-portal' ) );
+	}
+
+	/**
+	 * Re-send an invitation.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function invite( CaseRecord $client_case, array $input, int $actor ): void {
+		$user_id = absint( $input['user_id'] );
+		$result  = $this->app->members->is_member( $client_case->id, $user_id ) && $this->app->policy->can_manage_case( $actor, $client_case )
+			? $this->app->login->invite( $user_id, $client_case )
+			: Errors::not_found();
+
+		$this->finish( $client_case, 'members', false === $result ? Errors::storage() : $result, __( 'ההזמנה נשלחה שוב.', 'diromax-portal' ) );
+	}
+
+	/**
+	 * Save the budget.
+	 *
+	 * @param CaseRecord $client_case  Case.
+	 * @param int        $actor Actor.
+	 */
+	private function save_budget( CaseRecord $client_case, int $actor ): void {
+		$lines = array();
+
+		foreach ( array_keys( Settings::categories() ) as $key ) {
+			$lines[ $key ] = isset( $_POST['budget'][ $key ] ) ? sanitize_text_field( wp_unslash( $_POST['budget'][ $key ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in handle().
+		}
+
+		$this->finish( $client_case, 'budget', $this->app->case_service->save_budget( $client_case, $lines, $actor ), __( 'התקציב נשמר.', 'diromax-portal' ), 'budget', $lines );
+	}
+
+	/**
+	 * Add a ledger entry.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function add_entry( CaseRecord $client_case, array $input, int $actor ): void {
+		$file   = self::file( 'file' );
+		$result = $this->app->ledger_service->add( $client_case, $input, $actor, $file );
+
+		$this->finish( $client_case, 'finance', $result, __( 'התנועה נשמרה. אפשר להזין את הבאה.', 'diromax-portal' ), 'entry', $input );
+	}
+
+	/**
+	 * Edit a ledger entry.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function update_entry( CaseRecord $client_case, array $input, int $actor ): void {
+		$result = $this->app->ledger_service->update( $client_case, absint( $input['entry_id'] ), $input, $actor );
+
+		$this->finish( $client_case, 'finance', $result, __( 'התנועה עודכנה.', 'diromax-portal' ), 'entry-' . absint( $input['entry_id'] ), $input );
+	}
+
+	/**
+	 * Void a ledger entry.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function void_entry( CaseRecord $client_case, array $input, int $actor ): void {
+		$result = $this->app->ledger_service->void( $client_case, absint( $input['entry_id'] ), $input['reason'], '1' === $input['notify'], $actor );
+
+		$this->finish( $client_case, 'finance', $result, __( 'התנועה בוטלה ויצאה מהחישובים.', 'diromax-portal' ), 'void-' . absint( $input['entry_id'] ), $input );
+	}
+
+	/**
+	 * Settle a payment request.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function settle_request( CaseRecord $client_case, array $input, int $actor ): void {
+		$result = $this->app->ledger_service->settle( $client_case, absint( $input['entry_id'] ), $input, $actor );
+
+		$this->finish( $client_case, 'finance', $result, __( 'הדרישה סומנה כשולמה ונרשמה התנועה המתאימה.', 'diromax-portal' ), 'settle-' . absint( $input['entry_id'] ), $input );
+	}
+
+	/**
+	 * Publish a progress update.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function add_update( CaseRecord $client_case, array $input, int $actor ): void {
+		$result = ( new UpdateService( $this->app ) )->publish( $client_case, $input, self::files( 'files' ), $actor );
+
+		$this->finish( $client_case, 'updates', $result, __( 'העדכון פורסם.', 'diromax-portal' ), 'update', $input );
+	}
+
+	/**
+	 * Upload a document.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function upload_document( CaseRecord $client_case, array $input, int $actor ): void {
+		$file   = self::file( 'file' );
+		$result = null === $file
+			? Errors::invalid( array( 'file' => 'missing' ) )
+			: $this->app->document_service->upload( $client_case, $file, $input['kind'], $input['title'], '1' === $input['visible'], $actor, '1' === $input['notify'] );
+
+		$this->finish( $client_case, 'documents', $result, __( 'המסמך הועלה ונשמר מוצפן.', 'diromax-portal' ), 'document', $input );
+	}
+
+	/**
+	 * Show or hide a document.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function document_visibility( CaseRecord $client_case, array $input, int $actor ): void {
+		$document = $this->app->documents->find( absint( $input['document_id'] ) );
+		$result   = null === $document ? Errors::not_found() : $this->app->document_service->set_visible( $client_case, $document, '1' === $input['visible'], $actor );
+
+		$this->finish( $client_case, 'documents', $result, __( 'הנראות של המסמך עודכנה.', 'diromax-portal' ) );
+	}
+
+	/**
+	 * Delete a document.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function delete_document( CaseRecord $client_case, array $input, int $actor ): void {
+		$document = $this->app->documents->find( absint( $input['document_id'] ) );
+		$result   = null === $document ? Errors::not_found() : $this->app->document_service->delete( $client_case, $document, $actor );
+
+		$this->finish( $client_case, 'documents', $result, __( 'המסמך נמחק.', 'diromax-portal' ) );
+	}
+
+	/**
+	 * Send the pending batch now.
+	 *
+	 * @param CaseRecord $client_case  Case.
+	 * @param int        $actor Actor.
+	 */
+	private function send_now( CaseRecord $client_case, int $actor ): void {
+		$result  = $this->app->notifier->send_now( $client_case, $actor );
+		$message = 1 === $result
+			? __( 'נשלח מייל אחד.', 'diromax-portal' )
+			/* translators: %d: emails sent. */
+			: sprintf( __( 'נשלחו %d מיילים.', 'diromax-portal' ), is_int( $result ) ? $result : 0 );
+
+		$this->finish( $client_case, 'overview', $result, $message );
+	}
+
+	/**
+	 * Cancel the pending batch.
+	 *
+	 * @param CaseRecord $client_case  Case.
+	 * @param int        $actor Actor.
+	 */
+	private function cancel_pending( CaseRecord $client_case, int $actor ): void {
+		$this->finish( $client_case, 'overview', $this->app->notifier->cancel( $client_case, $actor ), __( 'העדכונים הממתינים בוטלו ולא יישלחו.', 'diromax-portal' ) );
+	}
+
+	/**
+	 * Delete a closed case for good. Requires typing the case number.
+	 *
+	 * @param CaseRecord            $client_case  Case.
+	 * @param array<string, string> $input Fields.
+	 * @param int                   $actor Actor.
+	 */
+	private function delete_case( CaseRecord $client_case, array $input, int $actor ): void {
+		if ( $input['confirm'] !== $client_case->number ) {
+			$this->finish( $client_case, 'details', Errors::invalid( array( 'confirm' => 'invalid' ) ), '' );
+		}
+
+		$result = $this->app->case_service->delete( $client_case, $actor );
+
+		if ( $result instanceof WP_Error ) {
+			$this->finish( $client_case, 'details', $result, '' );
+		}
+
+		Flash::set( 'success', __( 'התיק נמחק לצמיתות, כולל המסמכים.', 'diromax-portal' ) );
+		self::redirect( add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) );
+	}
+
+	/**
+	 * Save settings.
+	 */
+	public function save_settings(): void {
+		check_admin_referer( 'dx_portal_save_settings' );
+
+		if ( ! $this->app->policy->can_manage_settings( get_current_user_id() ) ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		$raw   = isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
+		$input = array(
+			'vat_rate'         => isset( $raw['vat_rate'] ) ? (string) (int) round( (float) sanitize_text_field( (string) $raw['vat_rate'] ) * 100 ) : '',
+			'quiet_minutes'    => sanitize_text_field( (string) ( $raw['quiet_minutes'] ?? '' ) ),
+			'max_wait_minutes' => sanitize_text_field( (string) ( $raw['max_wait_minutes'] ?? '' ) ),
+			'hide_amounts'     => isset( $raw['hide_amounts'] ) ? '1' : '',
+			'payment_details'  => sanitize_textarea_field( (string) ( $raw['payment_details'] ?? '' ) ),
+			'access_months'    => sanitize_text_field( (string) ( $raw['access_months'] ?? '' ) ),
+			'categories'       => self::categories_input( (string) ( $raw['categories'] ?? '' ) ),
+		);
+
+		$before = Settings::all();
+		$after  = Settings::save( $input );
+
+		$this->app->audit->record( 'settings.updated', null, 'settings', null, array_diff_assoc( array_map( 'wp_json_encode', $after ), array_map( 'wp_json_encode', $before ) ), $this->app->clock->mysql() );
+		Flash::set( 'success', __( 'ההגדרות נשמרו.', 'diromax-portal' ) );
+		self::redirect( add_query_arg( 'page', Admin::PAGE_SETTINGS, admin_url( 'admin.php' ) ) );
+	}
+
+	/**
+	 * Manager download of a document (hidden ones included).
+	 */
+	public function download(): void {
+		$document_id = isset( $_GET['document_id'] ) ? absint( $_GET['document_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified on the next line.
+		check_admin_referer( 'dx_portal_download_' . $document_id );
+
+		$document    = $this->app->documents->find( $document_id );
+		$client_case = null === $document ? null : $this->app->cases->find( $document->case_id );
+
+		if ( null === $document || null === $client_case || is_wp_error( $this->app->document_service->send( $client_case, $document, get_current_user_id() ) ) ) {
+			wp_die( esc_html__( 'המסמך לא נמצא.', 'diromax-portal' ), '', array( 'response' => 404 ) );
+		}
+
+		exit;
+	}
+
+	/**
+	 * Preview of the pending email.
+	 */
+	public function preview(): void {
+		$case_id = isset( $_GET['case_id'] ) ? absint( $_GET['case_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified on the next line.
+		check_admin_referer( 'dx_portal_preview_' . $case_id );
+
+		$client_case = $this->app->cases->find( $case_id );
+		$html        = null === $client_case ? Errors::not_found() : $this->app->notifier->preview( $client_case, get_current_user_id() );
+
+		if ( $html instanceof WP_Error ) {
+			wp_die( esc_html( $html->get_error_message() ), '', array( 'response' => 403 ) );
+		}
+
+		if ( '' === $html ) {
+			wp_die( esc_html__( 'אין עדכונים שממתינים לשליחה.', 'diromax-portal' ) );
+		}
+
+		nocache_headers();
+		header( 'Content-Type: text/html; charset=UTF-8' );
+		// nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- The email HTML from MailRenderer, which escapes every value; no request data reaches it unescaped.
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Rendered by MailRenderer, which escapes every value.
+		exit;
+	}
+
+	/**
+	 * Flash the result and go back to the tab.
+	 *
+	 * @param CaseRecord            $client_case    Case.
+	 * @param string                $tab     Tab.
+	 * @param mixed                 $result  Service result.
+	 * @param string                $success Success message.
+	 * @param string                $form    Form key for field errors.
+	 * @param array<string, string> $old     Submitted values.
+	 */
+	private function finish( CaseRecord $client_case, string $tab, mixed $result, string $success, string $form = '', array $old = array() ): void {
+		if ( $result instanceof WP_Error ) {
+			Flash::set( 'error', $result->get_error_message(), Errors::fields( $result ), $old, $form );
+		} else {
+			Flash::set( 'success', $success );
+		}
+
+		self::redirect( Admin::case_url( $client_case->id, $tab ) . ( '' !== $form && $result instanceof WP_Error ? '#form-' . $form : '' ) );
+	}
+
+	/**
+	 * Redirect and stop.
+	 *
+	 * @param string $url URL.
+	 * @return never
+	 */
+	private static function redirect( string $url ): never {
+		wp_safe_redirect( $url );
+		exit;
+	}
+
+	/**
+	 * Read and sanitize the named POST fields.
+	 *
+	 * @param string[] $lines  Single-line fields.
+	 * @param string[] $blocks Multi-line fields.
+	 * @return array<string, string>
+	 */
+	private static function input( array $lines, array $blocks ): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Called after check_admin_referer().
+		$input = array();
+
+		foreach ( $lines as $field ) {
+			$input[ $field ] = isset( $_POST[ $field ] ) && is_string( $_POST[ $field ] ) ? sanitize_text_field( wp_unslash( $_POST[ $field ] ) ) : '';
+		}
+
+		foreach ( $blocks as $field ) {
+			$input[ $field ] = isset( $_POST[ $field ] ) && is_string( $_POST[ $field ] ) ? sanitize_textarea_field( wp_unslash( $_POST[ $field ] ) ) : '';
+		}
+		// phpcs:enable
+
+		return $input;
+	}
+
+	/**
+	 * One uploaded file, or null when none was chosen.
+	 *
+	 * @param string $field Field name.
+	 * @return array<string, mixed>|null
+	 */
+	private static function file( string $field ): ?array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Verified in handle(); DocumentService validates the file itself.
+		$file = $_FILES[ $field ] ?? null;
+
+		if ( ! is_array( $file ) || UPLOAD_ERR_NO_FILE === ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
+			return null;
+		}
+
+		return $file;
+	}
+
+	/**
+	 * Several uploaded files from a multiple input.
+	 *
+	 * @param string $field Field name.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function files( string $field ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Verified in handle(); DocumentService validates each file.
+		$raw = $_FILES[ $field ] ?? null;
+
+		if ( ! is_array( $raw ) || ! is_array( $raw['name'] ?? null ) ) {
+			return array();
+		}
+
+		$files = array();
+
+		foreach ( array_keys( $raw['name'] ) as $index ) {
+			if ( UPLOAD_ERR_NO_FILE === ( $raw['error'][ $index ] ?? UPLOAD_ERR_NO_FILE ) ) {
+				continue;
+			}
+
+			$files[] = array(
+				'name'     => $raw['name'][ $index ],
+				'type'     => $raw['type'][ $index ] ?? '',
+				'tmp_name' => $raw['tmp_name'][ $index ] ?? '',
+				'error'    => $raw['error'][ $index ],
+				'size'     => (int) ( $raw['size'][ $index ] ?? 0 ),
+			);
+		}
+
+		return $files;
+	}
+
+	/**
+	 * Categories from the settings textarea: one "key=Label" per line.
+	 *
+	 * @param string $text Textarea value.
+	 * @return array<string, string>
+	 */
+	private static function categories_input( string $text ): array {
+		$categories = array();
+
+		$lines = preg_split( '/\R/', sanitize_textarea_field( $text ) );
+
+		foreach ( false === $lines ? array() : $lines as $line ) {
+			$parts = array_map( 'trim', explode( '=', $line, 2 ) );
+
+			if ( 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1] ) {
+				$categories[ $parts[0] ] = $parts[1];
+			}
+		}
+
+		return $categories;
+	}
+}

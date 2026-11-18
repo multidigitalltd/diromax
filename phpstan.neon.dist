@@ -1,0 +1,13 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 8
+    paths:
+        - diromax-portal/diromax-portal.php
+        - diromax-portal/uninstall.php
+        - diromax-portal/src
+        - diromax-portal/templates
+    bootstrapFiles:
+        - diromax-portal/tests/phpstan-bootstrap.php
+    treatPhpDocTypesAsCertain: false

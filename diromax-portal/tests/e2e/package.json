@@ -1,0 +1,13 @@
+{
+  "name": "diromax-portal-e2e",
+  "private": true,
+  "description": "End-to-end checks of the client portal in Chromium, with axe-core.",
+  "scripts": {
+    "client": "node client.e2e.js",
+    "manager": "node manager.e2e.js"
+  },
+  "devDependencies": {
+    "axe-core": "4.10.3",
+    "playwright": "1.63.0"
+  }
+}

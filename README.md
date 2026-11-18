@@ -33,10 +33,30 @@ diromax-theme/            הערכה עצמה — זו התיקייה שמעלי
     js/                   forms.js, a11y.js + גרסאות מוקטנות
     img/logo.jpg
   languages/diromax.pot   תבנית תרגום
-bin/build-assets.php      בניית הקבצים המוקטנים
+diromax-portal/           תוסף: תיקי לקוחות ואזור אישי (ראו README שבתוכו)
+bin/build-assets.php      בניית הקבצים המוקטנים (ערכה ותוסף)
 bin/build-zip.sh          אריזת diromax.zip להעלאה
-docs/                     מפרט העיצוב וקובץ ההעברה המקורי
+docs/                     מפרט העיצוב, אפיון האזור האישי ותוצאות הבדיקה
+  client-portal/          אפיון, מוקאפים ו-verification של האזור האישי
+  DEV-STANDARD.md         תקן הפיתוח והאבטחה של Multi Digital
+  PROJECT-NOTES.md        רמת סיכון, סטאק, פקודות ומבנה
+AGENTS.md  CLAUDE.md      כללי התקן לכלי AI
+EXCEPTIONS.md             חריגות מאושרות מהתקן
+composer.json             כלי פיתוח בלבד (PHPCS, PHPStan, PHPUnit). לא נכנס לייצור
+.github/workflows/ci.yml  CI: lint, ניתוח סטטי, בדיקות, סריקות, בדיקות דפדפן
 ```
+
+---
+
+## אזור אישי ותיקי לקוחות
+
+תוסף נפרד, `diromax-portal`. לכל לקוח תיק דיגיטלי עם ההסכם, התקציב, ההוצאות, התשלומים, דרישות התשלום, המסמכים והעדכונים. הלקוח רואה את התיק בכתובת `/portal/`, ומקבל מייל מעוצב על כל עדכון.
+
+- **רמת סיכון 3** (מידע פיננסי). המסמכים נשמרים מוצפנים, ונדרש אימות דו-שלבי למנהלים.
+- **התקנה, הגדרות `wp-config.php` ומיפוי מידע:** [`diromax-portal/README.md`](diromax-portal/README.md)
+- **אפיון:** [`docs/client-portal/spec.md`](docs/client-portal/spec.md) · **בדיקה:** [`docs/client-portal/verification.md`](docs/client-portal/verification.md)
+
+הערכה מספקת לתוסף נקודת חיבור אחת: ה-filter `dx_nav_links`, שדרכו נוסף הקישור "אזור אישי" להדר.
 
 ---
 
@@ -167,7 +187,11 @@ HTML סמנטי, H1 יחיד, Open Graph ו-Twitter Card, ו-JSON-LD: `RealEstat
 ## עבודה על הקוד
 
 ```bash
-php bin/build-assets.php      # בנייה מחדש של style.min.css ושל קבצי ה-JS
+php bin/build-assets.php      # בנייה מחדש של הקבצים המוקטנים (ערכה ותוסף)
+composer install              # כלי הפיתוח
+composer lint                 # PHPCS
+composer analyse              # PHPStan
+composer test                 # PHPUnit: יחידה + אינטגרציה
 ```
 
 - **CSS:** לערוך רק את `style.css` ואז לבנות. `style.min.css` הוא תוצר.

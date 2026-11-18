@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!--
+	Unit tests only: pure domain code, no WordPress and no database.
+	Run with: composer test:unit
+-->
+<phpunit
+	bootstrap="diromax-portal/tests/bootstrap-unit.php"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true"
+	convertDeprecationsToExceptions="true"
+	executionOrder="random"
+>
+	<testsuites>
+		<testsuite name="unit">
+			<directory suffix="Test.php">diromax-portal/tests/Unit</directory>
+		</testsuite>
+	</testsuites>
+	<coverage>
+		<include>
+			<directory suffix=".php">diromax-portal/src/Domain</directory>
+		</include>
+	</coverage>
+</phpunit>
