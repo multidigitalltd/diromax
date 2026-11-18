@@ -204,6 +204,9 @@
 .dxp-tl__files { margin: 8px 0 0; padding-inline-start: 18px; }
 @media (max-width: 560px) { .dxp-tl > li { grid-template-columns: 1fr; } }
 
+/* The theme's fixed contact bar would cover portal content; the manager card carries the same actions. */
+.dx-portal-page .dx-sticky { display: none; }
+
 /* my cases */
 .dxp-cards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 2px; border: 2px solid var(--p-ink); background: var(--p-ink); }
 .dxp-card { background: var(--p-bg); padding: 26px 24px; }

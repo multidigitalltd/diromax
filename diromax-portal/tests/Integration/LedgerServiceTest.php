@@ -30,13 +30,64 @@ final class LedgerServiceTest extends PortalTestCase {
 		$this->assertTrue( $this->app->case_service->save_budget( $case, $budget, $manager ) );
 
 		$entries = array(
-			self::expense( array( 'entry_date' => '2026-07-11', 'amount' => '4500', 'category' => 'consultants', 'funding' => 'client' ) ),
-			array( 'type' => 'payment', 'entry_date' => '2026-07-20', 'amount' => '60000', 'description' => 'העברה', 'method' => 'transfer', 'visible' => '1' ),
-			self::expense( array( 'entry_date' => '2026-08-02', 'amount' => '38000', 'category' => 'architecture', 'funding' => 'project' ) ),
-			self::expense( array( 'entry_date' => '2026-09-15', 'amount' => '24000', 'category' => 'management', 'funding' => 'proceeds' ) ),
-			self::expense( array( 'entry_date' => '2026-10-28', 'amount' => '45000', 'category' => 'contractor', 'funding' => 'project', 'status' => 'committed' ) ),
-			array( 'type' => 'request', 'entry_date' => '2026-11-05', 'due_date' => '2026-12-01', 'amount' => '40000', 'description' => 'מקדמה', 'pay_to' => 'diromax', 'visible' => '1' ),
-			self::expense( array( 'entry_date' => '2026-11-12', 'amount' => '12300', 'category' => 'fees', 'funding' => 'project' ) ),
+			self::expense(
+				array(
+					'entry_date' => '2026-07-11',
+					'amount'     => '4500',
+					'category'   => 'consultants',
+					'funding'    => 'client',
+				)
+			),
+			array(
+				'type'        => 'payment',
+				'entry_date'  => '2026-07-20',
+				'amount'      => '60000',
+				'description' => 'העברה',
+				'method'      => 'transfer',
+				'visible'     => '1',
+			),
+			self::expense(
+				array(
+					'entry_date' => '2026-08-02',
+					'amount'     => '38000',
+					'category'   => 'architecture',
+					'funding'    => 'project',
+				)
+			),
+			self::expense(
+				array(
+					'entry_date' => '2026-09-15',
+					'amount'     => '24000',
+					'category'   => 'management',
+					'funding'    => 'proceeds',
+				)
+			),
+			self::expense(
+				array(
+					'entry_date' => '2026-10-28',
+					'amount'     => '45000',
+					'category'   => 'contractor',
+					'funding'    => 'project',
+					'status'     => 'committed',
+				)
+			),
+			array(
+				'type'        => 'request',
+				'entry_date'  => '2026-11-05',
+				'due_date'    => '2026-12-01',
+				'amount'      => '40000',
+				'description' => 'מקדמה',
+				'pay_to'      => 'diromax',
+				'visible'     => '1',
+			),
+			self::expense(
+				array(
+					'entry_date' => '2026-11-12',
+					'amount'     => '12300',
+					'category'   => 'fees',
+					'funding'    => 'project',
+				)
+			),
 		);
 
 		foreach ( $entries as $input ) {
@@ -62,7 +113,16 @@ final class LedgerServiceTest extends PortalTestCase {
 		$case    = $this->case_for( $manager );
 
 		$this->app->ledger_service->add( $case, self::expense( array( 'amount' => '100' ) ), $manager );
-		$this->app->ledger_service->add( $case, self::expense( array( 'amount' => '900', 'visible' => '' ) ), $manager );
+		$this->app->ledger_service->add(
+			$case,
+			self::expense(
+				array(
+					'amount'  => '900',
+					'visible' => '',
+				)
+			),
+			$manager
+		);
 
 		$this->assertSame( 10000, $this->app->case_service->summary( $case, true )->cost_to_date );
 		$this->assertSame( 100000, $this->app->case_service->summary( $case, false )->cost_to_date );
@@ -97,7 +157,16 @@ final class LedgerServiceTest extends PortalTestCase {
 	public function test_validation_errors_come_back_per_field(): void {
 		$manager = $this->manager();
 		$case    = $this->case_for( $manager );
-		$error   = $this->app->ledger_service->add( $case, self::expense( array( 'amount' => '-1', 'category' => 'nope' ) ), $manager );
+		$error   = $this->app->ledger_service->add(
+			$case,
+			self::expense(
+				array(
+					'amount'   => '-1',
+					'category' => 'nope',
+				)
+			),
+			$manager
+		);
 
 		$this->assertSame( 'dx_invalid', $error->get_error_code() );
 		$this->assertSame(
@@ -114,7 +183,18 @@ final class LedgerServiceTest extends PortalTestCase {
 		$case    = $this->case_for( $manager );
 		$id      = $this->app->ledger_service->add( $case, self::expense( array( 'status' => 'committed' ) ), $manager );
 
-		$result = $this->app->ledger_service->update( $case, $id, self::expense( array( 'type' => 'payment', 'status' => 'paid', 'amount' => '13000' ) ), $manager );
+		$result = $this->app->ledger_service->update(
+			$case,
+			$id,
+			self::expense(
+				array(
+					'type'   => 'payment',
+					'status' => 'paid',
+					'amount' => '13000',
+				)
+			),
+			$manager
+		);
 
 		$this->assertTrue( $result );
 		$row = $this->app->ledger->find( $id );
@@ -204,7 +284,15 @@ final class LedgerServiceTest extends PortalTestCase {
 			$manager
 		);
 
-		$payment = $this->app->ledger_service->settle( $case, $request, array( 'entry_date' => '2026-11-21', 'method' => 'transfer' ), $manager );
+		$payment = $this->app->ledger_service->settle(
+			$case,
+			$request,
+			array(
+				'entry_date' => '2026-11-21',
+				'method'     => 'transfer',
+			),
+			$manager
+		);
 		$this->assertSame( EntryType::Payment, $this->app->ledger->find( $payment )->entry->type );
 		$this->assertSame( 4000000, $this->app->case_service->summary( $case, true )->project_balance );
 

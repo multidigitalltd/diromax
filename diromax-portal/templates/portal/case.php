@@ -49,7 +49,7 @@ $tab_labels = array(
 				<?php endif; ?>
 				<?php require __DIR__ . '/parts/account.php'; ?>
 			</div>
-			<aside class="dxp-pm" aria-label="<?php esc_attr_e( 'מנהל הפרויקט', 'diromax-portal' ); ?>">
+			<div class="dxp-pm">
 				<p class="dxp-pm__k"><?php esc_html_e( 'מנהל הפרויקט שלך', 'diromax-portal' ); ?></p>
 				<p class="dxp-pm__n"><?php echo esc_html( (string) $manager['name'] ); ?></p>
 				<p class="dxp-pm__btns">
@@ -63,7 +63,7 @@ $tab_labels = array(
 						<a class="dxp-btn" href="<?php echo esc_url( 'mailto:' . $manager['email'] ); ?>"><?php esc_html_e( 'דוא״ל', 'diromax-portal' ); ?></a>
 					<?php endif; ?>
 				</p>
-			</aside>
+			</div>
 		</div>
 
 		<ol class="dxp-stages" aria-label="<?php esc_attr_e( 'שלבי התהליך', 'diromax-portal' ); ?>">

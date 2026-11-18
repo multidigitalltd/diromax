@@ -85,10 +85,23 @@ final class Hooks {
 			return $links;
 		}
 
+		$in_portal = '' !== (string) get_query_var( Router::VIEW );
+
+		if ( $in_portal ) {
+			// The theme reads an unknown page as its articles view; inside the portal nothing else is current.
+			$links = array_map(
+				static function ( array $link ): array {
+					$link['current'] = false;
+					return $link;
+				},
+				$links
+			);
+		}
+
 		$links[] = array(
 			'url'     => Router::portal_url(),
 			'label'   => __( 'אזור אישי', 'diromax-portal' ),
-			'current' => '' !== (string) get_query_var( Router::VIEW ),
+			'current' => $in_portal,
 		);
 
 		return $links;

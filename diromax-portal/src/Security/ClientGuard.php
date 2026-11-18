@@ -32,15 +32,17 @@ final class ClientGuard {
 	 * @param Plugin $app Object graph.
 	 */
 	public static function register( Plugin $app ): void {
+		// auth_redirect fires on every wp-admin screen right after authentication,
+		// before WordPress's own capability check would answer 403 to a client.
 		add_action(
-			'admin_init',
-			static function () use ( $app ): void {
-				if ( wp_doing_ajax() || ! $app->policy->is_client_only( get_current_user_id() ) ) {
-					return;
-				}
+			'auth_redirect',
+			static function ( int $user_id ) use ( $app ): void {
+				$target = self::admin_redirect( $app, $user_id );
 
-				wp_safe_redirect( Router::portal_url() );
-				exit;
+				if ( null !== $target ) {
+					wp_safe_redirect( $target );
+					exit;
+				}
 			}
 		);
 
@@ -70,5 +72,16 @@ final class ClientGuard {
 			10,
 			3
 		);
+	}
+
+	/**
+	 * Where a user who opened wp-admin should go instead, if anywhere.
+	 *
+	 * @param Plugin $app     Object graph.
+	 * @param int    $user_id Signed-in user.
+	 * @return string|null Portal URL for a client; null for everyone else.
+	 */
+	public static function admin_redirect( Plugin $app, int $user_id ): ?string {
+		return ! wp_doing_ajax() && $app->policy->is_client_only( $user_id ) ? Router::portal_url() : null;
 	}
 }

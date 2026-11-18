@@ -20,7 +20,16 @@ final class PortalTest extends PortalTestCase {
 		$case    = $this->case_for( $manager, $client );
 
 		$this->app->ledger_service->add( $case, self::expense( array( 'internal_note' => 'הערה סודית למשרד' ) ), $manager );
-		$this->app->ledger_service->add( $case, self::expense( array( 'description' => 'פריט מוסתר', 'visible' => '' ) ), $manager );
+		$this->app->ledger_service->add(
+			$case,
+			self::expense(
+				array(
+					'description' => 'פריט מוסתר',
+					'visible'     => '',
+				)
+			),
+			$manager
+		);
 
 		$view = ( new CaseView( $this->app ) )->build( $case, $client, 'finance' );
 		$dump = (string) wp_json_encode( $view );
@@ -113,10 +122,44 @@ final class PortalTest extends PortalTestCase {
 		$this->assertSame( admin_url(), apply_filters( 'login_redirect', admin_url(), '', get_userdata( $manager ) ) );
 	}
 
+	/**
+	 * Regression: a client opening /wp-admin/ got WordPress's 403 page, because
+	 * the redirect ran on admin_init, after the core capability check.
+	 */
+	public function test_client_opening_wp_admin_is_sent_to_the_portal_before_core_checks(): void {
+		$client  = $this->client();
+		$manager = $this->manager();
+
+		$this->assertTrue( has_action( 'auth_redirect' ) );
+		$this->assertSame( Router::portal_url(), \Diromax\Portal\Security\ClientGuard::admin_redirect( $this->app, $client ) );
+		$this->assertNull( \Diromax\Portal\Security\ClientGuard::admin_redirect( $this->app, $manager ) );
+	}
+
 	public function test_nav_link_is_added_to_the_primary_menu_only(): void {
 		$links = apply_filters( 'dx_nav_links', array(), 'primary' );
 		$this->assertSame( 'אזור אישי', end( $links )['label'] );
 
 		$this->assertSame( array(), apply_filters( 'dx_nav_links', array(), 'footer' ) );
+	}
+
+	/**
+	 * Regression: inside the portal the theme also underlined "מאמרים" as current.
+	 */
+	public function test_inside_the_portal_only_the_portal_link_is_current(): void {
+		set_query_var( Router::VIEW, 'case' );
+		$links = apply_filters(
+			'dx_nav_links',
+			array(
+				array(
+					'url'     => '/articles/',
+					'label'   => 'מאמרים',
+					'current' => true,
+				),
+			),
+			'primary'
+		);
+		set_query_var( Router::VIEW, '' );
+
+		$this->assertSame( array( false, true ), array_column( $links, 'current' ) );
 	}
 }

@@ -103,7 +103,7 @@ final class DocumentServiceTest extends PortalTestCase {
 		$path     = $this->stored_path( $document );
 		$bytes    = (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Test.
 
-		$flipped       = $bytes;
+		$flipped     = $bytes;
 		$flipped[40] = chr( ord( $flipped[40] ) ^ 1 );
 		file_put_contents( $path, $flipped ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test tampering.
 		$this->assertNull( $this->decrypt( $document ) );

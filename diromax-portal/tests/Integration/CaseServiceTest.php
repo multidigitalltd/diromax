@@ -147,7 +147,18 @@ final class CaseServiceTest extends PortalTestCase {
 		$error = $this->app->case_service->add_member( $case, array_merge( $input, array( 'email' => $staff ) ), $manager );
 		$this->assertSame( array( 'email' => 'staff_account' ), $error->get_error_data()['fields'] );
 
-		$this->assertSame( 'dx_invalid', $this->app->case_service->add_member( $case, array( 'email' => 'bad', 'name' => '', 'role' => 'king' ), $manager )->get_error_code() );
+		$this->assertSame(
+			'dx_invalid',
+			$this->app->case_service->add_member(
+				$case,
+				array(
+					'email' => 'bad',
+					'name'  => '',
+					'role'  => 'king',
+				),
+				$manager
+			)->get_error_code()
+		);
 
 		$this->assertTrue( $this->app->case_service->remove_member( $case, $first, $manager ) );
 		$this->assertFalse( $this->app->members->is_member( $case->id, $first ) );

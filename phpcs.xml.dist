@@ -63,4 +63,9 @@
 	<rule ref="Squiz.Commenting.VariableComment.Missing">
 		<exclude-pattern>*/tests/*</exclude-pattern>
 	</rule>
+
+	<!-- Tests fire WordPress's and the theme's own hooks to exercise the plugin's callbacks. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
 </ruleset>
