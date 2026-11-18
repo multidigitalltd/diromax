@@ -13,6 +13,7 @@ use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Data\DocumentRecord;
 use Diromax\Portal\Data\MemberRepository;
 use Diromax\Portal\Domain\CaseStatus;
+use Diromax\Portal\Settings;
 use Diromax\Portal\Support\Clock;
 
 defined( 'ABSPATH' ) || exit;
@@ -28,14 +29,12 @@ final class AccessPolicy {
 	/**
 	 * Constructor.
 	 *
-	 * @param MemberRepository $members       Memberships.
-	 * @param Clock            $clock         Clock.
-	 * @param int              $access_months Months a client keeps access after a case closes.
+	 * @param MemberRepository $members Memberships.
+	 * @param Clock            $clock   Clock.
 	 */
 	public function __construct(
 		private readonly MemberRepository $members,
 		private readonly Clock $clock,
-		private readonly int $access_months,
 	) {}
 
 	/**
@@ -168,6 +167,9 @@ final class AccessPolicy {
 
 		$closed = strtotime( $client_case->closed_at . ' UTC' );
 
-		return false === $closed || $this->clock->now() > strtotime( '+' . $this->access_months . ' months', $closed );
+		// Months a client keeps access after closing, read when needed so a settings change applies at once.
+		$months = Settings::all()['access_months'];
+
+		return false === $closed || $this->clock->now() > strtotime( '+' . $months . ' months', $closed );
 	}
 }

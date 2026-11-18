@@ -184,8 +184,6 @@ final class Plugin {
 	private function __construct( public readonly Clock $clock ) {
 		global $wpdb;
 
-		$settings = Settings::all();
-
 		$this->db        = $wpdb;
 		$this->cases     = new CaseRepository( $wpdb );
 		$this->members   = new MemberRepository( $wpdb );
@@ -197,12 +195,12 @@ final class Plugin {
 		$this->events    = new EventRepository( $wpdb );
 		$this->mail_log  = new MailLog( $wpdb );
 		$this->tokens    = new TokenRepository( $wpdb );
-		$this->policy    = new AccessPolicy( $this->members, $clock, $settings['access_months'] );
+		$this->policy    = new AccessPolicy( $this->members, $clock );
 		$this->store     = new DocumentStore();
 		$this->limiter   = new RateLimiter( $clock );
 
 		$this->renderer         = new MailRenderer();
-		$this->notifier         = new Notifier( $this, $settings );
+		$this->notifier         = new Notifier( $this );
 		$this->case_service     = new CaseService( $this );
 		$this->ledger_service   = new LedgerService( $this );
 		$this->document_service = new DocumentService( $this );
@@ -236,7 +234,13 @@ final class Plugin {
 	 * Hooked to plugins_loaded.
 	 */
 	public static function boot(): void {
-		load_plugin_textdomain( 'diromax-portal', false, dirname( plugin_basename( DX_PORTAL_FILE ) ) . '/languages' );
+		add_action(
+			'init',
+			static function (): void {
+				load_plugin_textdomain( 'diromax-portal', false, dirname( plugin_basename( DX_PORTAL_FILE ) ) . '/languages' );
+			},
+			0
+		);
 		Schema::maybe_upgrade();
 		Hooks::register( self::instance() );
 	}

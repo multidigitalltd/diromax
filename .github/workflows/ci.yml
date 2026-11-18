@@ -1,0 +1,91 @@
+# Continuous integration — standard section 10.3.
+# Every job must pass before a pull request can merge.
+# Actions are pinned to commit SHAs (standard 4.12.4).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Daily dependency audit of the default branch (standard 4.12.5).
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php:
+    name: Lint, static analysis, tests
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0.40
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_tests
+          MYSQL_USER: wp
+          MYSQL_PASSWORD: wp
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f # 2.35.5
+        with:
+          php-version: '8.3'
+          extensions: sodium, intl, mysqli, fileinfo, gd
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Install from the lock file
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Dependency audit
+        run: composer audit --locked
+
+      - name: Coding standards (PHPCS, WordPress-Extra/Docs, PHPCompatibilityWP)
+        run: composer lint
+
+      - name: Static analysis (PHPStan level 8)
+        run: composer analyse
+
+      - name: Unit and integration tests
+        env:
+          WP_TESTS_DB_HOST: 127.0.0.1
+          WP_TESTS_DB_NAME: wp_tests
+          WP_TESTS_DB_USER: wp
+          WP_TESTS_DB_PASSWORD: wp
+        run: vendor/bin/phpunit --coverage-text --colors=never
+
+      - name: Minified assets are up to date
+        run: |
+          php bin/build-assets.php
+          git diff --exit-code -- '*.min.css' '*.min.js'
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@eafb8c5f6a06175141c27f17bcc17941853d0047 # v3.90.0
+        with:
+          extra_args: --results=verified,unknown --fail
+
+  sast:
+    name: Static application security testing
+    runs-on: ubuntu-24.04
+    container:
+      image: semgrep/semgrep:1.131.0
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Semgrep (PHP and OWASP Top 10 rules)
+        run: semgrep scan --config p/php --config p/owasp-top-ten --error --metrics=off --exclude vendor --exclude docs

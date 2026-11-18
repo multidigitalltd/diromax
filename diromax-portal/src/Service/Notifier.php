@@ -13,6 +13,7 @@ use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Data\Logger;
 use Diromax\Portal\Domain\NotificationSchedule;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Settings;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -32,10 +33,9 @@ final class Notifier {
 	/**
 	 * Constructor.
 	 *
-	 * @param Plugin                                                            $app      Object graph.
-	 * @param array{quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool} $settings Settings.
+	 * @param Plugin $app Object graph.
 	 */
-	public function __construct( private readonly Plugin $app, private readonly array $settings ) {}
+	public function __construct( private readonly Plugin $app ) {}
 
 	/**
 	 * Queue an event; send at once when it is immediate.
@@ -88,7 +88,7 @@ final class Notifier {
 		}
 
 		$ids        = array_column( $events, 'id' );
-		$items      = ( new MailItems( $this->app ) )->build( $client_case, $events, $this->settings['hide_amounts'] );
+		$items      = ( new MailItems( $this->app ) )->build( $client_case, $events, Settings::all()['hide_amounts'] );
 		$recipients = $this->app->members->for_case( $client_case->id, true );
 
 		if ( array() === $items || array() === $recipients ) {
@@ -153,8 +153,8 @@ final class Notifier {
 		}
 
 		$created = array_map( array( self::class, 'timestamp' ), array_column( $events, 'created_at' ) );
-		$quiet   = max( $created ) + $this->settings['quiet_minutes'] * MINUTE_IN_SECONDS;
-		$latest  = min( $created ) + $this->settings['max_wait_minutes'] * MINUTE_IN_SECONDS;
+		$quiet   = max( $created ) + Settings::all()['quiet_minutes'] * MINUTE_IN_SECONDS;
+		$latest  = min( $created ) + Settings::all()['max_wait_minutes'] * MINUTE_IN_SECONDS;
 
 		return array(
 			'count'   => count( $events ),
@@ -174,7 +174,7 @@ final class Notifier {
 			return Errors::forbidden();
 		}
 
-		$items = ( new MailItems( $this->app ) )->build( $client_case, $this->app->events->pending_for_case( $client_case->id ), $this->settings['hide_amounts'] );
+		$items = ( new MailItems( $this->app ) )->build( $client_case, $this->app->events->pending_for_case( $client_case->id ), Settings::all()['hide_amounts'] );
 
 		if ( array() === $items ) {
 			return '';
@@ -241,8 +241,8 @@ final class Notifier {
 			array_map( array( self::class, 'timestamp' ), array_column( $events, 'created_at' ) ),
 			in_array( true, array_column( $events, 'immediate' ), true ),
 			$now,
-			$this->settings['quiet_minutes'] * MINUTE_IN_SECONDS,
-			$this->settings['max_wait_minutes'] * MINUTE_IN_SECONDS
+			Settings::all()['quiet_minutes'] * MINUTE_IN_SECONDS,
+			Settings::all()['max_wait_minutes'] * MINUTE_IN_SECONDS
 		);
 	}
 
@@ -335,7 +335,7 @@ final class Notifier {
 	 * @return \Diromax\Portal\Domain\CaseSummary|null
 	 */
 	private function client_summary( CaseRecord $client_case ): ?\Diromax\Portal\Domain\CaseSummary {
-		return $this->settings['hide_amounts'] ? null : $this->app->case_service->summary( $client_case, true );
+		return Settings::all()['hide_amounts'] ? null : $this->app->case_service->summary( $client_case, true );
 	}
 
 	/**

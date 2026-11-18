@@ -11,6 +11,8 @@
  *   diromax-theme/style.css              ->  style.min.css
  *   diromax-theme/assets/js/forms.js     ->  assets/js/forms.min.js
  *   diromax-theme/assets/js/a11y.js      ->  assets/js/a11y.min.js
+ *   diromax-portal/assets/css/*.css      ->  *.min.css
+ *   diromax-portal/assets/js/*.js        ->  *.min.js
  *
  * The theme falls back to the sources automatically when SCRIPT_DEBUG is on or
  * when a minified file is missing, so the build is never a hard requirement.
@@ -20,7 +22,8 @@
 
 declare( strict_types = 1 );
 
-$theme = dirname( __DIR__ ) . '/diromax-theme';
+$theme  = dirname( __DIR__ ) . '/diromax-theme';
+$portal = dirname( __DIR__ ) . '/diromax-portal';
 
 /**
  * Strip comments and collapse whitespace in CSS.
@@ -99,6 +102,19 @@ $jobs = array(
 		'func' => 'dx_minify_js',
 	),
 );
+
+foreach ( array( 'portal', 'admin' ) as $dx_name ) {
+	$jobs[] = array(
+		'src'  => $portal . '/assets/css/' . $dx_name . '.css',
+		'dst'  => $portal . '/assets/css/' . $dx_name . '.min.css',
+		'func' => 'dx_minify_css',
+	);
+	$jobs[] = array(
+		'src'  => $portal . '/assets/js/' . $dx_name . '.js',
+		'dst'  => $portal . '/assets/js/' . $dx_name . '.min.js',
+		'func' => 'dx_minify_js',
+	);
+}
 
 $failed = false;
 

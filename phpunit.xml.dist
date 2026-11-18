@@ -14,6 +14,10 @@
 	failOnWarning="true"
 	convertDeprecationsToExceptions="true"
 >
+	<php>
+		<!-- The plugin's structured log goes to error_log; keep it out of the test output. -->
+		<ini name="error_log" value="/dev/null"/>
+	</php>
 	<testsuites>
 		<testsuite name="unit">
 			<directory suffix="Test.php">diromax-portal/tests/Unit</directory>
