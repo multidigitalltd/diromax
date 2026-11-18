@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>אזור אישי · רח׳ הזית 14, קריית אונו · דירומקס</title>
+<!--
+  Mockup of the client's case screen — docs/client-portal/spec.md §7.2.
+  Uses the theme's own fonts and tokens. Sample data matches spec §5 to the shekel.
+-->
+<style>
+@font-face { font-family: 'Anomalia'; src: url('../../diromax-theme/assets/fonts/anomalia-bold-aaa.woff') format('woff'); font-weight: 800 900; font-display: swap; }
+@font-face { font-family: 'Heebo'; src: url('../../diromax-theme/assets/fonts/heebo-hebrew.woff2') format('woff2'); font-weight: 100 900; font-display: swap; unicode-range: U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+@font-face { font-family: 'Heebo'; src: url('../../diromax-theme/assets/fonts/heebo-latin.woff2') format('woff2'); font-weight: 100 900; font-display: swap; unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'Archivo'; src: url('../../diromax-theme/assets/fonts/archivo-latin.woff2') format('woff2'); font-weight: 100 900; font-display: swap; unicode-range: U+0000-00FF, U+2000-206F; }
+
+:root {
+  --dx-blue: #1d3a8f; --dx-blue-hover: #162e73; --dx-blue-tint: rgba(29,58,143,0.08);
+  --dx-teal: #2fa6c7; --dx-teal-deep: #17728c;
+  --dx-orange: #ee7c1a; --dx-orange-hover: #f7972e; --dx-orange-text: #a1510c;
+  --dx-ink: #15171c; --dx-body: #3a3d44; --dx-muted: #55585f; --dx-line: #cfcdc8;
+  --dx-bg: #f4f4f2; --dx-bg-alt: #eae9e6; --dx-white: #ffffff;
+  --dx-on-blue: #d8e2f4; --dx-on-blue-2: #9fd4e6;
+  --dx-font-body: 'Heebo', system-ui, sans-serif;
+  --dx-font-head: 'Anomalia', 'Heebo', sans-serif;
+  --dx-font-num: 'Archivo', 'Heebo', sans-serif;
+  --dx-gut: clamp(16px, 4vw, 44px);
+}
+* { box-sizing: border-box; }
+html { direction: rtl; }
+body { margin: 0; background: var(--dx-bg); color: var(--dx-ink); font-family: var(--dx-font-body); -webkit-font-smoothing: antialiased; }
+h1, h2, h3, p, ul, ol, li, dl, dd { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+a { color: var(--dx-blue); text-decoration: none; }
+a:hover { color: var(--dx-orange-text); }
+button { font-family: inherit; }
+table { border-collapse: collapse; }
+:focus-visible { outline: 3px solid var(--dx-orange); outline-offset: 2px; box-shadow: 0 0 0 2px var(--dx-ink); }
+button, a, input, select { transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .1s ease; }
+button:active, a:active { transform: translateY(1px); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+.num { font-family: var(--dx-font-num); font-weight: 800; direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 var(--dx-gut); }
+
+/* mockup ribbon */
+.mock { background: var(--dx-ink); color: var(--dx-bg); font-size: 13px; text-align: center; padding: 6px 12px; }
+
+/* header — same structure as the site */
+.strip { display: flex; height: 6px; } .strip span { flex: 1; }
+.strip span:nth-child(1) { background: var(--dx-blue); } .strip span:nth-child(2) { background: var(--dx-teal); } .strip span:nth-child(3) { background: var(--dx-orange); }
+.hdr { background: var(--dx-bg); border-bottom: 2px solid var(--dx-ink); }
+.hdr__in { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: stretch; min-height: 72px; gap: 0 24px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { height: 42px; width: auto; mix-blend-mode: multiply; display: block; }
+.brand b { font-family: var(--dx-font-num); font-weight: 800; font-size: 19px; letter-spacing: .06em; color: var(--dx-blue); }
+.nav { display: flex; align-items: stretch; flex-wrap: wrap; }
+.nav a { position: relative; display: flex; align-items: center; padding: 0 12px; font-size: 15.5px; font-weight: 500; color: var(--dx-ink); }
+.nav a[aria-current] { font-weight: 700; }
+.nav a[aria-current]::after { content: ''; position: absolute; bottom: 0; inset-inline: 12px; height: 4px; background: var(--dx-orange); }
+.nav a:hover { color: var(--dx-orange-text); }
+@media (max-width: 560px) {
+  .hdr__in { min-height: 0; padding-block: 10px 0; }
+  .nav { width: 100%; justify-content: space-between; }
+  .nav a { padding: 12px 4px; font-size: 14.5px; }
+  .nav a[aria-current]::after { inset-inline: 4px; }
+}
+
+/* case head */
+.head { border-bottom: 2px solid var(--dx-ink); padding-block: clamp(32px, 4vw, 56px) 0; }
+.head__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 28px clamp(24px, 4vw, 64px); align-items: start; }
+.head__main { grid-column: span 2; }
+@media (max-width: 760px) { .head__main { grid-column: auto; } }
+.eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 13.5px; font-weight: 800; letter-spacing: .06em; color: var(--dx-blue); }
+.dot { width: 11px; height: 11px; background: var(--dx-orange); flex: 0 0 auto; }
+h1 { font-family: var(--dx-font-head); font-size: clamp(30px, 3.8vw, 52px); font-weight: 900; line-height: 1.08; letter-spacing: -.015em; margin-bottom: 14px; }
+.lead { font-size: clamp(16.5px, 1.4vw, 19px); line-height: 1.55; color: var(--dx-body); }
+.lead strong { color: var(--dx-ink); }
+
+.pm { border: 2px solid var(--dx-ink); background: var(--dx-white); padding: 22px; }
+.pm__k { font-size: 13px; font-weight: 800; letter-spacing: .06em; color: var(--dx-muted); margin-bottom: 6px; }
+.pm__n { font-size: 20px; font-weight: 800; margin-bottom: 14px; }
+.pm__btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 2px solid var(--dx-ink); background: none; color: var(--dx-ink); padding: 10px 16px; font-size: 15px; font-weight: 700; cursor: pointer; }
+.btn:hover { background: var(--dx-ink); color: var(--dx-bg); }
+.btn--orange { background: var(--dx-orange); border-color: var(--dx-orange); color: var(--dx-ink); }
+.btn--orange:hover { background: var(--dx-orange-hover); border-color: var(--dx-orange-hover); color: var(--dx-ink); }
+.btn--ink { background: var(--dx-ink); color: var(--dx-bg); }
+.btn--ink:hover { background: #000; }
+
+/* stage tracker */
+.stages { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin-top: clamp(28px, 3vw, 44px); border-top: 2px solid var(--dx-ink); }
+.stage { padding: 16px 12px 18px; border-inline-start: 1px solid var(--dx-line); position: relative; }
+.stage:first-child { border-inline-start: none; padding-inline-start: 0; }
+.stage::before { content: ''; position: absolute; top: -2px; inset-inline: 0; height: 6px; background: transparent; }
+.stage--done::before { background: var(--dx-blue); }
+.stage--now::before { background: var(--dx-orange); }
+.stage__n { font-family: var(--dx-font-num); font-weight: 800; font-size: 22px; color: var(--dx-line); line-height: 1; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.stage--done .stage__n { color: var(--dx-blue); }
+.stage--now .stage__n { color: var(--dx-orange-text); }
+.stage__t { font-size: 14px; line-height: 1.35; font-weight: 600; color: var(--dx-muted); }
+.stage--done .stage__t, .stage--now .stage__t { color: var(--dx-ink); }
+.stage--now .stage__t { font-weight: 800; }
+.stage__s { display: block; margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--dx-muted); }
+.stage--now .stage__s { color: var(--dx-orange-text); }
+@media (max-width: 900px) {
+  .stages { grid-template-columns: 1fr; }
+  .stage, .stage:first-child { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 0 12px; border-inline-start: none; border-bottom: 1px solid var(--dx-line); padding: 12px 0; padding-inline-start: 16px; }
+  .stage::before { top: 0; bottom: 0; inset-inline: 0 auto; width: 5px; height: auto; }
+  .stage__n, .stage__s { margin: 0; }
+}
+
+/* payment request */
+.req { background: var(--dx-orange); color: var(--dx-ink); border-bottom: 2px solid var(--dx-ink); }
+.req__in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; padding-block: 22px; }
+.req__k { font-size: 13.5px; font-weight: 800; letter-spacing: .06em; margin-bottom: 4px; }
+.req__v { font-size: clamp(19px, 2vw, 24px); font-weight: 800; }
+.req__v .num { font-size: 1.15em; }
+.req__bank { font-size: 15px; margin-top: 4px; }
+.req .btn { border-color: var(--dx-ink); }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); gap: 2px; background: var(--dx-ink); border: 2px solid var(--dx-ink); margin-block: clamp(28px, 3vw, 44px); }
+.kpi { background: var(--dx-bg); padding: 22px 20px; }
+.kpi__k { font-size: 13.5px; font-weight: 800; letter-spacing: .04em; color: var(--dx-muted); margin-bottom: 10px; }
+.kpi__v { font-size: clamp(26px, 2.4vw, 32px); line-height: 1; }
+.kpi__s { font-size: 14px; color: var(--dx-body); margin-top: 8px; line-height: 1.4; }
+.kpi--hl { background: var(--dx-blue); color: #fff; }
+.kpi--hl .kpi__k { color: var(--dx-on-blue-2); }
+.kpi--hl .kpi__s { color: var(--dx-on-blue); }
+.bar { height: 8px; background: var(--dx-bg-alt); margin-top: 12px; position: relative; box-shadow: inset 0 0 0 1px var(--dx-line); }
+.bar i { position: absolute; inset-block: 0; inset-inline-start: 0; }
+.bar .paid { background: var(--dx-blue); }
+.bar .comm { background: repeating-linear-gradient(-45deg, var(--dx-blue) 0 2px, transparent 2px 5px); opacity: .55; }
+
+/* tabs */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--dx-ink); overflow-x: auto; scrollbar-width: none; }
+.tab { flex: 0 0 auto; background: none; border: none; padding: 14px 20px; font-size: 16.5px; font-weight: 600; color: var(--dx-ink); cursor: pointer; position: relative; }
+.tab:hover { color: var(--dx-orange-text); }
+.tab[aria-selected="true"] { font-weight: 800; }
+.tab[aria-selected="true"]::after { content: ''; position: absolute; bottom: -2px; inset-inline: 20px; height: 4px; background: var(--dx-orange); }
+.tab .cnt { font-family: var(--dx-font-num); font-size: 12px; font-weight: 800; background: var(--dx-blue); color: #fff; padding: 2px 6px; margin-inline-start: 6px; vertical-align: 2px; }
+.panel { padding-block: 28px 64px; }
+.panel[hidden] { display: none; }
+
+/* ledger */
+.tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; margin-bottom: 18px; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; }
+.field label { display: block; font-size: 13px; font-weight: 700; color: var(--dx-muted); margin-bottom: 4px; }
+.field select { font: inherit; font-size: 15px; padding: 9px 12px; border: 2px solid var(--dx-ink); background: var(--dx-white); border-radius: 0; min-width: 150px; }
+.tbl-wrap { border: 2px solid var(--dx-ink); background: var(--dx-white); overflow-x: auto; }
+.tbl { width: 100%; font-size: 15px; }
+.tbl caption { text-align: right; padding: 14px 18px; font-weight: 800; font-size: 16px; border-bottom: 2px solid var(--dx-ink); background: var(--dx-bg); }
+.tbl th { text-align: right; font-size: 13px; font-weight: 800; letter-spacing: .04em; color: var(--dx-muted); padding: 12px 14px; border-bottom: 2px solid var(--dx-ink); white-space: nowrap; }
+.tbl td { padding: 14px; border-bottom: 1px solid var(--dx-line); vertical-align: top; line-height: 1.45; }
+.tbl td.amt, .tbl th.amt { text-align: left; white-space: nowrap; }
+.tbl td.amt .num { font-size: 16px; }
+.tbl tbody tr:hover { background: var(--dx-blue-tint); }
+.tbl .desc b { display: block; font-weight: 700; }
+.tbl .desc small { color: var(--dx-muted); font-size: 13.5px; }
+.tbl tfoot td { border-bottom: none; background: var(--dx-bg); font-weight: 700; }
+.tag { display: inline-block; font-size: 12.5px; font-weight: 800; padding: 3px 8px; white-space: nowrap; border: 2px solid var(--dx-ink); }
+.tag--exp  { background: var(--dx-white); }
+.tag--com  { border-style: dashed; color: var(--dx-body); }
+.tag--pay  { background: var(--dx-blue); border-color: var(--dx-blue); color: #fff; }
+.tag--req  { background: var(--dx-orange); border-color: var(--dx-orange); color: var(--dx-ink); }
+.doc { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.doc svg { width: 16px; height: 16px; }
+.pos { color: var(--dx-blue); }
+.totals { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 14px 18px; }
+.totals span { white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .tbl, .tbl caption, .tbl tbody, .tbl tr, .tbl td, .tbl tfoot { display: block; }
+  .tbl thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .tbl tbody tr { padding: 14px 16px; border-bottom: 2px solid var(--dx-ink); display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .tbl td { border: none; padding: 0; }
+  .tbl td[data-l]::before { content: attr(data-l) ' · '; color: var(--dx-muted); font-size: 13px; font-weight: 700; }
+  .tbl td.desc { grid-column: 1 / -1; order: -1; }
+  .tbl td.amt { text-align: left; }
+}
+
+/* budget vs actual */
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 32px clamp(24px, 4vw, 56px); margin-top: 40px; }
+h2 { font-family: var(--dx-font-head); font-size: clamp(22px, 2.2vw, 28px); font-weight: 900; line-height: 1.15; margin-bottom: 16px; }
+.bva li { padding: 14px 0; border-bottom: 1px solid var(--dx-line); }
+.bva li:first-child { border-top: 2px solid var(--dx-ink); }
+.bva__row { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; margin-bottom: 8px; }
+.bva__row b { font-weight: 700; }
+.bva__row span { color: var(--dx-body); white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--dx-muted); margin-top: 12px; }
+.legend i { display: inline-block; width: 14px; height: 8px; margin-inline-end: 6px; vertical-align: 1px; }
+
+/* updates timeline */
+.tl li { display: grid; grid-template-columns: 120px 1fr; gap: 4px 24px; padding: 20px 0; border-bottom: 1px solid var(--dx-line); }
+.tl li:first-child { border-top: 2px solid var(--dx-ink); }
+.tl time { font-family: var(--dx-font-num); font-weight: 800; color: var(--dx-teal-deep); font-size: 15px; }
+.tl h3 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+.tl p { font-size: 15.5px; line-height: 1.6; color: var(--dx-body); }
+.tl .stage-chip { display: inline-block; margin-top: 8px; font-size: 13px; font-weight: 800; color: var(--dx-orange-text); }
+@media (max-width: 560px) { .tl li { grid-template-columns: 1fr; } }
+
+/* agreement + docs */
+.agr { border: 2px solid var(--dx-ink); background: var(--dx-white); }
+.agr__h { padding: 20px 22px; border-bottom: 2px solid var(--dx-ink); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; }
+.agr__h h3 { font-size: 20px; font-weight: 800; }
+.agr dl { display: grid; grid-template-columns: max-content 1fr; }
+.agr dt, .agr dd { padding: 12px 22px; border-bottom: 1px solid var(--dx-line); font-size: 15px; }
+.agr dt { color: var(--dx-muted); font-weight: 600; }
+.agr dl > :nth-last-child(-n+2) { border-bottom: none; }
+.docs h3 { font-size: 14px; font-weight: 800; letter-spacing: .05em; color: var(--dx-muted); margin: 22px 0 8px; }
+.docs h3:first-child { margin-top: 0; }
+.docs li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--dx-line); font-size: 15.5px; }
+.docs li small { color: var(--dx-muted); white-space: nowrap; }
+
+/* footer */
+.ftr { background: var(--dx-ink); color: #a8abb2; font-size: 14px; padding-block: 28px; }
+.ftr b { color: var(--dx-bg); }
+
+@media print {
+  .mock, .strip, .hdr, .pm__btns, .tabs, .tools .filters, .req .btn, .ftr { display: none !important; }
+  .panel[hidden] { display: block !important; }
+  body { background: #fff; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<p class="mock">מוקאפ · נתוני דוגמה · <span dir="ltr">docs/client-portal/spec.md</span></p>
+<div class="strip" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<header class="hdr">
+  <div class="wrap hdr__in">
+    <a class="brand" href="#"><img src="../../diromax-theme/assets/img/logo.jpg" width="300" height="275" alt=""><b>DIROMAX</b><span class="sr">לעמוד הבית</span></a>
+    <nav class="nav" aria-label="אזור אישי">
+      <a href="#">התיקים שלי</a>
+      <a href="#" aria-current="page">רח׳ הזית 14</a>
+      <a href="#">פרטים אישיים</a>
+      <a href="#">יציאה</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- 1–2. Case head + stage tracker -->
+  <section class="head" aria-labelledby="case-title">
+    <div class="wrap">
+      <div class="head__grid">
+        <div class="head__main">
+          <p class="eyebrow"><span class="dot" aria-hidden="true"></span>אזור אישי · תיק <span class="num">2026-014</span></p>
+          <h1 id="case-title">רח׳ הזית 14, קריית אונו</h1>
+          <p class="lead"><strong>הוספת יחידת דיור על הגג.</strong> מסלול: מימון מתוך הפרויקט. עדכון אחרון לפני 6 ימים.</p>
+        </div>
+        <aside class="pm" aria-label="מנהל הפרויקט">
+          <p class="pm__k">מנהל הפרויקט שלך</p>
+          <p class="pm__n">דניאל לוי</p>
+          <div class="pm__btns">
+            <a class="btn" href="#"><span>שיחה</span></a>
+            <a class="btn" href="#"><span>וואטסאפ</span></a>
+            <a class="btn" href="#"><span>דוא״ל</span></a>
+          </div>
+        </aside>
+      </div>
+
+      <ol class="stages" aria-label="שלבי התהליך">
+        <li class="stage stage--done"><span class="stage__n">01 <span aria-hidden="true">✓</span></span><span class="stage__t">בדיקת פוטנציאל וזכויות בנייה</span><span class="stage__s">הושלם</span></li>
+        <li class="stage stage--done"><span class="stage__n">02 <span aria-hidden="true">✓</span></span><span class="stage__t">אסטרטגיה ותוכנית עבודה</span><span class="stage__s">הושלם</span></li>
+        <li class="stage stage--done"><span class="stage__n">03 <span aria-hidden="true">✓</span></span><span class="stage__t">ליווי תכנוני: אדריכל ויועצים</span><span class="stage__s">הושלם</span></li>
+        <li class="stage stage--done"><span class="stage__n">04 <span aria-hidden="true">✓</span></span><span class="stage__t">החתמת שכנים והסכמות</span><span class="stage__s">הושלם</span></li>
+        <li class="stage stage--now" aria-current="step"><span class="stage__n">05</span><span class="stage__t">הוצאת היתר בנייה</span><span class="stage__s">בתהליך</span></li>
+        <li class="stage"><span class="stage__n">06</span><span class="stage__t">ניהול ביצוע ופיקוח</span><span class="stage__s">טרם התחיל</span></li>
+        <li class="stage"><span class="stage__n">07</span><span class="stage__t">שיווק ומכירה בשווי החדש</span><span class="stage__s">טרם התחיל</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 3. Open payment request -->
+  <section class="req" aria-labelledby="req-title">
+    <div class="wrap req__in">
+      <div>
+        <p class="req__k" id="req-title">דרישת תשלום פתוחה</p>
+        <p class="req__v"><span class="num">40,000 ₪</span> עד <span class="num">01.12.2026</span> · מקדמה לשלב הביצוע</p>
+        <p class="req__bank">העברה בנקאית: בנק <span class="num">00</span> · סניף <span class="num">000</span> · חשבון <span class="num">000000</span> · על שם דירומקס</p>
+      </div>
+      <button class="btn btn--ink" type="button" id="copy">העתקת פרטי ההעברה</button>
+    </div>
+  </section>
+
+  <div class="wrap">
+
+    <!-- 4. KPI tiles -->
+    <div class="kpis" role="list" aria-label="המצב הכספי">
+      <div class="kpi" role="listitem">
+        <p class="kpi__k">תקציב מאושר</p>
+        <p class="kpi__v"><span class="num">480,000 ₪</span></p>
+        <p class="kpi__s">כולל שכר ניהול ורזרבה</p>
+      </div>
+      <div class="kpi" role="listitem">
+        <p class="kpi__k">עלות עד היום</p>
+        <p class="kpi__v"><span class="num">78,800 ₪</span></p>
+        <div class="bar" role="img" aria-label="שולם 16.4 אחוז מהתקציב, 25.8 אחוז כולל התחייבויות"><i class="comm" style="width:25.8%"></i><i class="paid" style="width:16.4%"></i></div>
+        <p class="kpi__s"><span class="num">16.4%</span> שולם · <span class="num">25.8%</span> כולל התחייבויות</p>
+      </div>
+      <div class="kpi" role="listitem">
+        <p class="kpi__k">התחייבויות פתוחות</p>
+        <p class="kpi__v"><span class="num">45,000 ₪</span></p>
+        <p class="kpi__s">הסכם קבלן, טרם שולם</p>
+      </div>
+      <div class="kpi kpi--hl" role="listitem">
+        <p class="kpi__k">יתרה בחשבון הפרויקט</p>
+        <p class="kpi__v"><span class="num">9,700 ₪</span></p>
+        <p class="kpi__s">זמין להוצאות הבאות</p>
+      </div>
+      <div class="kpi" role="listitem">
+        <p class="kpi__k">לפירעון מהתמורה</p>
+        <p class="kpi__v"><span class="num">24,000 ₪</span></p>
+        <p class="kpi__s">ייפרע מכספי המכירה</p>
+      </div>
+    </div>
+
+    <!-- 5. Tabs -->
+    <div class="tabs" role="tablist" aria-label="תוכן התיק">
+      <button class="tab" role="tab" id="t-fin" aria-controls="p-fin" aria-selected="true">כספים</button>
+      <button class="tab" role="tab" id="t-doc" aria-controls="p-doc" aria-selected="false" tabindex="-1">הסכם ומסמכים</button>
+      <button class="tab" role="tab" id="t-upd" aria-controls="p-upd" aria-selected="false" tabindex="-1">עדכונים<span class="cnt" aria-label="3 עדכונים">3</span></button>
+    </div>
+
+    <!-- Finance -->
+    <section class="panel" role="tabpanel" id="p-fin" aria-labelledby="t-fin" tabindex="0">
+      <div class="tools">
+        <div class="filters">
+          <div class="field"><label for="f-type">סוג</label><select id="f-type"><option>הכל</option><option>הוצאות</option><option>תשלומים</option><option>דרישות תשלום</option></select></div>
+          <div class="field"><label for="f-cat">סעיף</label><select id="f-cat"><option>כל הסעיפים</option><option>אדריכלות ותכנון</option><option>אגרות והיטלים</option></select></div>
+          <div class="field"><label for="f-per">תקופה</label><select id="f-per"><option>מתחילת התיק</option><option>3 חודשים אחרונים</option></select></div>
+        </div>
+        <button class="btn" type="button" onclick="window.print()">הדפסה / PDF</button>
+      </div>
+
+      <div class="tbl-wrap" role="region" aria-labelledby="tbl-cap" tabindex="0">
+        <table class="tbl">
+          <caption id="tbl-cap">כל התנועות בתיק</caption>
+          <thead>
+            <tr><th scope="col">תאריך</th><th scope="col">סוג</th><th scope="col">תיאור</th><th scope="col">סעיף</th><th scope="col">שולם מ</th><th scope="col" class="amt">סכום</th><th scope="col">מסמך</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-l="תאריך"><span class="num">12.11.2026</span></td>
+              <td><span class="tag tag--exp">הוצאה</span></td>
+              <td class="desc"><b>אגרת בקשה להיתר בנייה</b><small>הוועדה המקומית קריית אונו</small></td>
+              <td data-l="סעיף">אגרות והיטלים</td>
+              <td data-l="שולם מ">חשבון הפרויקט</td>
+              <td class="amt"><span class="num">12,300 ₪</span></td>
+              <td><a class="doc" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h6l3 3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>קבלה<span class="sr"> לאגרת בקשה להיתר</span></a></td>
+            </tr>
+            <tr>
+              <td data-l="תאריך"><span class="num">05.11.2026</span></td>
+              <td><span class="tag tag--req">דרישת תשלום</span></td>
+              <td class="desc"><b>מקדמה לשלב הביצוע</b><small>פתוחה · עד <span class="num">01.12.2026</span></small></td>
+              <td data-l="סעיף">—</td>
+              <td data-l="שולם מ">—</td>
+              <td class="amt"><span class="num">40,000 ₪</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td data-l="תאריך"><span class="num">28.10.2026</span></td>
+              <td><span class="tag tag--com">התחייבות</span></td>
+              <td class="desc"><b>הסכם קבלן ראשי, מקדמה</b><small>מחיר נעול ל-12 חודשים · טרם שולם</small></td>
+              <td data-l="סעיף">ביצוע: קבלן ראשי</td>
+              <td data-l="שולם מ">חשבון הפרויקט</td>
+              <td class="amt"><span class="num">45,000 ₪</span></td>
+              <td><a class="doc" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h6l3 3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>הסכם<span class="sr"> קבלן</span></a></td>
+            </tr>
+            <tr>
+              <td data-l="תאריך"><span class="num">15.09.2026</span></td>
+              <td><span class="tag tag--exp">הוצאה</span></td>
+              <td class="desc"><b>שכר ניהול, שלב התכנון</b><small>לפי ההסכם, סעיף 6</small></td>
+              <td data-l="סעיף">שכר ניהול דירומקס</td>
+              <td data-l="שולם מ">מתוך התמורה</td>
+              <td class="amt"><span class="num">24,000 ₪</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td data-l="תאריך"><span class="num">02.08.2026</span></td>
+              <td><span class="tag tag--exp">הוצאה</span></td>
+              <td class="desc"><b>תכנון אדריכלי, שלב א׳</b><small>משרד אדריכלים</small></td>
+              <td data-l="סעיף">אדריכלות ותכנון</td>
+              <td data-l="שולם מ">חשבון הפרויקט</td>
+              <td class="amt"><span class="num">38,000 ₪</span></td>
+              <td><a class="doc" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h6l3 3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>חשבונית<span class="sr"> אדריכל</span></a></td>
+            </tr>
+            <tr>
+              <td data-l="תאריך"><span class="num">20.07.2026</span></td>
+              <td><span class="tag tag--pay">תשלום</span></td>
+              <td class="desc"><b>העברה בנקאית לחשבון הפרויקט</b><small>אסמכתא <span class="num">448210</span></small></td>
+              <td data-l="סעיף">—</td>
+              <td data-l="שולם מ">—</td>
+              <td class="amt pos"><span class="num">+60,000 ₪</span></td>
+              <td><a class="doc" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h6l3 3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>אישור<span class="sr"> העברה</span></a></td>
+            </tr>
+            <tr>
+              <td data-l="תאריך"><span class="num">11.07.2026</span></td>
+              <td><span class="tag tag--exp">הוצאה</span></td>
+              <td class="desc"><b>מדידה ומפת מצב</b><small>מודד מוסמך</small></td>
+              <td data-l="סעיף">יועצים ומדידות</td>
+              <td data-l="שולם מ">הלקוח ישירות</td>
+              <td class="amt"><span class="num">4,500 ₪</span></td>
+              <td><a class="doc" href="#"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h6l3 3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>חשבונית<span class="sr"> מודד</span></a></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="7"><div class="totals">
+              <span>הוצאות ששולמו: <span class="num">78,800 ₪</span></span>
+              <span>התחייבויות: <span class="num">45,000 ₪</span></span>
+              <span>תשלומים שהתקבלו: <span class="num">60,000 ₪</span></span>
+            </div></td></tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="split">
+        <div>
+          <h2>תקציב מול ביצוע</h2>
+          <ul class="bva">
+            <li><div class="bva__row"><b>אדריכלות ותכנון</b><span><span class="num">38,000</span> מתוך <span class="num">55,000 ₪</span></span></div><div class="bar"><i class="paid" style="width:69%"></i></div></li>
+            <li><div class="bva__row"><b>יועצים ומדידות</b><span><span class="num">4,500</span> מתוך <span class="num">18,000 ₪</span></span></div><div class="bar"><i class="paid" style="width:25%"></i></div></li>
+            <li><div class="bva__row"><b>אגרות והיטלים</b><span><span class="num">12,300</span> מתוך <span class="num">42,000 ₪</span></span></div><div class="bar"><i class="paid" style="width:29%"></i></div></li>
+            <li><div class="bva__row"><b>ביצוע: קבלן ראשי</b><span><span class="num">0</span> מתוך <span class="num">290,000 ₪</span> · התחייבות <span class="num">45,000</span></span></div><div class="bar"><i class="comm" style="width:15.5%"></i></div></li>
+            <li><div class="bva__row"><b>שכר ניהול דירומקס</b><span><span class="num">24,000</span> מתוך <span class="num">48,000 ₪</span></span></div><div class="bar"><i class="paid" style="width:50%"></i></div></li>
+            <li><div class="bva__row"><b>רזרבה לבלתי צפוי</b><span><span class="num">0</span> מתוך <span class="num">27,000 ₪</span></span></div><div class="bar"></div></li>
+          </ul>
+          <p class="legend"><span><i style="background:var(--dx-blue)"></i>שולם</span><span><i style="background:repeating-linear-gradient(-45deg,var(--dx-blue) 0 2px,transparent 2px 5px);opacity:.55"></i>התחייבות</span></p>
+        </div>
+        <div>
+          <h2>איך מחושבת היתרה</h2>
+          <ul class="bva">
+            <li><div class="bva__row"><b>תשלומים שהעברת לחשבון הפרויקט</b><span class="num">60,000 ₪</span></div></li>
+            <li><div class="bva__row"><b>הוצאות ששולמו מחשבון הפרויקט</b><span class="num">−50,300 ₪</span></div></li>
+            <li><div class="bva__row"><b>יתרה בחשבון הפרויקט</b><span class="num">9,700 ₪</span></div></li>
+          </ul>
+          <p class="legend">הוצאות ששילמת ישירות לספק, והוצאות שייפרעו מהתמורה, מופיעות בעלות הפרויקט אבל לא משנות את היתרה.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agreement & documents -->
+    <section class="panel" role="tabpanel" id="p-doc" aria-labelledby="t-doc" tabindex="0" hidden>
+      <div class="split" style="margin-top:0">
+        <div class="agr">
+          <div class="agr__h">
+            <h3>הסכם ניהול השבחה</h3>
+            <a class="btn btn--orange" href="#">הורדת ההסכם <small>(PDF · 1.2MB)</small></a>
+          </div>
+          <dl>
+            <dt>נחתם</dt><dd><span class="num">03.07.2026</span></dd>
+            <dt>היקף</dt><dd>הוספת יחידת דיור על הגג, כולל רישוי וביצוע</dd>
+            <dt>מסלול</dt><dd>מימון מתוך הפרויקט</dd>
+            <dt>שכר ניהול</dt><dd><span class="num">10%</span> מהתקציב המאושר (<span class="num">48,000 ₪</span>), ייפרע מהתמורה</dd>
+            <dt>נספחים</dt><dd>נספח א׳: תקציב מאושר · <span class="num">10.07.2026</span></dd>
+          </dl>
+        </div>
+        <div class="docs">
+          <h3>תכנון ורישוי</h3>
+          <ul>
+            <li><a href="#">תוכנית אדריכלית, גרסת הגשה</a><small>PDF · <span class="num">12.11.2026</span></small></li>
+            <li><a href="#">מפת מדידה</a><small>PDF · <span class="num">11.07.2026</span></small></li>
+          </ul>
+          <h3>הסכמים</h3>
+          <ul>
+            <li><a href="#">הסכם קבלן ראשי</a><small>PDF · <span class="num">28.10.2026</span></small></li>
+            <li><a href="#">הסכמות שכנים, חתומות</a><small>PDF · <span class="num">14.10.2026</span></small></li>
+          </ul>
+          <h3>קבלות וחשבוניות</h3>
+          <ul>
+            <li><a href="#">קבלה, אגרת בקשה להיתר</a><small>PDF · <span class="num">12.11.2026</span></small></li>
+            <li><a href="#">חשבונית, תכנון אדריכלי שלב א׳</a><small>PDF · <span class="num">02.08.2026</span></small></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Updates -->
+    <section class="panel" role="tabpanel" id="p-upd" aria-labelledby="t-upd" tabindex="0" hidden>
+      <ol class="tl">
+        <li>
+          <time datetime="2026-11-12">12.11.2026</time>
+          <div><h3>הבקשה להיתר הוגשה לוועדה המקומית</h3><p>הוועדה צפויה לדון בבקשה בתוך 45 עד 60 יום. עד אז נעדכן על כל דרישה או השלמה שתגיע. אין צורך בשום פעולה כרגע.</p><span class="stage-chip">עברנו לשלב 05: הוצאת היתר בנייה</span></div>
+        </li>
+        <li>
+          <time datetime="2026-10-28">28.10.2026</time>
+          <div><h3>נחתם הסכם עם הקבלן</h3><p>השווינו שלוש הצעות על אותו כתב כמויות. ההצעה שנבחרה זולה ב-11% מהיקרה, והמחיר נעול ל-12 חודשים. המקדמה תשולם עם קבלת ההיתר.</p></div>
+        </li>
+        <li>
+          <time datetime="2026-10-14">14.10.2026</time>
+          <div><h3>כל השכנים חתמו</h3><p>שש מתוך שש דירות בבניין חתמו על ההסכמה. המסמכים החתומים נמצאים בלשונית ההסכם והמסמכים.</p><span class="stage-chip">שלב 04 הושלם</span></div>
+        </li>
+      </ol>
+    </section>
+
+  </div>
+</main>
+
+<footer class="ftr">
+  <div class="wrap"><b>דירומקס</b> · תיווך, יזמות וניהול השבחת נכסים</div>
+</footer>
+
+<script>
+// ARIA tabs: click + arrow keys. Without JS every panel would be a plain section.
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function select(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    tab.focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { select(t); });
+    t.addEventListener('keydown', function (e) {
+      // RTL: the right arrow moves to the previous tab, the left arrow to the next.
+      var d = e.key === 'ArrowLeft' ? 1 : e.key === 'ArrowRight' ? -1 : 0;
+      if (e.key === 'Home') { select(tabs[0]); e.preventDefault(); }
+      if (e.key === 'End') { select(tabs[tabs.length - 1]); e.preventDefault(); }
+      if (d) { select(tabs[(i + d + tabs.length) % tabs.length]); e.preventDefault(); }
+    });
+  });
+  var copy = document.getElementById('copy');
+  copy.addEventListener('click', function () {
+    var text = 'בנק 00 · סניף 000 · חשבון 000000 · דירומקס';
+    if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(function () {}); }
+    copy.textContent = 'הועתק';
+    setTimeout(function () { copy.textContent = 'העתקת פרטי ההעברה'; }, 1800);
+  });
+})();
+</script>
+</body>
+</html>
