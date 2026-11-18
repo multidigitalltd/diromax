@@ -16,7 +16,9 @@ use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Service\AgreementService;
 use Diromax\Portal\Service\Contact;
+use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Settings;
@@ -97,10 +99,19 @@ final class CaseView {
 				'spent'    => Money::format( $summary->payments - $summary->refunds - $summary->project_balance ),
 				'balance'  => Money::format( $summary->project_balance ),
 			) : null,
-			'agreement'  => $this->agreement( $client_case ),
+			'agreement'  => $this->agreement( $client_case, $viewer ),
+			'decisions'  => $this->decisions( $client_case ),
+			'can_answer' => DecisionService::may_answer( $this->app->members->role( $client_case->id, $viewer ) ),
+			'to_confirm' => array_map(
+				static fn( $document ): array => array(
+					'title' => $document->title,
+					'url'   => Router::document_url( $document ),
+				),
+				( new AgreementService( $this->app ) )->waiting_for( $client_case, $viewer )
+			),
 			'documents'  => $this->documents( $client_case ),
 			'updates'    => $this->updates( $client_case ),
-			'tab'        => in_array( $tab, array( 'finance', 'documents', 'updates' ), true ) ? $tab : 'finance',
+			'tab'        => in_array( $tab, array( 'finance', 'documents', 'updates', 'decisions' ), true ) ? $tab : 'finance',
 			'filters'    => array(
 				'types'      => Labels::types(),
 				'categories' => Settings::categories(),
@@ -336,28 +347,79 @@ final class CaseView {
 	 * Agreement card: terms from the case, file from the newest agreement document.
 	 *
 	 * @param CaseRecord $client_case Case.
-	 * @return array{signed:string, scope:string, track:string, fee:string, url:string, size:string}
+	 * @param int        $viewer      Viewing user.
+	 * @return array{signed:string, scope:string, track:string, fee:string, url:string, size:string, id:int, confirmed:string, can_ack:bool}
 	 */
-	private function agreement( CaseRecord $client_case ): array {
+	private function agreement( CaseRecord $client_case, int $viewer ): array {
 		$url  = '';
 		$size = '';
+		$id   = 0;
 
 		foreach ( $this->app->documents->for_case( $client_case->id, true ) as $document ) {
 			if ( 'agreement' === $document->kind ) {
 				$url  = Router::document_url( $document );
 				$size = size_format( $document->size, 1 );
+				$id   = $document->id;
 				break;
 			}
 		}
 
+		$confirmed = '';
+
+		foreach ( $this->app->acknowledgements->for_case( $client_case->id )[ $id ] ?? array() as $ack ) {
+			if ( $ack['user_id'] === $viewer ) {
+				$confirmed = Labels::datetime( $ack['created_at'] );
+			}
+		}
+
 		return array(
-			'signed' => Labels::date( $client_case->signed_on ),
-			'scope'  => $client_case->scope,
-			'track'  => $client_case->track,
-			'fee'    => $client_case->fee_terms,
-			'url'    => $url,
-			'size'   => (string) $size,
+			'signed'    => Labels::date( $client_case->signed_on ),
+			'scope'     => $client_case->scope,
+			'track'     => $client_case->track,
+			'fee'       => $client_case->fee_terms,
+			'url'       => $url,
+			'size'      => (string) $size,
+			'id'        => $id,
+			'confirmed' => $confirmed,
+			'can_ack'   => 0 !== $id && $this->app->members->is_member( $client_case->id, $viewer ),
 		);
+	}
+
+	/**
+	 * Decisions of the case for the portal.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function decisions( CaseRecord $client_case ): array {
+		$statuses = Labels::decision_statuses();
+		$list     = array();
+
+		foreach ( $this->app->decisions->for_case( $client_case->id ) as $decision ) {
+			$document = null === $decision->document_id ? null : $this->app->documents->find( $decision->document_id );
+			$answerer = null === $decision->answered_by ? false : get_userdata( $decision->answered_by );
+			$list[]   = array(
+				'id'       => $decision->id,
+				'title'    => $decision->title,
+				'body'     => $decision->body,
+				'amount'   => null === $decision->amount ? '' : Money::format( $decision->amount ),
+				'due'      => Labels::date( $decision->due_date ),
+				'status'   => $decision->status->value,
+				'label'    => $statuses[ $decision->status->value ] ?? '',
+				'pending'  => $decision->is_pending(),
+				'sent'     => Labels::date( $decision->created_at ),
+				/* translators: 1: who, 2: date and time. */
+				'answered' => null === $decision->answered_at ? '' : sprintf( __( '%1$s, %2$s', 'diromax-portal' ), $answerer ? (string) $answerer->display_name : '', Labels::datetime( $decision->answered_at ) ),
+				'note'     => $decision->answer_note,
+				'reason'   => $decision->withdraw_reason,
+				'doc'      => null !== $document && $document->visible ? array(
+					'title' => $document->title,
+					'url'   => Router::document_url( $document ),
+				) : null,
+			);
+		}
+
+		return $list;
 	}
 
 	/**

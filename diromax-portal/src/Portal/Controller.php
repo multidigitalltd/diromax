@@ -9,9 +9,14 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Portal;
 
+use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Service\AgreementService;
+use Diromax\Portal\Service\DecisionService;
+use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Security\Turnstile;
 use Diromax\Portal\Support\Ids;
+use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -206,13 +211,106 @@ final class Controller {
 			return;
 		}
 
+		if ( 'post' === self::method() ) {
+			$this->case_action( $client_case, $user );
+			return;
+		}
+
 		$this->record_view( $user, $client_case );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only tab selection and a message code from an allowlist.
 		$tab  = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'finance';
+		$done = isset( $_GET['done'] ) ? sanitize_key( wp_unslash( $_GET['done'] ) ) : '';
+		// phpcs:enable
 		$view = ( new CaseView( $this->app ) )->build( $client_case, $user, $tab );
 
+		$view['self']   = Router::case_url( $client_case, (string) $view['tab'] );
+		$view['notice'] = self::notice( $done );
+
 		$this->render( 'case', $view, $client_case->title );
+	}
+
+	/**
+	 * A form posted from the case page: answer a decision or confirm the agreement.
+	 *
+	 * Post/redirect/get: the result comes back as an allowlisted message code.
+	 *
+	 * @param CaseRecord $client_case Case the viewer may see.
+	 * @param int        $user        Viewer.
+	 */
+	private function case_action( CaseRecord $client_case, int $user ): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Each branch verifies its own nonce, bound to the object.
+		$step   = isset( $_POST['dx_step'] ) ? sanitize_key( wp_unslash( $_POST['dx_step'] ) ) : '';
+		$nonce  = isset( $_POST['_dx_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_dx_nonce'] ) ) : '';
+		$object = absint( $_POST['decision'] ?? ( $_POST['document'] ?? 0 ) );
+		$ok     = isset( $_POST['confirm'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['confirm'] ) );
+		$answer = isset( $_POST['answer'] ) ? sanitize_key( wp_unslash( $_POST['answer'] ) ) : '';
+		$note   = isset( $_POST['note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note'] ) ) : '';
+		// phpcs:enable
+
+		[ $tab, $result ] = match ( $step ) {
+			'decide'      => array( 'decisions', wp_verify_nonce( $nonce, 'dx_portal_decide_' . $object ) ? ( new DecisionService( $this->app ) )->answer( $client_case, $object, $user, $answer, $note, $ok ) : 'expired' ),
+			'acknowledge' => array( 'documents', ! wp_verify_nonce( $nonce, 'dx_portal_ack_' . $object ) ? 'expired' : ( $ok ? ( new AgreementService( $this->app ) )->acknowledge( $client_case, $object, $user ) : 'confirm' ) ),
+			default       => array( 'finance', 'failed' ),
+		};
+
+		if ( $result instanceof WP_Error && in_array( $result->get_error_code(), array( 'dx_not_found', 'dx_forbidden' ), true ) ) {
+			$this->not_found();
+			return;
+		}
+
+		$code = match ( true ) {
+			true === $result && 'documents' === $tab => 'acknowledged',
+			true === $result                         => 'approve' === $answer ? 'approved' : 'declined',
+			is_string( $result )                     => $result,
+			'dx_not_pending' === $result->get_error_code() => 'closed',
+			isset( Errors::fields( $result )['confirm'] )  => 'confirm',
+			default                                  => 'failed',
+		};
+
+		$this->redirect( add_query_arg( 'done', $code, Router::case_url( $client_case, $tab ) ) );
+	}
+
+	/**
+	 * Message for a result code, or null.
+	 *
+	 * @param string $code Code from the query string.
+	 * @return array{type:string, text:string}|null
+	 */
+	private static function notice( string $code ): ?array {
+		$ok = array(
+			'approved'     => __( 'תודה. האישור נרשם בתיק ונשלח למנהל הפרויקט.', 'diromax-portal' ),
+			'declined'     => __( 'התשובה נרשמה בתיק ונשלחה למנהל הפרויקט.', 'diromax-portal' ),
+			'acknowledged' => __( 'תודה. אישור הקריאה נרשם.', 'diromax-portal' ),
+			'saved'        => __( 'השינויים נשמרו.', 'diromax-portal' ),
+		);
+		$no = array(
+			'confirm' => __( 'כדי לאשר צריך לסמן שקראת את הפרטים.', 'diromax-portal' ),
+			'closed'  => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
+			'expired' => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
+			'failed'  => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
+		);
+
+		return match ( true ) {
+			isset( $ok[ $code ] ) => array(
+				'type' => 'ok',
+				'text' => $ok[ $code ],
+			),
+			isset( $no[ $code ] ) => array(
+				'type' => 'error',
+				'text' => $no[ $code ],
+			),
+			default               => null,
+		};
+	}
+
+	/**
+	 * HTTP method, lower case.
+	 *
+	 * @return string
+	 */
+	private static function method(): string {
+		return isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : 'get';
 	}
 
 	/**

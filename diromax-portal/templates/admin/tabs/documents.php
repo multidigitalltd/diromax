@@ -91,7 +91,30 @@ $form = new Form( $view['flash'], 'document' );
 								"><?php echo esc_html( $document->title ); ?></a>
 					<br><span class="dxa-muted" dir="ltr"><?php echo esc_html( $document->original_name . ' · ' . size_format( $document->size, 1 ) ); ?></span>
 				</td>
-				<td><?php echo esc_html( $view['kinds'][ $document->kind ] ?? '' ); ?></td>
+				<td>
+					<?php echo esc_html( $view['kinds'][ $document->kind ] ?? '' ); ?>
+					<?php if ( 'agreement' === $document->kind && $document->visible ) : ?>
+						<?php $confirmed = $view['acks'][ $document->id ] ?? array(); ?>
+						<br><span class="dxa-muted">
+							<?php if ( array() === $confirmed ) : ?>
+								<?php esc_html_e( 'הלקוח עוד לא אישר שקרא', 'diromax-portal' ); ?>
+							<?php else : ?>
+								<?php
+								echo esc_html(
+									implode(
+										' · ',
+										array_map(
+											/* translators: 1: name, 2: date and time. */
+											static fn( array $ack ): string => sprintf( __( 'אושר על ידי %1$s, %2$s', 'diromax-portal' ), $ack['name'], Labels::datetime( $ack['created_at'] ) ),
+											$confirmed
+										)
+									)
+								);
+								?>
+							<?php endif; ?>
+						</span>
+					<?php endif; ?>
+				</td>
 				<td><?php echo esc_html( Labels::datetime( $document->created_at ) ); ?></td>
 				<td><?php echo $document->visible ? esc_html__( 'גלוי', 'diromax-portal' ) : '<span class="dxa-muted">' . esc_html__( 'מוסתר', 'diromax-portal' ) . '</span>'; ?></td>
 				<td class="dxa-actions">

@@ -11,6 +11,7 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\ReminderService;
 use Diromax\Portal\Service\UpdateService;
@@ -45,6 +46,8 @@ final class Actions {
 		'send_reminder'       => array( array( 'entry_id' ), array() ),
 		'add_update'          => array( array( 'title', 'stage', 'visible', 'notify' ), array( 'body' ) ),
 		'upload_document'     => array( array( 'kind', 'title', 'visible', 'notify' ), array() ),
+		'add_decision'        => array( array( 'title', 'amount', 'document_id', 'due_date', 'notify' ), array( 'body' ) ),
+		'withdraw_decision'   => array( array( 'decision_id', 'reason' ), array() ),
 		'document_visibility' => array( array( 'document_id', 'visible' ), array() ),
 		'delete_document'     => array( array( 'document_id' ), array() ),
 		'send_now'            => array( array(), array() ),
@@ -112,6 +115,8 @@ final class Actions {
 			'send_reminder'       => $this->finish( $client_case, 'finance', ( new ReminderService( $this->app ) )->send_now( $client_case, absint( $input['entry_id'] ), $actor ), __( 'התזכורת נשלחה ללקוח.', 'diromax-portal' ) ),
 			'add_update'          => $this->add_update( $client_case, $input, $actor ),
 			'upload_document'     => $this->upload_document( $client_case, $input, $actor ),
+			'add_decision'        => $this->finish( $client_case, 'decisions', ( new DecisionService( $this->app ) )->create( $client_case, $input, $actor ), __( 'הבקשה נשלחה ללקוח.', 'diromax-portal' ), 'decision', $input ),
+			'withdraw_decision'   => $this->finish( $client_case, 'decisions', ( new DecisionService( $this->app ) )->withdraw( $client_case, absint( $input['decision_id'] ), $input['reason'], $actor ), __( 'הבקשה בוטלה.', 'diromax-portal' ), 'withdraw-' . absint( $input['decision_id'] ), $input ),
 			'document_visibility' => $this->document_visibility( $client_case, $input, $actor ),
 			'delete_document'     => $this->delete_document( $client_case, $input, $actor ),
 			'send_now'            => $this->send_now( $client_case, $actor ),

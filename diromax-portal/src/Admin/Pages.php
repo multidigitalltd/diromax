@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
 final class Pages {
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'details', 'members', 'budget', 'finance', 'updates', 'documents', 'log' );
+	public const TABS = array( 'overview', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -167,6 +167,7 @@ final class Pages {
 				'documents'  => $this->documents_by_id( $client_case ),
 				'today'      => $this->app->clock->today(),
 			),
+			'decisions' => $this->decisions_data( $client_case ),
 			'updates'   => array(
 				'updates' => $this->app->updates->for_case( $client_case->id, false ),
 				'stages'  => Stages::names(),
@@ -175,6 +176,7 @@ final class Pages {
 				'documents' => $this->app->documents->for_case( $client_case->id, false ),
 				'kinds'     => Labels::document_kinds(),
 				'key_ready' => $this->app->store->is_configured(),
+				'acks'      => $this->app->acknowledgements->for_case( $client_case->id ),
 			),
 			'log'       => array(
 				'audit' => $this->app->audit->for_case( $client_case->id, 300 ),
@@ -182,6 +184,28 @@ final class Pages {
 			),
 			default     => array(),
 		};
+	}
+
+	/**
+	 * Data of the decisions tab.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return array<string, mixed>
+	 */
+	private function decisions_data( CaseRecord $client_case ): array {
+		$decisions = $this->app->decisions->for_case( $client_case->id );
+		$names     = array();
+
+		foreach ( array_unique( array_filter( array_map( static fn( $d ): ?int => $d->answered_by, $decisions ) ) ) as $user_id ) {
+			$user              = get_userdata( (int) $user_id );
+			$names[ $user_id ] = $user ? (string) $user->display_name : '';
+		}
+
+		return array(
+			'decisions' => $decisions,
+			'names'     => $names,
+			'documents' => $this->app->documents->for_case( $client_case->id, true ),
+		);
 	}
 
 	/**
@@ -212,6 +236,7 @@ final class Pages {
 			'members'   => __( 'לקוחות', 'diromax-portal' ),
 			'budget'    => __( 'תקציב', 'diromax-portal' ),
 			'finance'   => __( 'כספים', 'diromax-portal' ),
+			'decisions' => __( 'החלטות', 'diromax-portal' ),
 			'updates'   => __( 'עדכונים', 'diromax-portal' ),
 			'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 			'log'       => __( 'יומן', 'diromax-portal' ),

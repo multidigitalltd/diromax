@@ -85,6 +85,21 @@ final class MemberRepository {
 	}
 
 	/**
+	 * A member's role in a case, or null when not a member.
+	 *
+	 * @param int $case_id Case.
+	 * @param int $user_id User.
+	 * @return MemberRole|null
+	 */
+	public function role( int $case_id, int $user_id ): ?MemberRole {
+		$role = $this->db->get_var(
+			$this->db->prepare( 'SELECT role FROM %i WHERE case_id = %d AND user_id = %d', Schema::table( 'case_members' ), $case_id, $user_id )
+		);
+
+		return null === $role ? null : MemberRole::tryFrom( (string) $role );
+	}
+
+	/**
 	 * Members of a case with their account details.
 	 *
 	 * @param int  $case_id     Case.

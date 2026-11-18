@@ -193,6 +193,40 @@
 .dxp-docs li a { min-height: 24px; }
 .dxp-docs small { color: var(--p-muted); }
 
+/* waiting for the client: decisions, agreement confirmation */
+.dxp-todo { background: var(--p-white); border-bottom: 2px solid var(--p-ink); box-shadow: inset 0 7px 0 var(--p-orange); }
+.dxp-todo .dxp-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-block: 20px 16px; }
+.dx-portal-page .dxp-todo__k { font-size: 13.5px; font-weight: 800; letter-spacing: .06em; margin: 0; }
+.dxp-todo ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.dxp-todo a { font-weight: 800; color: var(--p-blue-text); min-height: 24px; display: inline-block; }
+.dxp-notice { padding: 14px 16px; border: 2px solid var(--p-ink); border-inline-start-width: 7px; font-weight: 600; margin: clamp(20px, 2vw, 28px) 0 0; background: var(--p-white); }
+.dxp-notice--ok { border-inline-start-color: var(--p-teal-deep); }
+.dxp-notice--error { border-inline-start-color: var(--p-orange-text); }
+.dxp-cnt--hot { background: var(--p-orange); color: var(--p-on-orange); }
+.dxp-decisions { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.dxp-dec { border: 2px solid var(--p-ink); background: var(--p-white); padding: 20px 22px; }
+.dxp-dec--pending { border-inline-start-width: 7px; border-inline-start-color: var(--p-orange); }
+.dxp-dec__h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+.dxp-dec__h h3 { font-size: 20px; font-weight: 800; margin: 0; }
+.dxp-dec__meta { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 10px 0 0; font-size: 14.5px; }
+.dxp-dec__meta dt { color: var(--p-muted); font-weight: 600; }
+.dxp-dec__meta dt::after { content: ":"; }
+.dxp-dec__meta dd { margin: 0; margin-inline-start: -14px; }
+.dxp-dec__body { margin: 14px 0; line-height: 1.6; color: var(--p-body); }
+.dxp-dec__ans { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--p-line); font-weight: 600; }
+.dxp-dec__form textarea { width: 100%; max-width: 640px; display: block; margin-top: 6px; font: inherit; padding: 8px 10px; border: 2px solid var(--p-ink); background: var(--p-white); color: var(--p-ink); }
+.dxp-dec__form label, .dxp-ack label { font-weight: 600; }
+.dxp-check { display: flex; gap: 10px; align-items: flex-start; }
+.dxp-check input { width: 22px; height: 22px; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--p-blue); }
+.dxp-dec__btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.dxp-dec__note { font-size: 14px; color: var(--p-muted); margin: 10px 0 0; }
+.dxp-ack { padding: 16px 22px 20px; border-top: 2px solid var(--p-ink); }
+.dxp-ack p { margin: 0 0 10px; }
+.dxp-agr .dxp-ok { margin: 0; border: none; border-top: 2px solid var(--p-ink); }
+.dxp-tag--pending { background: var(--p-orange); border-color: var(--p-orange); color: var(--p-on-orange); }
+.dxp-tag--approved { background: var(--p-teal-deep); border-color: var(--p-teal-deep); color: #fff; }
+.dxp-tag--declined, .dxp-tag--withdrawn { border-style: dashed; }
+
 /* updates timeline */
 .dxp-tl { list-style: none; margin: 0; padding: 0; }
 .dxp-tl > li { display: grid; grid-template-columns: 120px 1fr; gap: 4px 24px; padding: 20px 0; border-bottom: 1px solid var(--p-line); }
