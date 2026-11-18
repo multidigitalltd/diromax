@@ -47,7 +47,9 @@ $signed_out = isset( $_GET['out'] );
 		<?php else : ?>
 			<h1 id="dxp-auth-title"><?php esc_html_e( 'כניסה לאזור האישי', 'diromax-portal' ); ?></h1>
 
-			<?php if ( 'invalid' === $state ) : ?>
+			<?php if ( 'password_failed' === $state ) : ?>
+				<p class="dxp-alert" role="alert"><?php esc_html_e( 'כתובת המייל או הסיסמה לא נכונות. אפשר גם לבקש קישור כניסה למייל.', 'diromax-portal' ); ?></p>
+			<?php elseif ( 'invalid' === $state ) : ?>
 				<p class="dxp-alert" role="alert"><?php esc_html_e( 'הקישור פג תוקף או שכבר נעשה בו שימוש. אפשר לבקש קישור חדש כאן.', 'diromax-portal' ); ?></p>
 			<?php elseif ( 'expired' === $state ) : ?>
 				<p class="dxp-alert" role="alert"><?php esc_html_e( 'פג תוקף הטופס. אפשר לנסות שוב.', 'diromax-portal' ); ?></p>
@@ -76,6 +78,31 @@ $signed_out = isset( $_GET['out'] );
 				<button type="submit" class="dxp-btn dxp-btn--orange"><?php esc_html_e( 'שלחו לי קישור כניסה', 'diromax-portal' ); ?></button>
 			</form>
 			<p class="dxp-note"><?php esc_html_e( 'הכתובת משמשת רק לכניסה ולעדכונים על התיק.', 'diromax-portal' ); ?></p>
+
+			<details class="dxp-alt"<?php echo 'password_failed' === $state ? ' open' : ''; ?>>
+				<summary><?php esc_html_e( 'כניסה עם סיסמה', 'diromax-portal' ); ?></summary>
+				<p class="dxp-note"><?php esc_html_e( 'למי שקבע סיסמה בעמוד "החשבון שלי". שכחת? אפשר תמיד להיכנס עם קישור למייל.', 'diromax-portal' ); ?></p>
+				<form class="dxp-form" method="post" action="<?php echo esc_url( Router::login_url() ); ?>">
+					<input type="hidden" name="dx_step" value="password">
+					<?php wp_nonce_field( 'dx_portal_password_login', '_dx_nonce', false ); ?>
+					<p class="dxp-field">
+						<label for="dxp-pw-email"><?php esc_html_e( 'כתובת דוא״ל', 'diromax-portal' ); ?></label>
+						<input type="email" id="dxp-pw-email" name="email" required autocomplete="username" inputmode="email" dir="ltr" maxlength="190" value="<?php echo esc_attr( (string) ( $view['email'] ?? '' ) ); ?>">
+					</p>
+					<p class="dxp-field">
+						<label for="dxp-pw"><?php esc_html_e( 'סיסמה', 'diromax-portal' ); ?></label>
+						<input type="password" id="dxp-pw" name="password" required autocomplete="current-password" dir="ltr" maxlength="200">
+					</p>
+					<p class="dxp-check">
+						<input type="checkbox" id="dxp-pw-remember" name="remember" value="1">
+						<label for="dxp-pw-remember"><?php esc_html_e( 'להישאר מחובר במכשיר הזה ל-14 יום', 'diromax-portal' ); ?></label>
+					</p>
+					<?php if ( Turnstile::enabled() ) : ?>
+						<div class="cf-turnstile" data-sitekey="<?php echo esc_attr( Turnstile::site_key() ); ?>" data-action="<?php echo esc_attr( Turnstile::ACTION ); ?>" data-language="he"></div>
+					<?php endif; ?>
+					<button type="submit" class="dxp-btn dxp-btn--ink"><?php esc_html_e( 'כניסה', 'diromax-portal' ); ?></button>
+				</form>
+			</details>
 		<?php endif; ?>
 	</div>
 </section>

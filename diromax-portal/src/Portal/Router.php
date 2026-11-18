@@ -28,7 +28,7 @@ final class Router {
 	public const ARG = 'dx_portal_id';
 
 	/** Views the router accepts. */
-	public const VIEWS = array( 'home', 'login', 'logout', 'case', 'doc' );
+	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc' );
 
 	/**
 	 * Register the rewrite rules.
@@ -37,7 +37,7 @@ final class Router {
 		$base = self::base();
 
 		add_rewrite_rule( '^' . $base . '/?$', 'index.php?' . self::VIEW . '=home', 'top' );
-		add_rewrite_rule( '^' . $base . '/(login|logout)/?$', 'index.php?' . self::VIEW . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/(login|logout|account)/?$', 'index.php?' . self::VIEW . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/(case|doc)/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=$matches[1]&' . self::ARG . '=$matches[2]', 'top' );
 	}
 
@@ -73,6 +73,15 @@ final class Router {
 		$url = self::url( 'login' );
 
 		return '' === $token ? $url : add_query_arg( 't', rawurlencode( $token ), $url );
+	}
+
+	/**
+	 * The client's account page: password and email preferences.
+	 *
+	 * @return string
+	 */
+	public static function account_url(): string {
+		return self::url( 'account' );
 	}
 
 	/**

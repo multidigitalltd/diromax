@@ -24,6 +24,7 @@ if ( ! $account instanceof WP_User || 0 === $account->ID ) {
 		echo esc_html( sprintf( __( 'חשבון: %s', 'diromax-portal' ), $account->display_name ) );
 		?>
 	</span>
+	<a href="<?php echo esc_url( \Diromax\Portal\Portal\Router::account_url() ); ?>"><?php esc_html_e( 'החשבון שלי', 'diromax-portal' ); ?></a>
 	<?php wp_nonce_field( 'dx_portal_logout', '_dx_nonce', false ); ?>
 	<button type="submit" class="dxp-linkbtn"><?php esc_html_e( 'יציאה', 'diromax-portal' ); ?></button>
 </form>

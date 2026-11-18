@@ -223,6 +223,19 @@ final class DecisionTest extends PortalTestCase {
 		$this->assertSame( array(), $this->app->acknowledgements->for_case( $case->id ) );
 	}
 
+	public function test_answers_and_confirmations_are_in_the_privacy_export(): void {
+		[ $manager, $case, $owner ] = $this->case_with_owner();
+		$id                         = $this->decisions->create( $case, self::fields(), $manager );
+		$this->decisions->answer( $case, $id, $owner, 'decline', 'לא כרגע', false );
+		( new AgreementService( $this->app ) )->acknowledge( $case, $this->add_document( $case, $manager )->id, $owner );
+
+		$export = ( new \Diromax\Portal\Service\Retention( $this->app ) )->export( (string) get_userdata( $owner )->user_email );
+		$groups = array_column( $export['data'], 'group_id' );
+
+		$this->assertContains( 'dx-portal-decision', $groups );
+		$this->assertContains( 'dx-portal-agreement', $groups );
+	}
+
 	/**
 	 * A case with an owner.
 	 *

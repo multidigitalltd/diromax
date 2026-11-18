@@ -79,7 +79,8 @@ final class Retention {
 	}
 
 	/**
-	 * Export a person's portal data: memberships and emails sent.
+	 * Export a person's portal data: memberships, emails sent, decision answers
+	 * and agreement confirmations.
 	 *
 	 * @param string $email Email.
 	 * @return array{data: array<int, array<string, mixed>>, done: bool}
@@ -95,6 +96,14 @@ final class Retention {
 
 			foreach ( $this->app->mail_log->for_user( (int) $user->ID ) as $index => $row ) {
 				$data[] = self::group( 'dx-portal-mail', __( 'מיילים שנשלחו', 'diromax-portal' ), 'mail-' . $index, $row );
+			}
+
+			foreach ( $this->app->decisions->answered_by( (int) $user->ID ) as $index => $row ) {
+				$data[] = self::group( 'dx-portal-decision', __( 'תשובות להחלטות', 'diromax-portal' ), 'decision-' . $index, $row );
+			}
+
+			foreach ( $this->app->acknowledgements->by_user( (int) $user->ID ) as $index => $row ) {
+				$data[] = self::group( 'dx-portal-agreement', __( 'אישורי קריאת הסכם', 'diromax-portal' ), 'agreement-' . $index, $row );
 			}
 		}
 

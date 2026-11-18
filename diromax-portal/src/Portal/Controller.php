@@ -15,6 +15,8 @@ use Diromax\Portal\Service\AgreementService;
 use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
+use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Security\Turnstile;
 use Diromax\Portal\Support\Ids;
 use WP_Error;
@@ -51,7 +53,8 @@ final class Controller {
 
 		match ( $view ) {
 			'login'  => $this->login(),
-			'logout' => $this->logout(),
+			'logout'  => $this->logout(),
+			'account' => $this->account(),
 			'home'   => $this->home(),
 			'case'   => $this->case_page(),
 			'doc'    => $this->document(),
@@ -80,6 +83,11 @@ final class Controller {
 
 		if ( 'post' === $method && 'request' === $step ) {
 			$this->request_link();
+			return;
+		}
+
+		if ( 'post' === $method && 'password' === $step ) {
+			$this->password_sign_in();
 			return;
 		}
 
@@ -155,6 +163,150 @@ final class Controller {
 		}
 
 		$this->redirect( Router::portal_url() );
+	}
+
+	/**
+	 * Sign in with email and password (spec 15.10).
+	 */
+	private function password_sign_in(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified on the first line below.
+		$nonce    = isset( $_POST['_dx_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_dx_nonce'] ) ) : '';
+		$email    = isset( $_POST['email'] ) ? sanitize_text_field( wp_unslash( $_POST['email'] ) ) : '';
+		$password = isset( $_POST['password'] ) && is_string( $_POST['password'] ) ? wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- A password is compared as typed, never stored or echoed.
+		$remember = isset( $_POST['remember'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['remember'] ) );
+		$captcha  = isset( $_POST['cf-turnstile-response'] ) ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) ) : '';
+		// phpcs:enable
+
+		if ( ! wp_verify_nonce( $nonce, 'dx_portal_password_login' ) ) {
+			$this->render( 'login', array( 'state' => 'expired' ), __( 'כניסה לאזור האישי', 'diromax-portal' ) );
+			return;
+		}
+
+		if ( Turnstile::enabled() && ! Turnstile::verify( $captcha ) ) {
+			$this->render( 'login', array( 'state' => 'captcha' ), __( 'כניסה לאזור האישי', 'diromax-portal' ) );
+			return;
+		}
+
+		$result = ( new PasswordService( $this->app ) )->sign_in( $email, $password, $remember );
+
+		if ( is_wp_error( $result ) ) {
+			$this->render(
+				'login',
+				array(
+					'state' => 'password_failed',
+					'email' => $email,
+				),
+				__( 'כניסה לאזור האישי', 'diromax-portal' )
+			);
+			return;
+		}
+
+		$this->redirect( Router::portal_url() );
+	}
+
+	/**
+	 * The client's account: email preference per case, and the password.
+	 */
+	private function account(): void {
+		$user = $this->require_login();
+
+		if ( $this->app->policy->can_use_admin( $user ) ) {
+			$this->redirect( admin_url( 'profile.php' ) );
+			return;
+		}
+
+		$cases = array_values(
+			array_filter(
+				$this->app->cases->for_member( $user ),
+				fn( CaseRecord $client_case ): bool => $this->app->policy->can_view_case( $user, $client_case )
+			)
+		);
+
+		if ( 'post' === self::method() ) {
+			$this->redirect( add_query_arg( 'done', $this->account_action( $cases, $user ), Router::account_url() ) );
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A message code from an allowlist.
+		$done  = isset( $_GET['done'] ) ? sanitize_key( wp_unslash( $_GET['done'] ) ) : '';
+		$modes = array();
+
+		foreach ( $cases as $client_case ) {
+			foreach ( $this->app->members->for_case( $client_case->id ) as $member ) {
+				if ( $member->user_id === $user ) {
+					$modes[] = array(
+						'id'    => $client_case->public_id,
+						'title' => $client_case->title,
+						'mode'  => $member->mode()->value,
+						'url'   => Router::case_url( $client_case ),
+					);
+				}
+			}
+		}
+
+		$this->render(
+			'account',
+			array(
+				'modes'        => $modes,
+				'labels'       => Labels::notify_modes(),
+				'has_password' => PasswordService::has_password( $user ),
+				'recent'       => ( new PasswordService( $this->app ) )->recently_signed_in( $user ),
+				'min'          => PasswordService::MIN_LENGTH,
+				'notice'       => self::notice( $done ),
+				'self'         => Router::account_url(),
+			),
+			__( 'החשבון שלי', 'diromax-portal' )
+		);
+	}
+
+	/**
+	 * Handle a form on the account page.
+	 *
+	 * @param CaseRecord[] $cases Cases the user may see.
+	 * @param int          $user  User.
+	 * @return string Result code for notice().
+	 */
+	private function account_action( array $cases, int $user ): string {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Each branch verifies its own nonce.
+		$step  = isset( $_POST['dx_step'] ) ? sanitize_key( wp_unslash( $_POST['dx_step'] ) ) : '';
+		$nonce = isset( $_POST['_dx_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_dx_nonce'] ) ) : '';
+
+		if ( 'modes' === $step && wp_verify_nonce( $nonce, 'dx_portal_modes' ) ) {
+			$posted = isset( $_POST['mode'] ) && is_array( $_POST['mode'] ) ? array_map( 'sanitize_key', wp_unslash( $_POST['mode'] ) ) : array();
+
+			foreach ( $cases as $client_case ) {
+				$mode = (string) ( $posted[ $client_case->public_id ] ?? '' );
+
+				if ( '' !== $mode && is_wp_error( $this->app->case_service->set_member_mode( $client_case, $user, $mode, $user ) ) ) {
+					return 'failed';
+				}
+			}
+
+			return 'saved';
+		}
+
+		if ( 'password' === $step && wp_verify_nonce( $nonce, 'dx_portal_password' ) ) {
+			// Passwords are compared and hashed as typed, never stored raw or echoed.
+			$password = isset( $_POST['password'] ) && is_string( $_POST['password'] ) ? wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- See above.
+			$repeat   = isset( $_POST['password2'] ) && is_string( $_POST['password2'] ) ? wp_unslash( $_POST['password2'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- See above.
+			$current  = isset( $_POST['current'] ) && is_string( $_POST['current'] ) ? wp_unslash( $_POST['current'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- See above.
+
+			if ( $password !== $repeat ) {
+				return 'mismatch';
+			}
+
+			$result = ( new PasswordService( $this->app ) )->change( $user, $password, $current );
+
+			return match ( true ) {
+				true === $result                           => 'password_set',
+				'dx_reauth' === $result->get_error_code()  => 'reauth',
+				'dx_invalid' === $result->get_error_code() => 'weak',
+				default                                    => 'failed',
+			};
+		}
+		// phpcs:enable
+
+		return 'expired';
 	}
 
 	/**
@@ -315,12 +467,16 @@ final class Controller {
 			'declined'     => __( 'התשובה נרשמה בתיק ונשלחה למנהל הפרויקט.', 'diromax-portal' ),
 			'acknowledged' => __( 'תודה. אישור הקריאה נרשם.', 'diromax-portal' ),
 			'saved'        => __( 'השינויים נשמרו.', 'diromax-portal' ),
+			'password_set' => __( 'הסיסמה נשמרה. שאר החיבורים לחשבון נותקו, ונשלח אליך מייל אישור.', 'diromax-portal' ),
 		);
 		$no = array(
-			'confirm' => __( 'כדי לאשר צריך לסמן שקראת את הפרטים.', 'diromax-portal' ),
-			'closed'  => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
-			'expired' => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
-			'failed'  => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
+			'confirm'  => __( 'כדי לאשר צריך לסמן שקראת את הפרטים.', 'diromax-portal' ),
+			'closed'   => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
+			'expired'  => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
+			'failed'   => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
+			'mismatch' => __( 'שתי הסיסמאות לא זהות. אפשר להקליד שוב.', 'diromax-portal' ),
+			'weak'     => __( 'הסיסמה צריכה להיות באורך 10 תווים לפחות, ושונה מכתובת המייל.', 'diromax-portal' ),
+			'reauth'   => __( 'כדי לשנות את הסיסמה צריך להזין את הסיסמה הנוכחית, או להיכנס מחדש עם קישור למייל.', 'diromax-portal' ),
 		);
 
 		return match ( true ) {

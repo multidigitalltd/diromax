@@ -193,6 +193,16 @@
 .dxp-docs li a { min-height: 24px; }
 .dxp-docs small { color: var(--p-muted); }
 
+/* account page and password sign-in */
+.dxp-box { border: 2px solid var(--p-ink); background: var(--p-white); padding: 20px 22px; align-self: start; }
+.dxp-radios { border: none; border-top: 1px solid var(--p-line); margin: 0; padding: 14px 0 6px; }
+.dxp-radios legend { font-weight: 800; padding: 0; margin-bottom: 8px; }
+.dxp-radios .dxp-check { margin: 0 0 8px; }
+.dxp-hint { display: block; font-size: 14px; color: var(--p-muted); margin-top: 6px; }
+.dxp-alt { margin-top: 28px; border-top: 2px solid var(--p-ink); padding-top: 16px; }
+.dxp-alt summary { cursor: pointer; font-weight: 800; min-height: 24px; }
+.dxp-account a { font-weight: 700; }
+
 /* finance tools */
 .dxp-tools__btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
 
