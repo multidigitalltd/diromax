@@ -12,6 +12,7 @@ namespace Diromax\Portal\Admin;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Service\Contact;
+use Diromax\Portal\Service\LeadLink;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,6 +22,8 @@ defined( 'ABSPATH' ) || exit;
 final class Admin {
 
 	/** Admin page slugs. */
+	public const PAGE_DASHBOARD = 'dx-dashboard';
+
 	public const PAGE_CASES    = 'dx-cases';
 	public const PAGE_NEW      = 'dx-case-new';
 	public const PAGE_SETTINGS = 'dx-portal-settings';
@@ -41,16 +44,18 @@ final class Admin {
 		add_action(
 			'admin_menu',
 			static function () use ( $pages ): void {
-				add_menu_page( __( 'תיקי לקוחות', 'diromax-portal' ), __( 'תיקי לקוחות', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_CASES, array( $pages, 'cases' ), 'dashicons-portfolio', 26 );
-				add_submenu_page( self::PAGE_CASES, __( 'כל התיקים', 'diromax-portal' ), __( 'כל התיקים', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_CASES, array( $pages, 'cases' ) );
-				add_submenu_page( self::PAGE_CASES, __( 'תיק חדש', 'diromax-portal' ), __( 'תיק חדש', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_NEW, array( $pages, 'new_case' ) );
-				add_submenu_page( self::PAGE_CASES, __( 'הגדרות האזור האישי', 'diromax-portal' ), __( 'הגדרות', 'diromax-portal' ), Capabilities::MANAGE_SETTINGS, self::PAGE_SETTINGS, array( $pages, 'settings' ) );
+				add_menu_page( __( 'תיקי לקוחות', 'diromax-portal' ), __( 'תיקי לקוחות', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_DASHBOARD, array( $pages, 'dashboard' ), 'dashicons-portfolio', 26 );
+				add_submenu_page( self::PAGE_DASHBOARD, __( 'לוח בקרה', 'diromax-portal' ), __( 'לוח בקרה', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_DASHBOARD, array( $pages, 'dashboard' ) );
+				add_submenu_page( self::PAGE_DASHBOARD, __( 'כל התיקים', 'diromax-portal' ), __( 'כל התיקים', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_CASES, array( $pages, 'cases' ) );
+				add_submenu_page( self::PAGE_DASHBOARD, __( 'תיק חדש', 'diromax-portal' ), __( 'תיק חדש', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_NEW, array( $pages, 'new_case' ) );
+				add_submenu_page( self::PAGE_DASHBOARD, __( 'הגדרות האזור האישי', 'diromax-portal' ), __( 'הגדרות', 'diromax-portal' ), Capabilities::MANAGE_SETTINGS, self::PAGE_SETTINGS, array( $pages, 'settings' ) );
 			}
 		);
 
 		( new Actions( $this->app ) )->register();
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
+		add_filter( 'post_row_actions', array( new LeadLink( $this->app ), 'row_actions' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'notices' ) );
 
 		add_action( 'show_user_profile', array( $this, 'phone_field' ) );
@@ -191,7 +196,7 @@ final class Admin {
 	 * @return bool
 	 */
 	private static function is_plugin_screen( string $id ): bool {
-		return str_contains( $id, self::PAGE_CASES ) || str_contains( $id, self::PAGE_NEW ) || str_contains( $id, self::PAGE_SETTINGS );
+		return str_contains( $id, self::PAGE_DASHBOARD ) || str_contains( $id, self::PAGE_CASES ) || str_contains( $id, self::PAGE_NEW ) || str_contains( $id, self::PAGE_SETTINGS );
 	}
 
 	/**

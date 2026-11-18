@@ -217,4 +217,22 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 	</tbody>
 </table>
 <?php endif; ?>
-<p><a href="<?php echo esc_url( Admin::case_url( $case->id, 'budget' ) ); ?>"><?php esc_html_e( 'עריכת התקציב', 'diromax-portal' ); ?></a></p>
+<p class="dxa-inline">
+	<a href="<?php echo esc_url( Admin::case_url( $case->id, 'budget' ) ); ?>"><?php esc_html_e( 'עריכת התקציב', 'diromax-portal' ); ?></a>
+	<a href="
+	<?php
+	echo esc_url(
+		wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'  => 'dx_portal_export',
+					'case_id' => $case->id,
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'dx_portal_export_' . $case->id
+		)
+	);
+	?>
+	"><?php esc_html_e( 'ייצוא כל התנועות ל-CSV', 'diromax-portal' ); ?></a>
+</p>

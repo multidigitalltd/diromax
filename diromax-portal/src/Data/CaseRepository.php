@@ -25,7 +25,7 @@ final class CaseRepository {
 	private const CASE_COLUMNS = 'c.id, c.public_id, c.number, c.title, c.property_type, c.track, c.scope, c.fee_terms, c.signed_on, c.manager_id, c.status, c.stage, c.stages, c.summary, c.created_at, c.closed_at, c.lead_id';
 
 	/** Columns update() may write. */
-	private const WRITABLE = array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'status', 'stage', 'stages', 'closed_at' );
+	private const WRITABLE = array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'status', 'stage', 'stages', 'closed_at', 'lead_id' );
 
 	/**
 	 * Constructor.

@@ -14,6 +14,7 @@ use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\LeadLink;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Settings;
 
@@ -54,6 +55,48 @@ final class Pages {
 	}
 
 	/**
+	 * Manager dashboard (spec 15.8): what needs attention, across the user's cases.
+	 */
+	public function dashboard(): void {
+		$user = get_current_user_id();
+
+		if ( ! $this->app->policy->can_use_admin( $user ) ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		$view = $this->dashboard_data( $user );
+
+		include DX_PORTAL_DIR . 'templates/admin/dashboard.php';
+	}
+
+	/**
+	 * Dashboard cards for a user: everything for an administrator, own cases for a manager.
+	 *
+	 * @param int $user User.
+	 * @return array<string, mixed>
+	 */
+	public function dashboard_data( int $user ): array {
+		$manager = $this->app->policy->can_manage_all( $user ) ? 0 : $user;
+		$today   = $this->app->clock->today();
+		$day     = static fn( int $days ): string => gmdate( 'Y-m-d', (int) strtotime( $today . ' ' . sprintf( '%+d', $days ) . ' days UTC' ) );
+		$stale   = Settings::all()['stale_days'];
+		$repo    = $this->app->dashboard;
+
+		return array(
+			'all'        => 0 === $manager,
+			'today'      => $today,
+			'stale_days' => $stale,
+			'overdue'    => $repo->requests_due( $manager, '1000-01-01', $day( -1 ) ),
+			'upcoming'   => $repo->requests_due( $manager, $today, $day( 7 ) ),
+			'decisions'  => $repo->pending_decisions( $manager ),
+			'actions'    => $repo->client_actions( $manager, $this->app->clock->mysql_in( -7 * DAY_IN_SECONDS ) ),
+			'stale'      => $repo->stale_cases( $manager, $this->app->clock->mysql_in( -$stale * DAY_IN_SECONDS ) ),
+			'quiet'      => $repo->never_signed_in( $manager, $this->app->clock->mysql_in( -3 * DAY_IN_SECONDS ) ),
+			'failed'     => $repo->failed_mail( $manager ),
+		);
+	}
+
+	/**
 	 * New case form.
 	 */
 	public function new_case(): void {
@@ -63,10 +106,14 @@ final class Pages {
 			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only prefill; the lead is checked again on save.
+		$lead = isset( $_GET['lead'] ) ? ( new LeadLink( $this->app ) )->prefill( absint( $_GET['lead'] ), $user ) : null;
 		$view = array(
 			'flash'    => Flash::take(),
 			'managers' => $this->app->policy->can_manage_all( $user ) ? $this->app->case_service->managers() : array(),
 			'user'     => $user,
+			'lead'     => $lead,
+			'prefill'  => $lead ?? array(),
 		);
 
 		include DX_PORTAL_DIR . 'templates/admin/case-new.php';

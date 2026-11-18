@@ -13,6 +13,7 @@ use Diromax\Portal\Data\AcknowledgementRepository;
 use Diromax\Portal\Data\AuditLog;
 use Diromax\Portal\Data\BudgetRepository;
 use Diromax\Portal\Data\CaseRepository;
+use Diromax\Portal\Data\DashboardRepository;
 use Diromax\Portal\Data\DecisionRepository;
 use Diromax\Portal\Data\DocumentRepository;
 use Diromax\Portal\Data\EventRepository;
@@ -136,6 +137,12 @@ final class Plugin {
 	 */
 	public readonly AcknowledgementRepository $acknowledgements;
 	/**
+	 * Dashboard queries.
+	 *
+	 * @var DashboardRepository
+	 */
+	public readonly DashboardRepository $dashboard;
+	/**
 	 * Authorization.
 	 *
 	 * @var AccessPolicy
@@ -212,6 +219,7 @@ final class Plugin {
 		$this->decisions = new DecisionRepository( $wpdb );
 
 		$this->acknowledgements = new AcknowledgementRepository( $wpdb );
+		$this->dashboard        = new DashboardRepository( $wpdb );
 		$this->policy           = new AccessPolicy( $this->members, $clock );
 		$this->store            = new DocumentStore();
 		$this->limiter          = new RateLimiter( $clock );

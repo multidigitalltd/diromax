@@ -11,6 +11,7 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\ReminderService;
@@ -31,7 +32,7 @@ final class Actions {
 
 	/** Action => [single-line fields, multi-line fields]. */
 	private const ACTIONS = array(
-		'create_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id' ), array() ),
+		'create_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'lead_id' ), array() ),
 		'update_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'stage' ), array() ),
 		'case_status'         => array( array( 'status' ), array() ),
 		'add_member'          => array( array( 'email', 'name', 'role', 'notify', 'invite' ), array() ),
@@ -73,6 +74,7 @@ final class Actions {
 		add_action( 'admin_post_dx_portal_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
+		add_action( 'admin_post_dx_portal_export', array( $this, 'export' ) );
 	}
 
 	/**
@@ -441,6 +443,24 @@ final class Actions {
 			wp_die( esc_html__( 'המסמך לא נמצא.', 'diromax-portal' ), '', array( 'response' => 404 ) );
 		}
 
+		exit;
+	}
+
+	/**
+	 * Download the case's finance table as CSV (every entry, staff columns).
+	 */
+	public function export(): void {
+		$case_id = isset( $_GET['case_id'] ) ? absint( $_GET['case_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified on the next line.
+		check_admin_referer( 'dx_portal_export_' . $case_id );
+
+		$client_case = $this->app->cases->find( $case_id );
+		$csv         = null === $client_case ? Errors::not_found() : ( new CsvExport( $this->app ) )->build( $client_case, get_current_user_id(), true );
+
+		if ( $csv instanceof WP_Error || null === $client_case ) {
+			wp_die( esc_html__( 'התיק לא נמצא, או שאין לך הרשאה אליו.', 'diromax-portal' ), '', array( 'response' => 404 ) );
+		}
+
+		CsvExport::output( $csv, CsvExport::filename( $client_case, $this->app->clock->today() ) );
 		exit;
 	}
 

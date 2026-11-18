@@ -12,6 +12,7 @@ namespace Diromax\Portal\Portal;
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Service\AgreementService;
+use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Security\Turnstile;
@@ -178,7 +179,7 @@ final class Controller {
 		$user = $this->require_login();
 
 		if ( $this->app->policy->can_use_admin( $user ) ) {
-			$this->redirect( admin_url( 'admin.php?page=dx-cases' ) );
+			$this->redirect( admin_url( 'admin.php?page=dx-dashboard' ) );
 			return;
 		}
 
@@ -216,6 +217,12 @@ final class Controller {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The export branch verifies its own nonce.
+		if ( isset( $_GET['export'] ) && 'csv' === sanitize_key( wp_unslash( $_GET['export'] ) ) ) {
+			$this->export( $client_case, $user );
+			return;
+		}
+
 		$this->record_view( $user, $client_case );
 
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only tab selection and a message code from an allowlist.
@@ -226,6 +233,13 @@ final class Controller {
 
 		$view['self']   = Router::case_url( $client_case, (string) $view['tab'] );
 		$view['notice'] = self::notice( $done );
+		$view['export'] = add_query_arg(
+			array(
+				'export' => 'csv',
+				'_dxn'   => wp_create_nonce( 'dx_portal_export_' . $client_case->id ),
+			),
+			Router::case_url( $client_case )
+		);
 
 		$this->render( 'case', $view, $client_case->title );
 	}
@@ -269,6 +283,24 @@ final class Controller {
 		};
 
 		$this->redirect( add_query_arg( 'done', $code, Router::case_url( $client_case, $tab ) ) );
+	}
+
+	/**
+	 * Download the client's view of the finance table.
+	 *
+	 * @param CaseRecord $client_case Case the viewer may see.
+	 * @param int        $user        Viewer.
+	 */
+	private function export( CaseRecord $client_case, int $user ): void {
+		$nonce = isset( $_GET['_dxn'] ) ? sanitize_text_field( wp_unslash( $_GET['_dxn'] ) ) : '';
+		$csv   = wp_verify_nonce( $nonce, 'dx_portal_export_' . $client_case->id ) ? ( new CsvExport( $this->app ) )->build( $client_case, $user, false ) : null;
+
+		if ( ! is_string( $csv ) ) {
+			$this->redirect( add_query_arg( 'done', 'expired', Router::case_url( $client_case ) ) );
+			return;
+		}
+
+		CsvExport::output( $csv, CsvExport::filename( $client_case, $this->app->clock->today() ) );
 	}
 
 	/**

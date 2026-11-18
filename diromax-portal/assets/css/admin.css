@@ -71,3 +71,11 @@
 .dxa-decisions > li { border-inline-start: 4px solid #cfcdc8; padding-inline-start: 12px; }
 .dxa-decision--pending { border-inline-start-color: #ee7c1a !important; }
 .dxa-answer { background: #f6f7f7; padding: 8px 10px; }
+
+/* dashboard (phase 2) */
+.dxa-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); gap: 16px; margin-top: 16px; }
+.dxa-card { background: #fff; border: 1px solid #c3c4c7; border-top: 4px solid #1d3a8f; padding: 4px 16px 16px; }
+.dxa-card--hot { border-top-color: #ee7c1a; }
+.dxa-card h2 { font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.dxa-count { display: inline-block; min-width: 22px; padding: 1px 6px; background: #1d3a8f; color: #fff; text-align: center; font-size: 12px; }
+.dxa-card--hot .dxa-count { background: #ee7c1a; color: #15171c; }

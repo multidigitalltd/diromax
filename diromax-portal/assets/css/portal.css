@@ -193,6 +193,9 @@
 .dxp-docs li a { min-height: 24px; }
 .dxp-docs small { color: var(--p-muted); }
 
+/* finance tools */
+.dxp-tools__btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+
 /* waiting for the client: decisions, agreement confirmation */
 .dxp-todo { background: var(--p-white); border-bottom: 2px solid var(--p-ink); box-shadow: inset 0 7px 0 var(--p-orange); }
 .dxp-todo .dxp-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-block: 20px 16px; }

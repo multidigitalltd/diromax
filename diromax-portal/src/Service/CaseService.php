@@ -55,9 +55,15 @@ final class CaseService {
 
 		$checked = CaseFieldsValidator::validate( $input );
 		$manager = $this->resolve_manager( $input['manager_id'] ?? '', $actor );
+		$leads   = new LeadLink( $this->app );
+		$lead_id = absint( $input['lead_id'] ?? 0 );
 
 		if ( null === $manager ) {
 			$checked['errors']['manager_id'] = 'invalid';
+		}
+
+		if ( 0 !== $lead_id && null === $leads->usable( $lead_id, $actor ) ) {
+			$checked['errors']['lead_id'] = 'invalid';
 		}
 
 		if ( $checked['errors'] ) {
@@ -66,6 +72,7 @@ final class CaseService {
 
 		$fields               = $checked['fields'];
 		$fields['manager_id'] = (int) $manager;
+		$fields['lead_id']    = 0 === $lead_id ? null : $lead_id;
 		$now                  = $this->app->clock->mysql();
 		$id                   = $this->app->cases->insert( $fields, Ids::public_id(), $now );
 		$client_case          = $id ? $this->app->cases->find( $id ) : null;
@@ -74,7 +81,23 @@ final class CaseService {
 			return Errors::storage();
 		}
 
-		$this->app->audit->record( 'case.created', $client_case->id, 'case', $client_case->id, array( 'manager_id' => $client_case->manager_id ), $now );
+		if ( 0 !== $lead_id ) {
+			$leads->link( $lead_id, $client_case );
+		}
+
+		$this->app->audit->record(
+			'case.created',
+			$client_case->id,
+			'case',
+			$client_case->id,
+			array_filter(
+				array(
+					'manager_id' => $client_case->manager_id,
+					'lead_id'    => $lead_id,
+				)
+			),
+			$now
+		);
 		$this->refresh_summary( $client_case->id );
 
 		return $client_case;
