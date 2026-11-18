@@ -142,6 +142,10 @@ jobs:
         working-directory: diromax-portal/tests/e2e
         run: node manager.e2e.js "$RUNNER_TEMP/e2e"
 
+      - name: Phase 2 journey (dashboard, decisions, reminders, CSV, password)
+        working-directory: diromax-portal/tests/e2e
+        run: node phase2.e2e.js "$RUNNER_TEMP/e2e"
+
       - name: No PHP warnings or notices
         run: |
           if [ -f "$RUNNER_TEMP/e2e/debug.log" ] && grep -v '"source":"diromax-portal"' "$RUNNER_TEMP/e2e/debug.log"; then

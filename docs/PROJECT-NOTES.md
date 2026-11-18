@@ -28,6 +28,7 @@ composer install                      # dev tools
 composer lint                         # PHPCS — WordPress-Extra, WordPress-Docs, PHPCompatibilityWP
 composer analyse                      # PHPStan
 composer test                         # PHPUnit: unit + WordPress integration (needs a MySQL test DB, see phpunit.xml.dist)
+bash diromax-portal/tests/e2e/setup.sh /tmp/dx-e2e   # throwaway WordPress for the browser tests (client, manager, phase2 scripts)
 php bin/build-assets.php              # minified CSS/JS for the theme and the plugin
 bash bin/build-zip.sh                 # dist/diromax.zip (theme)
 ```
@@ -41,8 +42,9 @@ bash bin/build-zip.sh                 # dist/diromax.zip (theme)
   - `src/Data` — schema/migrations and one repository per table. Every query goes through `$wpdb->prepare()`.
   - `src/Service` — use cases (ledger, cases, documents, invites, login, notifications, mail).
   - `src/Admin`, `src/Portal` — controllers that build view models; `templates/` only prints them.
-- Custom tables (InnoDB, foreign keys between them): cases, members, ledger, budget, updates, documents, audit, events, mail log, login tokens. ADR: cases are a table rather than a post type so ledger rows can reference them with a foreign key and the manager/status filters are indexed columns.
-- Scheduled jobs (WP-Cron, run from system cron in production): the notification worker every 5 minutes, retention cleanup daily.
+- Custom tables (InnoDB, foreign keys between them): cases, members, ledger, budget, updates, documents, audit, events, mail log, login tokens, decisions, acknowledgements (schema version 2). ADR: cases are a table rather than a post type so ledger rows can reference them with a foreign key and the manager/status filters are indexed columns.
+- Scheduled jobs (WP-Cron, run from system cron in production): the notification worker every 5 minutes, retention cleanup daily. The once-a-day emails (payment reminders, daily digests, monthly summary) run inside the five-minute worker after the configured local hour (`Service\DailyJobs`); there is no third schedule.
+- Phase 2 (spec section 15): manager dashboard, reminders, per-member email mode, decisions for client approval, agreement read confirmation, CSV export, case from a theme lead, password sign-in for clients only.
 
 ## Environments
 
@@ -56,3 +58,5 @@ bash bin/build-zip.sh                 # dist/diromax.zip (theme)
 - Money is integer agorot everywhere. Format only at the edge (`Domain\Money`).
 - `DX_PORTAL_KEY` (base64, 32 bytes) must be defined in `wp-config.php` before documents can be uploaded. Losing it makes every stored document unreadable.
 - Clients never reach wp-admin; everything they see is under `/portal/`.
+- Staff never sign in through the portal's password form (it would bypass two-factor); `PasswordService` refuses anyone who is not client-only.
+- Every portal form posts back with a nonce bound to the object and answers a foreign case with 404, exactly like a missing one.
