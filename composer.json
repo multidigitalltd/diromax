@@ -1,0 +1,44 @@
+{
+  "name": "multidigital/diromax",
+  "description": "Diromax website: theme and client portal plugin. Composer holds development tools only; nothing here ships to production.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=8.3"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "1.1.2",
+    "php-stubs/wordpress-stubs": "7.1.0",
+    "phpcompatibility/phpcompatibility-wp": "2.1.8",
+    "phpstan/phpstan": "2.2.16",
+    "phpunit/phpunit": "9.6.38",
+    "roots/wordpress-no-content": "7.1.3",
+    "szepeviktor/phpstan-wordpress": "2.0.4",
+    "wp-coding-standards/wpcs": "3.4.1",
+    "wp-phpunit/wp-phpunit": "7.1.3",
+    "yoast/phpunit-polyfills": "4.0.0"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Diromax\\Portal\\": "diromax-portal/src/",
+      "Diromax\\Portal\\Tests\\": "diromax-portal/tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "platform": {
+      "php": "8.3.6"
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "lint": "phpcs",
+    "lint:fix": "phpcbf",
+    "analyse": "phpstan analyse --memory-limit=1G --no-progress",
+    "test": "phpunit",
+    "test:unit": "phpunit -c phpunit-unit.xml.dist",
+    "audit:deps": "composer audit --locked"
+  }
+}

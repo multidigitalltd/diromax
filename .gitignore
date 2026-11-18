@@ -19,3 +19,8 @@ wp-content/
 # works the moment it is unzipped, without a build step on the server.
 # The upload package is not: rebuild it with bin/build-zip.sh.
 dist/
+
+# PHPUnit and tool caches
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
