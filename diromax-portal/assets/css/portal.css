@@ -198,6 +198,7 @@
 .dxp-radios { border: none; margin: 18px 0 12px; padding: 0; }
 .dxp-radios legend { font-weight: 800; padding: 0; margin-bottom: 8px; }
 .dxp-radios .dxp-check { margin: 0 0 8px; }
+.dxp-reveal { margin-top: 6px; min-height: 24px; background: none; border: none; padding: 0; color: var(--p-blue-text); font: inherit; font-size: 14px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .dxp-hint { display: block; font-size: 14px; color: var(--p-muted); margin-top: 6px; }
 .dxp-alt { margin-top: 28px; border-top: 2px solid var(--p-ink); padding-top: 16px; }
 .dxp-alt summary { cursor: pointer; font-weight: 800; min-height: 24px; }

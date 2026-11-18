@@ -23,18 +23,21 @@ final class PasswordTest extends PortalTestCase {
 		parent::set_up();
 		$this->passwords = new PasswordService( $this->app );
 		add_filter( 'send_auth_cookies', '__return_false' );
+		add_filter( 'dx_portal_password_breached', '__return_false' );
 	}
 
 	public function tear_down(): void {
 		remove_filter( 'send_auth_cookies', '__return_false' );
+		remove_filter( 'dx_portal_password_breached', '__return_false' );
+		remove_all_filters( 'pre_http_request' );
 		parent::tear_down();
 	}
 
 	public function test_a_client_who_just_signed_in_sets_a_password_and_uses_it(): void {
 		$client = $this->member( 'ronit@example.org' );
-		$this->passwords->mark_signed_in( $client );
+		$token  = $this->session( $client );
 
-		$this->assertTrue( $this->passwords->change( $client, self::GOOD, '' ) );
+		$this->assertTrue( $this->passwords->change( $client, $token, self::GOOD, '' ) );
 		$this->assertTrue( PasswordService::has_password( $client ) );
 		$this->assertSame( array( 'ronit@example.org' ), array_column( $this->mails, 'to' ) );
 		$this->assertStringContainsString( 'הסיסמה לאזור האישי עודכנה', $this->mails[0]['subject'] );
@@ -46,26 +49,89 @@ final class PasswordTest extends PortalTestCase {
 
 	public function test_without_a_recent_sign_in_the_current_password_is_required(): void {
 		$client = $this->member();
-		$this->passwords->mark_signed_in( $client );
-		$this->passwords->change( $client, self::GOOD, '' );
+		$token  = $this->session( $client );
+		$this->passwords->change( $client, $token, self::GOOD, '' );
 		$this->clock->advance( HOUR_IN_SECONDS );
 
-		$this->assertSame( 'dx_reauth', $this->passwords->change( $client, 'סיסמה חדשה לגמרי', '' )->get_error_code() );
-		$this->assertSame( 'dx_reauth', $this->passwords->change( $client, 'סיסמה חדשה לגמרי', 'לא נכונה בכלל' )->get_error_code() );
-		$this->assertTrue( $this->passwords->change( $client, 'סיסמה חדשה לגמרי', self::GOOD ) );
+		$this->assertSame( 'dx_reauth', $this->passwords->change( $client, $token, 'סיסמה חדשה לגמרי', '' )->get_error_code() );
+		$this->assertSame( 'dx_reauth', $this->passwords->change( $client, $token, 'סיסמה חדשה לגמרי', 'לא נכונה בכלל' )->get_error_code() );
+		$this->assertTrue( $this->passwords->change( $client, $token, 'סיסמה חדשה לגמרי', self::GOOD ) );
 	}
 
 	public function test_weak_passwords_are_refused(): void {
 		$client = $this->member( 'dana@example.org' );
-		$this->passwords->mark_signed_in( $client );
+		$token  = $this->session( $client );
+		$weak   = array(
+			'too_short' => 'ארבעה עשר תווי',
+			'too_long'  => str_repeat( 'אב', 101 ),
+			'is_email'  => 'dana הכי טובה בעולם כולו',
+			'pattern'   => 'abababababababab',
+		);
 
-		foreach ( array( 'קצר', 'dana@example.org', str_repeat( 'א', 201 ) ) as $weak ) {
-			$result = $this->passwords->change( $client, $weak, '' );
-			$this->assertInstanceOf( WP_Error::class, $result, $weak );
-			$this->assertSame( 'dx_invalid', $result->get_error_code() );
+		foreach ( $weak as $reason => $password ) {
+			$result = $this->passwords->change( $client, $token, $password, '' );
+			$this->assertInstanceOf( WP_Error::class, $result, $reason );
+			$this->assertSame( $reason, $result->get_error_data()['fields']['password'], $reason );
 		}
 
+		$this->assertSame( 15, PasswordService::MIN_LENGTH, 'Standard 4.5.2: 15 characters when the password is the only factor.' );
 		$this->assertFalse( PasswordService::has_password( $client ) );
+	}
+
+	public function test_a_leaked_password_is_refused(): void {
+		remove_filter( 'dx_portal_password_breached', '__return_false' );
+		$client = $this->member();
+		$token  = $this->session( $client );
+		$suffix = substr( strtoupper( sha1( self::GOOD ) ), 5 );
+		$asked  = '';
+
+		add_filter(
+			'pre_http_request',
+			static function ( $pre, array $args, string $url ) use ( $suffix, &$asked ) {
+				$asked = $url;
+
+				return array(
+					'headers'  => array(),
+					'body'     => "0018A45C4D1DEF81644B54AB7F969B88D65:1\r\n" . $suffix . ":42\r\n",
+					'response' => array( 'code' => 200 ),
+					'cookies'  => array(),
+				);
+			},
+			10,
+			3
+		);
+
+		$result = $this->passwords->change( $client, $token, self::GOOD, '' );
+
+		$this->assertSame( 'breached', $result->get_error_data()['fields']['password'] );
+		$this->assertSame( 'https://api.pwnedpasswords.com/range/' . substr( strtoupper( sha1( self::GOOD ) ), 0, 5 ), $asked, 'Only the first five hex digits leave the site.' );
+	}
+
+	public function test_an_unreachable_leak_check_does_not_block_the_change(): void {
+		remove_filter( 'dx_portal_password_breached', '__return_false' );
+		$client = $this->member();
+		add_filter( 'pre_http_request', static fn() => new WP_Error( 'http_request_failed', 'offline' ) );
+
+		$this->assertTrue( $this->passwords->change( $client, $this->session( $client ), self::GOOD, '' ) );
+	}
+
+	/**
+	 * Regression (PR review): a fresh sign-in on one device must not make an
+	 * older session "recent" and let it change the password.
+	 */
+	public function test_only_a_fresh_session_skips_the_current_password(): void {
+		$client = $this->member();
+		$token  = $this->session( $client );
+		$this->passwords->change( $client, $token, self::GOOD, '' );
+
+		$this->clock->advance( -HOUR_IN_SECONDS );
+		$old = $this->session( $client );
+		$this->clock->advance( HOUR_IN_SECONDS );
+		$fresh = $this->session( $client );
+
+		$this->assertSame( 'dx_reauth', $this->passwords->change( $client, $old, 'משפט חדש וארוך מספיק', '' )->get_error_code() );
+		$this->assertSame( 'dx_reauth', $this->passwords->change( $client, '', 'משפט חדש וארוך מספיק', '' )->get_error_code() );
+		$this->assertTrue( $this->passwords->change( $client, $fresh, 'משפט חדש וארוך מספיק', '' ) );
 	}
 
 	public function test_changing_the_password_ends_every_other_session(): void {
@@ -73,17 +139,17 @@ final class PasswordTest extends PortalTestCase {
 		$sessions = \WP_Session_Tokens::get_instance( $client );
 		$sessions->create( $this->clock->now() + DAY_IN_SECONDS );
 		$sessions->create( $this->clock->now() + DAY_IN_SECONDS );
-		$this->passwords->mark_signed_in( $client );
+		$token = $this->session( $client );
 
-		$this->assertTrue( $this->passwords->change( $client, self::GOOD, '' ) );
+		$this->assertTrue( $this->passwords->change( $client, $token, self::GOOD, '' ) );
 
 		$this->assertLessThanOrEqual( 1, count( $sessions->get_all() ), 'Only the session of this request may remain.' );
 	}
 
 	public function test_every_failure_looks_the_same(): void {
 		$client = $this->member( 'known@example.org' );
-		$this->passwords->mark_signed_in( $client );
-		$this->passwords->change( $client, self::GOOD, '' );
+		$token  = $this->session( $client );
+		$this->passwords->change( $client, $token, self::GOOD, '' );
 
 		$wrong   = $this->passwords->sign_in( 'known@example.org', 'לא הסיסמה הזאת', false );
 		$unknown = $this->passwords->sign_in( 'nobody@example.org', self::GOOD, false );
@@ -101,8 +167,8 @@ final class PasswordTest extends PortalTestCase {
 	 */
 	public function test_the_sixth_attempt_is_blocked_with_the_same_message(): void {
 		$client = $this->member( 'rate@example.org' );
-		$this->passwords->mark_signed_in( $client );
-		$this->passwords->change( $client, self::GOOD, '' );
+		$token  = $this->session( $client );
+		$this->passwords->change( $client, $token, self::GOOD, '' );
 
 		for ( $i = 0; $i < 5; $i++ ) {
 			$this->passwords->sign_in( 'rate@example.org', 'טעות ' . $i . ' טעות', false );
@@ -129,13 +195,13 @@ final class PasswordTest extends PortalTestCase {
 		);
 
 		$this->assertSame( 'dx_login_failed', $this->passwords->sign_in( 'staff@example.org', self::GOOD, false )->get_error_code() );
-		$this->assertSame( 'dx_forbidden', $this->passwords->change( $manager, 'סיסמה חדשה לגמרי', self::GOOD )->get_error_code() );
+		$this->assertSame( 'dx_forbidden', $this->passwords->change( $manager, $this->session( $manager ), 'סיסמה חדשה לגמרי', self::GOOD )->get_error_code() );
 	}
 
 	public function test_a_client_without_a_case_cannot_sign_in(): void {
 		$client = $this->member( 'former@example.org' );
-		$this->passwords->mark_signed_in( $client );
-		$this->passwords->change( $client, self::GOOD, '' );
+		$token  = $this->session( $client );
+		$this->passwords->change( $client, $token, self::GOOD, '' );
 		$this->app->members->remove_user( $client );
 
 		$this->assertSame( 'dx_login_failed', $this->passwords->sign_in( 'former@example.org', self::GOOD, false )->get_error_code() );
@@ -148,7 +214,19 @@ final class PasswordTest extends PortalTestCase {
 		$this->assertSame( 1, preg_match( '/(?:[?&]|&#038;)t=([A-Za-z0-9_-]{43})/', (string) $this->mails[0]['message'], $match ) );
 
 		$this->assertSame( $client, $this->app->login->consume( $match[1], false ) );
-		$this->assertTrue( $this->passwords->recently_signed_in( $client ) );
+
+		$sessions = array_values( \WP_Session_Tokens::get_instance( $client )->get_all() );
+		$this->assertSame( $this->clock->now(), end( $sessions )[ PasswordService::SESSION_KEY ] );
+	}
+
+	/**
+	 * A new session for the user, as a sign-in creates, at the test clock's time.
+	 *
+	 * @param int $user_id User.
+	 * @return string Token.
+	 */
+	private function session( int $user_id ): string {
+		return \WP_Session_Tokens::get_instance( $user_id )->create( $this->clock->now() + DAY_IN_SECONDS );
 	}
 
 	/**

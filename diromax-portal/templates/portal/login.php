@@ -92,6 +92,7 @@ $signed_out = isset( $_GET['out'] );
 					<p class="dxp-field">
 						<label for="dxp-pw"><?php esc_html_e( 'סיסמה', 'diromax-portal' ); ?></label>
 						<input type="password" id="dxp-pw" name="password" required autocomplete="current-password" dir="ltr" maxlength="200">
+						<button type="button" class="dxp-reveal" data-dxp-reveal="dxp-pw" data-dxp-show="<?php esc_attr_e( 'הצג סיסמה', 'diromax-portal' ); ?>" data-dxp-hide="<?php esc_attr_e( 'הסתר סיסמה', 'diromax-portal' ); ?>" aria-controls="dxp-pw" aria-pressed="false" hidden><?php esc_html_e( 'הצג סיסמה', 'diromax-portal' ); ?></button>
 					</p>
 					<p class="dxp-check">
 						<input type="checkbox" id="dxp-pw-remember" name="remember" value="1">

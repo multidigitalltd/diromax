@@ -73,7 +73,28 @@
 		} );
 	}
 
+	// "Show password" (standard 4.5.5): the button toggles the field's type.
+	function setupReveal() {
+		Array.prototype.slice.call( document.querySelectorAll( '[data-dxp-reveal]' ) ).forEach( function ( button ) {
+			var field = document.getElementById( button.getAttribute( 'data-dxp-reveal' ) );
+
+			if ( ! field ) {
+				return;
+			}
+
+			button.hidden = false;
+			button.addEventListener( 'click', function () {
+				var show = 'password' === field.type;
+
+				field.type = show ? 'text' : 'password';
+				button.setAttribute( 'aria-pressed', show ? 'true' : 'false' );
+				button.textContent = button.getAttribute( show ? 'data-dxp-hide' : 'data-dxp-show' );
+			} );
+		} );
+	}
+
 	setupFilters();
 	setupPrint();
 	setupCopy();
+	setupReveal();
 }() );

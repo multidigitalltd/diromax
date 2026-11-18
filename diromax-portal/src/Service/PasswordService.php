@@ -23,17 +23,27 @@ defined( 'ABSPATH' ) || exit;
  * authentication, and this form must never become a way around it. Every
  * failure gets the same message, and attempts are limited per address and
  * per IP. Passwords are stored by WordPress (bcrypt since 6.8).
+ *
+ * Standard 4.5: at least 15 characters (the password is the only factor),
+ * no composition rules, checked against leaked passwords, and a change needs
+ * re-authentication bound to the current session.
  */
 final class PasswordService {
 
-	/** User meta: Unix time of the last sign-in (link or password). */
-	public const AUTH_META = 'dx_portal_auth_at';
+	/** Session key: Unix time the session was created, by the plugin's clock. */
+	public const SESSION_KEY = 'dx_portal_auth_at';
 
 	/** User meta: the client chose a password. */
 	public const SET_META = 'dx_portal_password_set';
 
-	/** Minimum length (NIST SP 800-63B: length, no composition rules). */
-	public const MIN_LENGTH = 10;
+	/** Minimum length when the password is the only factor (standard 4.5.2, NIST SP 800-63B-4). */
+	public const MIN_LENGTH = 15;
+
+	/** Fewer distinct characters than this reads as a pattern, not a password. */
+	private const MIN_DISTINCT = 5;
+
+	/** Pwned Passwords range API (k-anonymity: only 5 hex digits of the SHA-1 leave the site). */
+	private const BREACH_API = 'https://api.pwnedpasswords.com/range/';
 
 	/** Maximum length. */
 	private const MAX_LENGTH = 200;
@@ -96,7 +106,6 @@ final class PasswordService {
 		wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
 		do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core hook, fired so security plugins see the sign-in.
 
-		$this->mark_signed_in( $user->ID );
 		$this->app->audit->record( 'portal.signed_in', null, 'user', $user->ID, array( 'via' => 'password' ), $this->app->clock->mysql() );
 
 		return $user->ID;
@@ -105,22 +114,25 @@ final class PasswordService {
 	/**
 	 * Set or change the signed-in client's password.
 	 *
-	 * Allowed within 15 minutes of a sign-in, or with the current password.
-	 * Every other session of the account ends, and a notice goes by email.
+	 * Allowed when this very session was created in the last 15 minutes, or
+	 * with the current password. A fresh sign-in on another device does not
+	 * count for an older session. Every other session of the account ends,
+	 * and a notice goes by email.
 	 *
-	 * @param int    $user_id Signed-in user.
+	 * @param int    $user_id  Signed-in user.
+	 * @param string $token    The session token of this request.
 	 * @param string $password New password.
-	 * @param string $current Current password, when not signed in recently.
+	 * @param string $current  Current password, when the session is not fresh.
 	 * @return true|WP_Error
 	 */
-	public function change( int $user_id, string $password, string $current ): bool|WP_Error {
+	public function change( int $user_id, string $token, string $password, string $current ): bool|WP_Error {
 		$user = get_userdata( $user_id );
 
 		if ( ! $user || ! $this->eligible( $user_id ) ) {
 			return Errors::forbidden();
 		}
 
-		if ( ! $this->recently_signed_in( $user_id ) ) {
+		if ( ! $this->recently_signed_in( $user_id, $token ) ) {
 			$allowed = $this->app->limiter->attempt( 'password-change', (string) $user_id, self::PER_EMAIL, self::WINDOW );
 
 			if ( ! $allowed || '' === $current || ! wp_check_password( $current, $user->user_pass, $user_id ) ) {
@@ -128,7 +140,7 @@ final class PasswordService {
 			}
 		}
 
-		$problem = self::weakness( $password, (string) $user->user_email );
+		$problem = self::weakness( $password, (string) $user->user_email ) ?? ( $this->breached( $password ) ? 'breached' : null );
 
 		if ( null !== $problem ) {
 			return Errors::invalid( array( 'password' => $problem ) );
@@ -140,7 +152,6 @@ final class PasswordService {
 		wp_set_auth_cookie( $user_id, false, is_ssl() );
 
 		update_user_meta( $user_id, self::SET_META, 1 );
-		$this->mark_signed_in( $user_id );
 		$this->app->audit->record( 'portal.password_changed', null, 'user', $user_id, array(), $this->app->clock->mysql() );
 		Mailer::send( (string) $user->user_email, $this->app->renderer->password_changed( (string) $user->display_name ), null );
 
@@ -148,22 +159,31 @@ final class PasswordService {
 	}
 
 	/**
-	 * Record a successful sign-in, by link or by password.
+	 * Stamp every new session with its creation time (attach_session_information).
 	 *
-	 * @param int $user_id User.
+	 * WordPress creates a session on every sign-in, by link, by password or
+	 * through wp-login.php, so the stamp means "signed in at", per session.
+	 *
+	 * @param array<string, mixed> $session Session data.
+	 * @return array<string, mixed>
 	 */
-	public function mark_signed_in( int $user_id ): void {
-		update_user_meta( $user_id, self::AUTH_META, $this->app->clock->now() );
+	public function stamp_session( array $session ): array {
+		$session[ self::SESSION_KEY ] = $this->app->clock->now();
+
+		return $session;
 	}
 
 	/**
-	 * Did the user sign in within the last 15 minutes?
+	 * Was this session created in the last 15 minutes?
 	 *
-	 * @param int $user_id User.
+	 * @param int    $user_id User.
+	 * @param string $token   Session token of the request.
 	 * @return bool
 	 */
-	public function recently_signed_in( int $user_id ): bool {
-		return (int) get_user_meta( $user_id, self::AUTH_META, true ) >= $this->app->clock->now() - self::RECENT;
+	public function recently_signed_in( int $user_id, string $token ): bool {
+		$session = '' === $token ? null : \WP_Session_Tokens::get_instance( $user_id )->get( $token );
+
+		return is_array( $session ) && (int) ( $session[ self::SESSION_KEY ] ?? 0 ) >= $this->app->clock->now() - self::RECENT;
 	}
 
 	/**
@@ -181,17 +201,67 @@ final class PasswordService {
 	 *
 	 * @param string $password Password.
 	 * @param string $email    The account's address.
-	 * @return string|null too_short, too_long or is_email.
+	 * @return string|null too_short, too_long, is_email or pattern.
 	 */
 	public static function weakness( string $password, string $email ): ?string {
-		$length = mb_strlen( $password );
+		$length   = mb_strlen( $password );
+		$distinct = count( array_unique( mb_str_split( mb_strtolower( $password ) ) ) );
 
 		return match ( true ) {
-			$length < self::MIN_LENGTH                                        => 'too_short',
-			$length > self::MAX_LENGTH                                        => 'too_long',
-			'' !== $email && 0 === strcasecmp( trim( $password ), $email ) => 'is_email',
-			default                                                           => null,
+			$length < self::MIN_LENGTH                                                  => 'too_short',
+			$length > self::MAX_LENGTH                                                  => 'too_long',
+			'' !== $email && false !== mb_stripos( $password, (string) strstr( $email, '@', true ) ) && strlen( (string) strstr( $email, '@', true ) ) >= 4 => 'is_email',
+			$distinct < self::MIN_DISTINCT                                              => 'pattern',
+			default                                                                     => null,
 		};
+	}
+
+	/**
+	 * Is the password in the Pwned Passwords corpus (standard 4.5.4)?
+	 *
+	 * Only the first five hex digits of its SHA-1 leave the site; the match is
+	 * made here, against the returned suffixes. When the service cannot be
+	 * reached the check is skipped and logged, so an outage never locks
+	 * clients out of choosing a password. The dx_portal_password_breached
+	 * filter can answer instead (a local list, or tests).
+	 *
+	 * @param string $password Password.
+	 * @return bool
+	 */
+	private function breached( string $password ): bool {
+		$answer = apply_filters( 'dx_portal_password_breached', null, $password );
+
+		if ( is_bool( $answer ) ) {
+			return $answer;
+		}
+
+		// SHA-1 is what the k-anonymity protocol is built on; it is not used to store anything.
+		$hash     = strtoupper( sha1( $password ) );
+		$response = wp_remote_get(
+			self::BREACH_API . substr( $hash, 0, 5 ),
+			array(
+				'timeout'    => 3,
+				'user-agent' => 'password-check',
+				'headers'    => array( 'Add-Padding' => 'true' ),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			Logger::warning( 'password.breach_check_unavailable' );
+			return false;
+		}
+
+		$lines = preg_split( '/\R/', wp_remote_retrieve_body( $response ) );
+
+		foreach ( false === $lines ? array() : $lines as $line ) {
+			$parts = explode( ':', trim( $line ) );
+
+			if ( 2 === count( $parts ) && hash_equals( substr( $hash, 5 ), $parts[0] ) && (int) $parts[1] > 0 ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

@@ -72,22 +72,25 @@ $notice = $view['notice'] ?? null;
 					<p class="dxp-field">
 						<label for="dxp-current"><?php esc_html_e( 'הסיסמה הנוכחית', 'diromax-portal' ); ?></label>
 						<input type="password" id="dxp-current" name="current" autocomplete="current-password" dir="ltr" aria-describedby="dxp-current-hint">
+						<button type="button" class="dxp-reveal" data-dxp-reveal="dxp-current" data-dxp-show="<?php esc_attr_e( 'הצג סיסמה', 'diromax-portal' ); ?>" data-dxp-hide="<?php esc_attr_e( 'הסתר סיסמה', 'diromax-portal' ); ?>" aria-controls="dxp-current" aria-pressed="false" hidden><?php esc_html_e( 'הצג סיסמה', 'diromax-portal' ); ?></button>
 						<span class="dxp-hint" id="dxp-current-hint"><?php esc_html_e( 'אין סיסמה או שכחת? צא מהחשבון והיכנס שוב עם קישור למייל: אחרי כניסה כזו אפשר לקבוע סיסמה בלי הסיסמה הנוכחית, במשך 15 דקות.', 'diromax-portal' ); ?></span>
 					</p>
 				<?php endif; ?>
 				<p class="dxp-field">
 					<label for="dxp-password"><?php esc_html_e( 'סיסמה חדשה', 'diromax-portal' ); ?></label>
 					<input type="password" id="dxp-password" name="password" required minlength="<?php echo esc_attr( (string) $view['min'] ); ?>" maxlength="200" autocomplete="new-password" dir="ltr" aria-describedby="dxp-password-hint">
+					<button type="button" class="dxp-reveal" data-dxp-reveal="dxp-password" data-dxp-show="<?php esc_attr_e( 'הצג סיסמה', 'diromax-portal' ); ?>" data-dxp-hide="<?php esc_attr_e( 'הסתר סיסמה', 'diromax-portal' ); ?>" aria-controls="dxp-password" aria-pressed="false" hidden><?php esc_html_e( 'הצג סיסמה', 'diromax-portal' ); ?></button>
 					<span class="dxp-hint" id="dxp-password-hint">
 						<?php
 						/* translators: %d: minimum length. */
-						echo esc_html( sprintf( __( 'לפחות %d תווים. משפט קצר שקל לזכור עדיף על מילה מסובכת.', 'diromax-portal' ), (int) $view['min'] ) );
+						echo esc_html( sprintf( __( 'לפחות %d תווים, ואפשר עם רווחים. משפט קצר שקל לזכור עדיף על מילה מסובכת. סיסמה שדלפה בעבר באתר אחר תידחה.', 'diromax-portal' ), (int) $view['min'] ) );
 						?>
 					</span>
 				</p>
 				<p class="dxp-field">
 					<label for="dxp-password2"><?php esc_html_e( 'שוב, לאימות', 'diromax-portal' ); ?></label>
 					<input type="password" id="dxp-password2" name="password2" required minlength="<?php echo esc_attr( (string) $view['min'] ); ?>" maxlength="200" autocomplete="new-password" dir="ltr">
+					<button type="button" class="dxp-reveal" data-dxp-reveal="dxp-password2" data-dxp-show="<?php esc_attr_e( 'הצג סיסמה', 'diromax-portal' ); ?>" data-dxp-hide="<?php esc_attr_e( 'הסתר סיסמה', 'diromax-portal' ); ?>" aria-controls="dxp-password2" aria-pressed="false" hidden><?php esc_html_e( 'הצג סיסמה', 'diromax-portal' ); ?></button>
 				</p>
 				<button type="submit" class="dxp-btn dxp-btn--orange"><?php esc_html_e( 'שמירת הסיסמה', 'diromax-portal' ); ?></button>
 			</form>

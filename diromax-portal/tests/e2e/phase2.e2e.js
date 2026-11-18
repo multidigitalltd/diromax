@@ -160,9 +160,11 @@ function localDate(offsetDays) {
   await page.evaluate(() => document.querySelectorAll('#dxp-password, #dxp-password2').forEach(i => i.removeAttribute('minlength')));
   await page.click('form:has(#dxp-password) button[type=submit]');
   await page.waitForLoadState('networkidle');
-  check('short password refused on the server too', (await page.textContent('.dxp-notice--error')).includes('10 תווים'));
+  check('short password refused on the server too', (await page.textContent('.dxp-notice--error')).includes('15 תווים'));
   before = mailFiles().length;
   await page.fill('#dxp-password', PASSWORD);
+  await page.click('[data-dxp-reveal="dxp-password"]');
+  check('"show password" reveals the field and says so', (await page.getAttribute('#dxp-password', 'type')) === 'text' && (await page.getAttribute('[data-dxp-reveal="dxp-password"]', 'aria-pressed')) === 'true');
   await page.fill('#dxp-password2', PASSWORD);
   await page.click('form:has(#dxp-password) button[type=submit]');
   await page.waitForLoadState('networkidle');

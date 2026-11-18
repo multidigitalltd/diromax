@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Service;
 
 use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Data\EventRepository;
 use Diromax\Portal\Data\Logger;
 use Diromax\Portal\Data\MemberRecord;
 use Diromax\Portal\Domain\CaseSummary;
@@ -61,7 +62,7 @@ final class DigestService {
 				continue;
 			}
 
-			$events = $this->app->events->for_digest( $client_case->id, $this->window_start( $member ), $now );
+			$events = $this->digest_events( $client_case->id, $this->window_start( $member ), $now );
 			$cards  = $items->build( $client_case, $events, $hide );
 			$batch  = sha1( 'digest|' . $client_case->id . '|' . $member->user_id . '|' . $today );
 
@@ -226,6 +227,29 @@ final class DigestService {
 		}
 
 		return $cards;
+	}
+
+	/**
+	 * Every batched event of a case in a window, page by page, so the cursor
+	 * that moves to $until after the send never skips events.
+	 *
+	 * @param int    $case_id Case.
+	 * @param string $after   UTC DATETIME, exclusive.
+	 * @param string $until   UTC DATETIME, inclusive.
+	 * @return array<int, array{id:int, case_id:int, kind:string, object_id:int, immediate:bool, attempts:int, next_attempt_at:string|null, created_at:string}>
+	 */
+	private function digest_events( int $case_id, string $after, string $until ): array {
+		$events  = array();
+		$last_id = 0;
+
+		do {
+			$page    = $this->app->events->for_digest( $case_id, $after, $until, $last_id );
+			$size    = count( $page );
+			$events  = array_merge( $events, $page );
+			$last_id = 0 === $size ? $last_id : $page[ $size - 1 ]['id'];
+		} while ( EventRepository::DIGEST_PAGE === $size );
+
+		return $events;
 	}
 
 	/**

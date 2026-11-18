@@ -250,7 +250,7 @@ final class Controller {
 				'modes'        => $modes,
 				'labels'       => Labels::notify_modes(),
 				'has_password' => PasswordService::has_password( $user ),
-				'recent'       => ( new PasswordService( $this->app ) )->recently_signed_in( $user ),
+				'recent'       => ( new PasswordService( $this->app ) )->recently_signed_in( $user, wp_get_session_token() ),
 				'min'          => PasswordService::MIN_LENGTH,
 				'notice'       => self::notice( $done ),
 				'self'         => Router::account_url(),
@@ -295,7 +295,7 @@ final class Controller {
 				return 'mismatch';
 			}
 
-			$result = ( new PasswordService( $this->app ) )->change( $user, $password, $current );
+			$result = ( new PasswordService( $this->app ) )->change( $user, wp_get_session_token(), $password, $current );
 
 			return match ( true ) {
 				true === $result                           => 'password_set',
@@ -475,7 +475,8 @@ final class Controller {
 			'expired'  => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
 			'failed'   => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
 			'mismatch' => __( 'שתי הסיסמאות לא זהות. אפשר להקליד שוב.', 'diromax-portal' ),
-			'weak'     => __( 'הסיסמה צריכה להיות באורך 10 תווים לפחות, ושונה מכתובת המייל.', 'diromax-portal' ),
+			/* translators: %d: minimum length. */
+			'weak'     => sprintf( __( 'הסיסמה לא מתאימה: צריך לפחות %d תווים, בלי כתובת המייל ובלי רצף חוזר, ולא סיסמה שדלפה בעבר. משפט קצר שקל לזכור עובד טוב.', 'diromax-portal' ), PasswordService::MIN_LENGTH ),
 			'reauth'   => __( 'כדי לשנות את הסיסמה צריך להזין את הסיסמה הנוכחית, או להיכנס מחדש עם קישור למייל.', 'diromax-portal' ),
 		);
 

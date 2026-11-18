@@ -14,6 +14,7 @@ use Diromax\Portal\Portal\Controller;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Security\ClientGuard;
 use Diromax\Portal\Service\DailyJobs;
+use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Service\Retention;
 
 defined( 'ABSPATH' ) || exit;
@@ -56,6 +57,10 @@ final class Hooks {
 		add_filter( 'wp_privacy_personal_data_erasers', array( $retention, 'register_eraser' ) );
 
 		add_filter( 'dx_nav_links', array( self::class, 'nav_link' ), 10, 2 );
+		add_filter(
+			'attach_session_information',
+			static fn( array $session ): array => ( new PasswordService( Plugin::instance() ) )->stamp_session( $session )
+		);
 
 		ClientGuard::register( $app );
 

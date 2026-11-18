@@ -16,8 +16,11 @@ defined( 'ABSPATH' ) || exit;
  *
  * Before the due date: one reminder inside the window of $before_days days,
  * unless one was already sent inside that window. After it: on the first day
- * late, then every $overdue_every days, up to $overdue_max reminders. Never
- * two on the same day, and never on the day the request was created.
+ * late, then every $overdue_every days, up to $overdue_max reminders, and
+ * never sooner than $overdue_every days after the previous overdue one, so
+ * reminders that start late (feature turned on, worker down) do not bunch
+ * up on consecutive days. Never two on the same day, and never on the day
+ * the request was created.
  * Dates are Y-m-d strings in the site's time zone.
  */
 final readonly class ReminderPolicy {
@@ -62,7 +65,7 @@ final readonly class ReminderPolicy {
 			return $this->before_due( $days_left, $due_date, $last_reminder ) ? self::BEFORE : null;
 		}
 
-		return $this->overdue_due( -$days_left, $overdue_sent ) ? self::OVERDUE : null;
+		return $this->overdue_due( -$days_left, $overdue_sent, $last_reminder, $today ) ? self::OVERDUE : null;
 	}
 
 	/**
@@ -84,16 +87,19 @@ final readonly class ReminderPolicy {
 	/**
 	 * Has the next overdue reminder come due?
 	 *
-	 * @param int $days_late    Days past the due date, at least 1.
-	 * @param int $overdue_sent Overdue reminders sent so far.
+	 * @param int         $days_late     Days past the due date, at least 1.
+	 * @param int         $overdue_sent  Overdue reminders sent so far.
+	 * @param string|null $last_reminder Day of the last reminder of any kind.
+	 * @param string      $today         Today.
 	 * @return bool
 	 */
-	private function overdue_due( int $days_late, int $overdue_sent ): bool {
-		if ( 0 === $this->overdue_every || $overdue_sent >= $this->overdue_max ) {
+	private function overdue_due( int $days_late, int $overdue_sent, ?string $last_reminder, string $today ): bool {
+		if ( 0 === $this->overdue_every || $overdue_sent >= $this->overdue_max || $days_late < 1 + $overdue_sent * $this->overdue_every ) {
 			return false;
 		}
 
-		return $days_late >= 1 + $overdue_sent * $this->overdue_every;
+		// The first overdue reminder may follow a "before" one closely; later ones keep the interval.
+		return 0 === $overdue_sent || null === $last_reminder || self::days_between( $last_reminder, $today ) >= $this->overdue_every;
 	}
 
 	/**

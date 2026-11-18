@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Tests\Integration;
 
 use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Data\EventRepository;
 use Diromax\Portal\Domain\MemberRole;
 use Diromax\Portal\Domain\NotifyMode;
 use Diromax\Portal\Service\DailyJobs;
@@ -160,6 +161,28 @@ final class ScheduledMailTest extends PortalTestCase {
 		$this->assertStringContainsString( 'חשבונית 5', $this->mails[0]['message'] );
 
 		$this->assertSame( 0, ( new DigestService( $this->app ) )->daily(), 'Nothing new since the last digest.' );
+	}
+
+	/**
+	 * Regression (PR review): more events than one page must all reach the
+	 * digest, since the window cursor jumps to "now" after the send.
+	 */
+	public function test_a_digest_reads_past_the_first_page_of_events(): void {
+		[ $manager, $case, $client ] = $this->case_with_client();
+		$this->app->members->set_mode( $case->id, $client, NotifyMode::Daily, $this->clock->mysql() );
+		$this->clock->advance( 1 );
+
+		for ( $i = 0; $i < EventRepository::DIGEST_PAGE; $i++ ) {
+			// Events whose object is gone: they fill the first page and produce no card.
+			$this->app->events->add( $case->id, 'entry_created', 999999, false, $this->clock->mysql() );
+		}
+
+		$this->app->ledger_service->add( $case, self::expense( array( 'description' => 'אחרי העמוד הראשון' ) ), $manager );
+		$this->mails = array();
+		$this->clock->advance( DAY_IN_SECONDS );
+
+		$this->assertSame( 1, ( new DigestService( $this->app ) )->daily() );
+		$this->assertStringContainsString( 'אחרי העמוד הראשון', $this->mails[0]['message'] );
 	}
 
 	public function test_a_daily_member_still_gets_a_payment_request_at_once(): void {

@@ -159,7 +159,6 @@ final class LoginService {
 		wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
 		do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core hook, fired so security plugins see the sign-in.
 
-		( new PasswordService( $this->app ) )->mark_signed_in( $user->ID );
 		$this->app->audit->record( 'portal.signed_in', null, 'user', $user->ID, array( 'via' => $row['purpose'] ), $now );
 
 		return $user->ID;

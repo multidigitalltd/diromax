@@ -73,6 +73,28 @@ final class ReminderPolicyTest extends TestCase {
 		$this->assertNull( $this->policy->due( '2026-12-21', self::DUE, '2026-12-01', '2026-12-20', 2 ) );
 	}
 
+	/**
+	 * Regression (PR review): reminders that start late keep the interval
+	 * instead of using up the maximum on consecutive days.
+	 */
+	public function test_late_start_keeps_the_interval_between_overdue_reminders(): void {
+		$sent = 0;
+		$last = null;
+		$days = array();
+
+		for ( $offset = 0; $offset < 30; $offset++ ) {
+			$today = gmdate( 'Y-m-d', (int) strtotime( '2026-12-30 +' . $offset . ' days UTC' ) );
+
+			if ( ReminderPolicy::OVERDUE === $this->policy->due( $today, self::DUE, '2026-12-01', $last, $sent ) ) {
+				++$sent;
+				$last   = $today;
+				$days[] = $today;
+			}
+		}
+
+		$this->assertSame( array( '2026-12-30', '2027-01-06', '2027-01-13' ), $days );
+	}
+
 	public function test_zero_turns_each_kind_off(): void {
 		$off = new ReminderPolicy( 0, 0, 3 );
 
