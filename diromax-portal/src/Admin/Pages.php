@@ -154,6 +154,7 @@ final class Pages {
 			'members'   => array(
 				'members' => $this->app->members->for_case( $client_case->id ),
 				'roles'   => Labels::roles(),
+				'modes'   => Labels::notify_modes(),
 			),
 			'budget'    => array(
 				'planned'    => $this->app->budget->planned( $client_case->id ),

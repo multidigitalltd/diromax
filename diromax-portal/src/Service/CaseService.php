@@ -14,6 +14,7 @@ use Diromax\Portal\Domain\CaseFieldsValidator;
 use Diromax\Portal\Domain\CaseStatus;
 use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\MemberRole;
+use Diromax\Portal\Domain\NotifyMode;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\SummaryCalculator;
 use Diromax\Portal\Domain\Text;
@@ -249,6 +250,42 @@ final class CaseService {
 
 		$this->app->members->remove( $client_case->id, $user_id );
 		$this->app->audit->record( 'member.removed', $client_case->id, 'user', $user_id, array(), $this->app->clock->mysql() );
+
+		return true;
+	}
+
+	/**
+	 * Change how a member receives case email (spec 15.3).
+	 *
+	 * The case manager may change anyone in the case; a client only themself.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $user_id     Member.
+	 * @param string     $mode        instant, daily or off.
+	 * @param int        $actor       Acting user.
+	 * @return true|WP_Error
+	 */
+	public function set_member_mode( CaseRecord $client_case, int $user_id, string $mode, int $actor ): bool|WP_Error {
+		$allowed = $this->app->policy->can_manage_case( $actor, $client_case )
+			|| ( $actor === $user_id && $this->app->policy->can_view_case( $actor, $client_case ) );
+
+		if ( ! $allowed ) {
+			return Errors::forbidden();
+		}
+
+		$notify = NotifyMode::tryFrom( $mode );
+
+		if ( null === $notify ) {
+			return Errors::invalid( array( 'mode' => 'invalid' ) );
+		}
+
+		$now = $this->app->clock->mysql();
+
+		if ( ! $this->app->members->set_mode( $client_case->id, $user_id, $notify, $now ) ) {
+			return Errors::not_found();
+		}
+
+		$this->app->audit->record( 'member.mode', $client_case->id, 'user', $user_id, array( 'mode' => $notify->value ), $now );
 
 		return true;
 	}

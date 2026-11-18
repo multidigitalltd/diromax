@@ -36,6 +36,9 @@ final readonly class LedgerRow {
 	 * @param string      $created_at      UTC.
 	 * @param string      $updated_at      UTC.
 	 * @param string      $void_reason     Why it was voided.
+	 * @param int         $reminders_sent  Payment reminders sent, of any kind.
+	 * @param string|null $last_reminder_on Day of the last reminder.
+	 * @param int         $overdue_reminders Reminders sent after the due date.
 	 */
 	public function __construct(
 		public LedgerEntry $entry,
@@ -48,6 +51,9 @@ final readonly class LedgerRow {
 		public string $created_at,
 		public string $updated_at,
 		public string $void_reason,
+		public int $reminders_sent = 0,
+		public ?string $last_reminder_on = null,
+		public int $overdue_reminders = 0,
 	) {}
 
 	/**
@@ -93,6 +99,9 @@ final readonly class LedgerRow {
 			created_at: (string) $row['created_at'],
 			updated_at: (string) $row['updated_at'],
 			void_reason: (string) $row['void_reason'],
+			reminders_sent: (int) ( $row['reminders_sent'] ?? 0 ),
+			last_reminder_on: $row['last_reminder_on'] ?? null,
+			overdue_reminders: (int) ( $row['overdue_reminders'] ?? 0 ),
 		);
 	}
 }

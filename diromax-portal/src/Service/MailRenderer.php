@@ -35,38 +35,139 @@ final class MailRenderer {
 	public function case_update( CaseRecord $client_case, array $items, ?CaseSummary $summary, string $name ): MailMessage {
 		$count = count( $items );
 
-		$subject = 1 === $count
-			? $items[0]->subject . ' · ' . $client_case->title
-			/* translators: 1: number of updates, 2: case address. */
-			: sprintf( __( '%1$d עדכונים חדשים בתיק %2$s', 'diromax-portal' ), $count, $client_case->title );
-
-		$headline = 1 === $count
-			? $items[0]->badge
-			/* translators: %d: number of updates. */
-			: sprintf( __( '%d עדכונים חדשים בתיק', 'diromax-portal' ), $count );
-
-		$view = $this->base(
+		return $this->update_email(
 			$client_case,
+			$items,
+			$summary,
+			$name,
 			array(
-				'preheader' => implode( ' · ', array_map( static fn( MailCard $item ): string => $item->title, array_slice( $items, 0, 3 ) ) ),
-				'eyebrow'   => sprintf( /* translators: %s: case address. */ __( 'עדכון בתיק · %s', 'diromax-portal' ), $client_case->title ),
-				'headline'  => $headline,
-				'greeting'  => $name,
-				'intro'     => 1 === $count
+				'subject'  => 1 === $count
+					? $items[0]->subject . ' · ' . $client_case->title
+					/* translators: 1: number of updates, 2: case address. */
+					: sprintf( __( '%1$d עדכונים חדשים בתיק %2$s', 'diromax-portal' ), $count, $client_case->title ),
+				'headline' => 1 === $count
+					? $items[0]->badge
+					/* translators: %d: number of updates. */
+					: sprintf( __( '%d עדכונים חדשים בתיק', 'diromax-portal' ), $count ),
+				'intro'    => 1 === $count
 					? __( 'זה העדכון האחרון בתיק. כל הפרטים והמסמכים נמצאים באזור האישי.', 'diromax-portal' )
 					: __( 'אלה העדכונים מהזמן האחרון. כל הפרטים והמסמכים נמצאים באזור האישי.', 'diromax-portal' ),
+			)
+		);
+	}
+
+	/**
+	 * The daily digest for one member (spec 15.3).
+	 *
+	 * @param CaseRecord       $client_case Case.
+	 * @param MailCard[]       $items       Cards.
+	 * @param CaseSummary|null $summary     Client summary, or null when amounts are hidden.
+	 * @param string           $name        Recipient's name.
+	 * @return MailMessage
+	 */
+	public function digest( CaseRecord $client_case, array $items, ?CaseSummary $summary, string $name ): MailMessage {
+		$count = count( $items );
+
+		return $this->update_email(
+			$client_case,
+			$items,
+			$summary,
+			$name,
+			array(
+				'subject'  => 1 === $count
+					/* translators: %s: case address. */
+					? sprintf( __( 'סיכום יומי: עדכון אחד בתיק %s', 'diromax-portal' ), $client_case->title )
+					/* translators: 1: number of updates, 2: case address. */
+					: sprintf( __( 'סיכום יומי: %1$d עדכונים בתיק %2$s', 'diromax-portal' ), $count, $client_case->title ),
+				'headline' => __( 'הסיכום היומי שלך', 'diromax-portal' ),
+				'intro'    => __( 'אלה העדכונים בתיק מאז הסיכום הקודם. בחרת לקבל מייל אחד ביום; אפשר לשנות את זה באזור האישי, בעמוד "החשבון שלי".', 'diromax-portal' ),
+			)
+		);
+	}
+
+	/**
+	 * The monthly summary for one member (spec 15.4).
+	 *
+	 * @param CaseRecord       $client_case Case.
+	 * @param MailCard[]       $items       Cards.
+	 * @param CaseSummary|null $summary     Client summary, or null when amounts are hidden.
+	 * @param string           $name        Recipient's name.
+	 * @param string           $month       Month name and year.
+	 * @return MailMessage
+	 */
+	public function monthly( CaseRecord $client_case, array $items, ?CaseSummary $summary, string $name, string $month ): MailMessage {
+		return $this->update_email(
+			$client_case,
+			$items,
+			$summary,
+			$name,
+			array(
+				/* translators: 1: month and year, 2: case address. */
+				'subject'  => sprintf( __( 'סיכום %1$s · %2$s', 'diromax-portal' ), $month, $client_case->title ),
+				/* translators: %s: month and year. */
+				'headline' => sprintf( __( 'סיכום %s', 'diromax-portal' ), $month ),
+				'intro'    => __( 'כך נראה התיק בסוף החודש: מה קרה, איפה אנחנו עומדים ומה פתוח. כל הפרטים נמצאים באזור האישי.', 'diromax-portal' ),
+			)
+		);
+	}
+
+	/**
+	 * A note to the project manager that a client acted.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param MailCard   $card        What happened.
+	 * @param string     $url         Admin screen to open.
+	 * @return MailMessage
+	 */
+	public function manager_notice( CaseRecord $client_case, MailCard $card, string $url ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => $card->title,
+				/* translators: 1: case number, 2: case address. */
+				'eyebrow'   => sprintf( __( 'תיק %1$s · %2$s', 'diromax-portal' ), $client_case->number, $client_case->title ),
+				'headline'  => $card->badge,
+				'greeting'  => '',
+				'intro'     => __( 'הודעה אוטומטית מהאזור האישי של הלקוחות.', 'diromax-portal' ),
 				'body'      => 'case-update',
-				'items'     => $items,
+				'items'     => array( $card ),
 				'stages'    => Stages::names(),
-				'summary'   => null === $summary ? null : self::summary_view( $summary ),
+				'summary'   => null,
 				'cta'       => array(
-					'label' => __( 'לצפייה בתיק המלא', 'diromax-portal' ),
-					'url'   => Router::case_url( $client_case ),
+					'label' => __( 'לפתיחת התיק בלוח הניהול', 'diromax-portal' ),
+					'url'   => $url,
 				),
 			)
 		);
 
-		return $this->message( $subject, $view );
+		return $this->message( $card->subject . ' · ' . $client_case->title, $view );
+	}
+
+	/**
+	 * Security notice after a password was set or changed.
+	 *
+	 * @param string $name Recipient's name.
+	 * @return MailMessage
+	 */
+	public function password_changed( string $name ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => __( 'הסיסמה לאזור האישי עודכנה.', 'diromax-portal' ),
+				'eyebrow'   => __( 'האזור האישי · אבטחה', 'diromax-portal' ),
+				'headline'  => __( 'הסיסמה עודכנה', 'diromax-portal' ),
+				'greeting'  => $name,
+				'intro'     => __( 'הסיסמה לאזור האישי של דירומקס עודכנה עכשיו, וכל החיבורים האחרים לחשבון נותקו.', 'diromax-portal' ),
+				'body'      => 'notice',
+				'notice'    => __( 'לא אתה עדכנת? היכנס מיד לאזור האישי עם קישור כניסה למייל, החלף את הסיסמה, ועדכן את מנהל הפרויקט שלך.', 'diromax-portal' ),
+				'cta'       => array(
+					'label' => __( 'לעמוד הכניסה', 'diromax-portal' ),
+					'url'   => Router::login_url(),
+				),
+			)
+		);
+
+		return $this->message( __( 'הסיסמה לאזור האישי עודכנה · דירומקס', 'diromax-portal' ), $view );
 	}
 
 	/**
@@ -144,6 +245,39 @@ final class MailRenderer {
 		$text = implode( "\n", array_map( 'trim', explode( "\n", $text ) ) );
 
 		return trim( (string) preg_replace( "/\n{3,}/", "\n\n", $text ) );
+	}
+
+	/**
+	 * An email built from cards, with the money block and the button to the case.
+	 *
+	 * @param CaseRecord                                           $client_case Case.
+	 * @param MailCard[]                                           $items       Cards.
+	 * @param CaseSummary|null                                     $summary     Client summary, or null.
+	 * @param string                                               $name        Recipient's name.
+	 * @param array{subject:string, headline:string, intro:string} $copy  Texts.
+	 * @return MailMessage
+	 */
+	private function update_email( CaseRecord $client_case, array $items, ?CaseSummary $summary, string $name, array $copy ): MailMessage {
+		$view = $this->base(
+			$client_case,
+			array(
+				'preheader' => implode( ' · ', array_map( static fn( MailCard $item ): string => $item->title, array_slice( $items, 0, 3 ) ) ),
+				'eyebrow'   => sprintf( /* translators: %s: case address. */ __( 'עדכון בתיק · %s', 'diromax-portal' ), $client_case->title ),
+				'headline'  => $copy['headline'],
+				'greeting'  => $name,
+				'intro'     => $copy['intro'],
+				'body'      => 'case-update',
+				'items'     => $items,
+				'stages'    => Stages::names(),
+				'summary'   => null === $summary ? null : self::summary_view( $summary ),
+				'cta'       => array(
+					'label' => __( 'לצפייה בתיק המלא', 'diromax-portal' ),
+					'url'   => Router::case_url( $client_case ),
+				),
+			)
+		);
+
+		return $this->message( $copy['subject'], $view );
 	}
 
 	/**

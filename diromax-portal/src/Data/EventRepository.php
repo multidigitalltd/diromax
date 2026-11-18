@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 final class EventRepository {
 
 	/** Event kinds. */
-	public const KINDS = array( 'entry_created', 'entry_updated', 'entry_voided', 'request_created', 'request_settled', 'update_published', 'document_added' );
+	public const KINDS = array( 'entry_created', 'entry_updated', 'entry_voided', 'request_created', 'request_settled', 'update_published', 'document_added', 'request_reminder', 'decision_created' );
 
 	/**
 	 * Constructor.
@@ -69,6 +69,34 @@ final class EventRepository {
 				"SELECT id, case_id, kind, object_id, immediate, attempts, next_attempt_at, created_at FROM %i WHERE status = 'pending' AND case_id = %d ORDER BY id LIMIT 200",
 				Schema::table( 'events' ),
 				$case_id
+			),
+			ARRAY_A
+		);
+
+		return array_map( array( self::class, 'map' ), (array) $rows );
+	}
+
+	/**
+	 * A case's batched events in a time window, for a daily digest.
+	 *
+	 * Immediate events are left out: digest members received them at once.
+	 * Cancelled ones are left out: the manager withdrew them.
+	 *
+	 * @param int    $case_id Case.
+	 * @param string $after   UTC DATETIME, exclusive.
+	 * @param string $until   UTC DATETIME, inclusive.
+	 * @return array<int, array{id:int, case_id:int, kind:string, object_id:int, immediate:bool, attempts:int, next_attempt_at:string|null, created_at:string}>
+	 */
+	public function for_digest( int $case_id, string $after, string $until ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				"SELECT id, case_id, kind, object_id, immediate, attempts, next_attempt_at, created_at FROM %i
+				  WHERE case_id = %d AND immediate = 0 AND status <> 'cancelled' AND created_at > %s AND created_at <= %s
+				  ORDER BY id LIMIT 200",
+				Schema::table( 'events' ),
+				$case_id,
+				$after,
+				$until
 			),
 			ARRAY_A
 		);

@@ -94,7 +94,7 @@ final class Router {
 	public static function case_url( CaseRecord $client_case, string $tab = '' ): string {
 		$url = self::url( 'case', $client_case->public_id );
 
-		return in_array( $tab, array( 'finance', 'documents', 'updates' ), true ) ? add_query_arg( 'tab', $tab, $url ) : $url;
+		return in_array( $tab, array( 'finance', 'documents', 'updates', 'decisions' ), true ) ? add_query_arg( 'tab', $tab, $url ) : $url;
 	}
 
 	/**

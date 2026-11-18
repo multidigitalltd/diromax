@@ -19,10 +19,10 @@ defined( 'ABSPATH' ) || exit;
 final class CaseRepository {
 
 	/** Columns returned by every read. */
-	private const COLUMNS = 'id, public_id, number, title, property_type, track, scope, fee_terms, signed_on, manager_id, status, stage, stages, summary, created_at, closed_at';
+	private const COLUMNS = 'id, public_id, number, title, property_type, track, scope, fee_terms, signed_on, manager_id, status, stage, stages, summary, created_at, closed_at, lead_id';
 
 	/** COLUMNS with the c. alias, for joins. */
-	private const CASE_COLUMNS = 'c.id, c.public_id, c.number, c.title, c.property_type, c.track, c.scope, c.fee_terms, c.signed_on, c.manager_id, c.status, c.stage, c.stages, c.summary, c.created_at, c.closed_at';
+	private const CASE_COLUMNS = 'c.id, c.public_id, c.number, c.title, c.property_type, c.track, c.scope, c.fee_terms, c.signed_on, c.manager_id, c.status, c.stage, c.stages, c.summary, c.created_at, c.closed_at, c.lead_id';
 
 	/** Columns update() may write. */
 	private const WRITABLE = array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'status', 'stage', 'stages', 'closed_at' );
@@ -182,6 +182,20 @@ final class CaseRepository {
 			'items' => array_map( array( CaseRecord::class, 'from_row' ), (array) $rows ),
 			'total' => $total,
 		);
+	}
+
+	/**
+	 * Every active case (monthly summary).
+	 *
+	 * @return CaseRecord[]
+	 */
+	public function active(): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare( 'SELECT ' . self::COLUMNS . " FROM %i WHERE status = 'active' ORDER BY id LIMIT 2000", Schema::table( 'cases' ) ),
+			ARRAY_A
+		);
+
+		return array_map( array( CaseRecord::class, 'from_row' ), (array) $rows );
 	}
 
 	/**

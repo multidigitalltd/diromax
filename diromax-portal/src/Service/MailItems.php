@@ -49,7 +49,7 @@ final class MailItems {
 
 		foreach ( $events as $event ) {
 			$kind = $event['kind'];
-			$key  = in_array( $kind, array( 'update_published', 'document_added' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
+			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
 
 			if ( 'entry_voided' === $kind && 'entry_created' === ( $kinds[ $key ] ?? '' ) ) {
 				// Created and voided within one batch: the client never needs to hear of it.
@@ -64,6 +64,7 @@ final class MailItems {
 			$card = match ( $kind ) {
 				'update_published' => $this->update_card( $client_case, $event['object_id'] ),
 				'document_added'   => $this->document_card( $client_case, $event['object_id'] ),
+				'decision_created' => $this->decision_card( $client_case, $event['object_id'], $hide_amounts ),
 				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
 			};
 
@@ -91,6 +92,15 @@ final class MailItems {
 
 		if ( null === $row || $row->entry->case_id !== $client_case->id || ! $row->entry->visible || ( $row->entry->voided && 'entry_voided' !== $kind ) ) {
 			return null;
+		}
+
+		if ( 'request_reminder' === $kind ) {
+			if ( ! $row->entry->is_open_request() ) {
+				// Paid or voided after the reminder was queued: nothing to remind of.
+				return null;
+			}
+
+			$kind = $row->entry->is_overdue( $this->app->clock->today() ) ? 'reminder_late' : 'reminder';
 		}
 
 		$entry  = $row->entry;
@@ -192,6 +202,44 @@ final class MailItems {
 	}
 
 	/**
+	 * Card for a decision put to the client.
+	 *
+	 * @param CaseRecord $client_case  Case.
+	 * @param int        $id           Decision.
+	 * @param bool       $hide_amounts Leave the amount out.
+	 * @return MailCard|null
+	 */
+	private function decision_card( CaseRecord $client_case, int $id, bool $hide_amounts ): ?MailCard {
+		$decision = $this->app->decisions->find( $id );
+
+		if ( null === $decision || $decision->case_id !== $client_case->id || ! $decision->is_pending() ) {
+			return null;
+		}
+
+		$rows = array();
+
+		if ( null !== $decision->due_date ) {
+			$rows[] = array( __( 'מבקשים תשובה עד', 'diromax-portal' ), Labels::date( $decision->due_date ) );
+		}
+
+		return new MailCard(
+			tone: 'orange',
+			badge: __( 'ממתין לאישורך', 'diromax-portal' ),
+			title: $decision->title,
+			rows: $rows,
+			amount: $hide_amounts || null === $decision->amount ? null : Money::format( $decision->amount ),
+			note: $decision->body,
+			stage: null,
+			link: array(
+				'label' => __( 'לאישור או דחייה באזור האישי', 'diromax-portal' ),
+				'url'   => Router::case_url( $client_case, 'decisions' ),
+			),
+			/* translators: %s: decision title. */
+			subject: sprintf( __( 'מבקשים את אישורך: %s', 'diromax-portal' ), $decision->title ),
+		);
+	}
+
+	/**
 	 * Link to a document in the portal, when the client may see it.
 	 *
 	 * @param CaseRecord $client_case Case.
@@ -222,6 +270,8 @@ final class MailItems {
 	private static function badge( string $kind, EntryType $type, EntryStatus $status ): string {
 		return match ( true ) {
 			'entry_voided' === $kind                                  => __( 'תנועה בוטלה', 'diromax-portal' ),
+			'reminder' === $kind                                      => __( 'תזכורת: דרישת תשלום', 'diromax-portal' ),
+			'reminder_late' === $kind                                 => __( 'דרישת תשלום באיחור', 'diromax-portal' ),
 			'entry_updated' === $kind                                 => __( 'עודכנה תנועה', 'diromax-portal' ),
 			'request_settled' === $kind                               => __( 'דרישת תשלום שולמה', 'diromax-portal' ),
 			EntryType::Request === $type                              => __( 'דרישת תשלום', 'diromax-portal' ),
@@ -268,6 +318,10 @@ final class MailItems {
 			'entry_updated' === $kind    => sprintf( __( 'עודכנה תנועה: %s', 'diromax-portal' ), $description ),
 			/* translators: %s: description. */
 			'request_settled' === $kind  => sprintf( __( 'דרישת התשלום שולמה: %s', 'diromax-portal' ), $description ),
+			/* translators: 1: amount or description, 2: due date. */
+			'reminder' === $kind         => sprintf( __( 'תזכורת: דרישת תשלום של %1$s עד %2$s', 'diromax-portal' ), $tail, $due ),
+			/* translators: 1: amount or description, 2: due date. */
+			'reminder_late' === $kind    => sprintf( __( 'דרישת התשלום עברה את המועד: %1$s, לתשלום עד %2$s', 'diromax-portal' ), $tail, $due ),
 			/* translators: 1: amount or description, 2: due date. */
 			EntryType::Request === $type => sprintf( __( 'דרישת תשלום: %1$s עד %2$s', 'diromax-portal' ), $tail, $due ),
 			/* translators: %s: amount or description. */

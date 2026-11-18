@@ -63,6 +63,45 @@ $settings = $view['settings'];
 					<label for="dxa-hide"><?php esc_html_e( 'להסתיר סכומים מהמיילים (הלקוח רואה אותם רק באזור האישי)', 'diromax-portal' ); ?></label>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row"><label for="dxa-hour"><?php esc_html_e( 'שעת השליחה היומית', 'diromax-portal' ); ?></label></th>
+				<td>
+					<input type="number" id="dxa-hour" name="settings[daily_hour]" value="<?php echo esc_attr( (string) $settings['daily_hour'] ); ?>" min="0" max="23" dir="ltr" class="small-text">
+					<p class="description"><?php esc_html_e( 'תזכורות תשלום, סיכומים יומיים והסיכום החודשי יוצאים פעם ביום, אחרי השעה הזו (לפי אזור הזמן של האתר).', 'diromax-portal' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'סיכום חודשי', 'diromax-portal' ); ?></th>
+				<td>
+					<input type="checkbox" id="dxa-monthly" name="settings[monthly_summary]" value="1"<?php checked( $settings['monthly_summary'] ); ?>>
+					<label for="dxa-monthly"><?php esc_html_e( 'לשלוח ב-1 לכל חודש סיכום של החודש שעבר לכל תיק פעיל', 'diromax-portal' ); ?></label>
+				</td>
+			</tr>
+		</table>
+
+		<h2><?php esc_html_e( 'תזכורות תשלום', 'diromax-portal' ); ?></h2>
+		<p><?php esc_html_e( 'רק על דרישה פתוחה שגלויה ללקוח, בתיק פעיל. 0 מכבה את סוג התזכורת.', 'diromax-portal' ); ?></p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="dxa-before"><?php esc_html_e( 'תזכורת לפני המועד (ימים)', 'diromax-portal' ); ?></label></th>
+				<td><input type="number" id="dxa-before" name="settings[remind_before_days]" value="<?php echo esc_attr( (string) $settings['remind_before_days'] ); ?>" min="0" max="14" dir="ltr" class="small-text"></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="dxa-every"><?php esc_html_e( 'אחרי המועד: תזכורת כל (ימים)', 'diromax-portal' ); ?></label></th>
+				<td><input type="number" id="dxa-every" name="settings[remind_overdue_every]" value="<?php echo esc_attr( (string) $settings['remind_overdue_every'] ); ?>" min="0" max="30" dir="ltr" class="small-text"></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="dxa-max"><?php esc_html_e( 'אחרי המועד: עד כמה תזכורות', 'diromax-portal' ); ?></label></th>
+				<td><input type="number" id="dxa-max" name="settings[remind_overdue_max]" value="<?php echo esc_attr( (string) $settings['remind_overdue_max'] ); ?>" min="0" max="10" dir="ltr" class="small-text"></td>
+			</tr>
+		</table>
+
+		<h2><?php esc_html_e( 'לוח בקרה', 'diromax-portal' ); ?></h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="dxa-stale"><?php esc_html_e( 'תיק בלי עדכון ללקוח אחרי (ימים)', 'diromax-portal' ); ?></label></th>
+				<td><input type="number" id="dxa-stale" name="settings[stale_days]" value="<?php echo esc_attr( (string) $settings['stale_days'] ); ?>" min="3" max="90" dir="ltr" class="small-text"></td>
+			</tr>
 		</table>
 
 		<h2><?php esc_html_e( 'גישה ושימור', 'diromax-portal' ); ?></h2>

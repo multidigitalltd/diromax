@@ -9,9 +9,11 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal;
 
+use Diromax\Portal\Data\AcknowledgementRepository;
 use Diromax\Portal\Data\AuditLog;
 use Diromax\Portal\Data\BudgetRepository;
 use Diromax\Portal\Data\CaseRepository;
+use Diromax\Portal\Data\DecisionRepository;
 use Diromax\Portal\Data\DocumentRepository;
 use Diromax\Portal\Data\EventRepository;
 use Diromax\Portal\Data\LedgerRepository;
@@ -122,6 +124,18 @@ final class Plugin {
 	 */
 	public readonly TokenRepository $tokens;
 	/**
+	 * Decisions.
+	 *
+	 * @var DecisionRepository
+	 */
+	public readonly DecisionRepository $decisions;
+	/**
+	 * Agreement acknowledgements.
+	 *
+	 * @var AcknowledgementRepository
+	 */
+	public readonly AcknowledgementRepository $acknowledgements;
+	/**
 	 * Authorization.
 	 *
 	 * @var AccessPolicy
@@ -195,9 +209,12 @@ final class Plugin {
 		$this->events    = new EventRepository( $wpdb );
 		$this->mail_log  = new MailLog( $wpdb );
 		$this->tokens    = new TokenRepository( $wpdb );
-		$this->policy    = new AccessPolicy( $this->members, $clock );
-		$this->store     = new DocumentStore();
-		$this->limiter   = new RateLimiter( $clock );
+		$this->decisions = new DecisionRepository( $wpdb );
+
+		$this->acknowledgements = new AcknowledgementRepository( $wpdb );
+		$this->policy           = new AccessPolicy( $this->members, $clock );
+		$this->store            = new DocumentStore();
+		$this->limiter          = new RateLimiter( $clock );
 
 		$this->renderer         = new MailRenderer();
 		$this->notifier         = new Notifier( $this );

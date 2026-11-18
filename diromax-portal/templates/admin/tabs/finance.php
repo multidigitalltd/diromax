@@ -82,6 +82,14 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 						echo esc_html( sprintf( __( '%1$s · עד %2$s', 'diromax-portal' ), EntryStatus::Open === $entry->status ? __( 'פתוחה', 'diromax-portal' ) : __( 'שולמה', 'diromax-portal' ), Labels::date( $entry->due_date ) ) );
 						?>
 					</span>
+					<?php if ( $ledger_row->reminders_sent > 0 ) : ?>
+						<br><span class="dxa-muted">
+							<?php
+							/* translators: 1: number of reminders, 2: date of the last one. */
+							echo esc_html( sprintf( __( 'תזכורות שנשלחו: %1$d · אחרונה %2$s', 'diromax-portal' ), $ledger_row->reminders_sent, Labels::date( $ledger_row->last_reminder_on ) ) );
+							?>
+						</span>
+					<?php endif; ?>
 				<?php endif; ?>
 				<?php if ( $entry->voided ) : ?>
 					<br><span class="dxa-error">
@@ -176,6 +184,15 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 								<p><button type="submit" class="button button-primary"><?php esc_html_e( 'סימון כשולמה', 'diromax-portal' ); ?></button></p>
 							</form>
 						</details>
+						<?php if ( $entry->visible && $ledger_row->last_reminder_on !== $view['today'] ) : ?>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<input type="hidden" name="action" value="dx_portal_send_reminder">
+								<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
+								<input type="hidden" name="entry_id" value="<?php echo esc_attr( (string) $entry_id ); ?>">
+								<?php wp_nonce_field( 'dx_portal_send_reminder_' . $case->id ); ?>
+								<button type="submit" class="button-link"><?php esc_html_e( 'שליחת תזכורת עכשיו', 'diromax-portal' ); ?></button>
+							</form>
+						<?php endif; ?>
 					<?php endif; ?>
 
 					<?php $void = new Form( $flash, 'void-' . $entry_id ); ?>

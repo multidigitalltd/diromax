@@ -88,7 +88,9 @@ final class Notifier {
 		}
 
 		$ids        = array_column( $events, 'id' );
-		$items      = ( new MailItems( $this->app ) )->build( $client_case, $events, Settings::all()['hide_amounts'] );
+		$builder    = new MailItems( $this->app );
+		$hide       = Settings::all()['hide_amounts'];
+		$items      = $builder->build( $client_case, $events, $hide );
 		$recipients = $this->app->members->for_case( $client_case->id, true );
 
 		if ( array() === $items || array() === $recipients ) {
@@ -96,7 +98,10 @@ final class Notifier {
 			return 0;
 		}
 
-		return $this->deliver( $client_case, $items, $events, $recipients );
+		// Members on the daily digest get only what needs action now; the rest waits for their digest.
+		$urgent = $builder->build( $client_case, array_values( array_filter( $events, static fn( array $event ): bool => $event['immediate'] ) ), $hide );
+
+		return $this->deliver( $client_case, $items, $urgent, $events, $recipients );
 	}
 
 	/**
@@ -223,6 +228,54 @@ final class Notifier {
 	}
 
 	/**
+	 * Send a ready message to one member of a case and log it (digests, summaries).
+	 *
+	 * @param CaseRecord  $client_case Case.
+	 * @param int         $user_id     Recipient.
+	 * @param string      $email       Address.
+	 * @param string      $template    Template code for the log.
+	 * @param MailMessage $message     Message.
+	 * @param string      $batch_key   Key that makes the send unique per recipient.
+	 * @return bool
+	 */
+	public function send_to_member( CaseRecord $client_case, int $user_id, string $email, string $template, MailMessage $message, string $batch_key ): bool {
+		return $this->send_logged( $client_case->id, $user_id, $email, $template, $message, $client_case, $batch_key );
+	}
+
+	/**
+	 * Tell the case's project manager that a client acted (decision, agreement).
+	 *
+	 * @param CaseRecord  $client_case Case.
+	 * @param MailMessage $message     Message.
+	 * @return bool
+	 */
+	public function send_to_manager( CaseRecord $client_case, MailMessage $message ): bool {
+		$manager = get_userdata( $client_case->manager_id );
+
+		if ( ! $manager ) {
+			return false;
+		}
+
+		$ok = Mailer::send( (string) $manager->user_email, $message, null );
+
+		$this->app->mail_log->add(
+			array(
+				'case_id'   => $client_case->id,
+				'user_id'   => $manager->ID,
+				'recipient' => (string) $manager->user_email,
+				'template'  => 'manager',
+				'subject'   => $message->subject,
+				'batch_key' => '',
+				'status'    => $ok ? 'sent' : 'failed',
+				'error'     => $ok ? '' : 'wp_mail_failed',
+			),
+			$this->app->clock->mysql()
+		);
+
+		return $ok;
+	}
+
+	/**
 	 * Are the pending events due by the batching rule and not waiting for a retry?
 	 *
 	 * @param array<int, array{immediate:bool, next_attempt_at:string|null, created_at:string}> $events Pending events.
@@ -249,13 +302,14 @@ final class Notifier {
 	/**
 	 * Send a batch to every member; schedule a retry on failure.
 	 *
-	 * @param CaseRecord                                    $client_case       Case.
-	 * @param MailCard[]                                    $items      Mail cards.
-	 * @param array<int, array{id:int, attempts:int}>       $events     Pending events.
-	 * @param array<int, \Diromax\Portal\Data\MemberRecord> $recipients Members who receive email.
+	 * @param CaseRecord                                    $client_case Case.
+	 * @param MailCard[]                                    $items       Mail cards.
+	 * @param MailCard[]                                    $urgent      Cards for members on the daily digest.
+	 * @param array<int, array{id:int, attempts:int}>       $events      Pending events.
+	 * @param array<int, \Diromax\Portal\Data\MemberRecord> $recipients  Members who receive email.
 	 * @return int Emails sent.
 	 */
-	private function deliver( CaseRecord $client_case, array $items, array $events, array $recipients ): int {
+	private function deliver( CaseRecord $client_case, array $items, array $urgent, array $events, array $recipients ): int {
 		$ids     = array_column( $events, 'id' );
 		$batch   = sha1( implode( ',', $ids ) );
 		$summary = $this->client_summary( $client_case );
@@ -263,11 +317,13 @@ final class Notifier {
 		$failed  = 0;
 
 		foreach ( $recipients as $member ) {
-			if ( $this->app->mail_log->delivered( $batch, $member->user_id ) ) {
+			$cards = $member->digest ? $urgent : $items;
+
+			if ( array() === $cards || $this->app->mail_log->delivered( $batch, $member->user_id ) ) {
 				continue;
 			}
 
-			$message = $this->app->renderer->case_update( $client_case, $items, $summary, $member->name );
+			$message = $this->app->renderer->case_update( $client_case, $cards, $summary, $member->name );
 
 			if ( $this->send_logged( $client_case->id, $member->user_id, $member->email, 'case_update', $message, $client_case, $batch ) ) {
 				++$sent;
