@@ -438,6 +438,7 @@ final class Actions {
 
 		nocache_headers();
 		header( 'Content-Type: text/html; charset=UTF-8' );
+		// nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- The email HTML from MailRenderer, which escapes every value; no request data reaches it unescaped.
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Rendered by MailRenderer, which escapes every value.
 		exit;
 	}

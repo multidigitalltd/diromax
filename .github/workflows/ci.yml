@@ -78,7 +78,9 @@ jobs:
           fetch-depth: 0
       - uses: trufflesecurity/trufflehog@eafb8c5f6a06175141c27f17bcc17941853d0047 # v3.90.0
         with:
-          extra_args: --results=verified,unknown --fail
+          # The action already passes --fail; the image is pinned to the same release.
+          version: 3.90.0
+          extra_args: --results=verified,unknown
 
   sast:
     name: Static application security testing
