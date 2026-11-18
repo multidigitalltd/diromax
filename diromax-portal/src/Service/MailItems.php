@@ -1,0 +1,281 @@
+<?php
+/**
+ * Email items.
+ *
+ * @package Diromax\Portal
+ */
+
+declare( strict_types = 1 );
+
+namespace Diromax\Portal\Service;
+
+use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Domain\EntryStatus;
+use Diromax\Portal\Domain\EntryType;
+use Diromax\Portal\Domain\Money;
+use Diromax\Portal\Plugin;
+use Diromax\Portal\Portal\Router;
+use Diromax\Portal\Settings;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Turns pending events into the cards of an update email.
+ *
+ * Only what the client may see becomes a card: hidden entries and documents,
+ * objects of another case and entries voided before the client ever saw them
+ * are dropped here, so the template never has to decide.
+ */
+final class MailItems {
+
+	/**
+	 * Constructor.
+	 *
+	 * @param Plugin $app Object graph.
+	 */
+	public function __construct( private readonly Plugin $app ) {}
+
+	/**
+	 * Build the cards.
+	 *
+	 * @param CaseRecord                                    $client_case         Case.
+	 * @param array<int, array{kind:string, object_id:int}> $events       Pending events, oldest first.
+	 * @param bool                                          $hide_amounts Leave amounts out.
+	 * @return MailCard[]
+	 */
+	public function build( CaseRecord $client_case, array $events, bool $hide_amounts ): array {
+		$cards = array();
+		$kinds = array();
+
+		foreach ( $events as $event ) {
+			$kind = $event['kind'];
+			$key  = in_array( $kind, array( 'update_published', 'document_added' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
+
+			if ( 'entry_voided' === $kind && 'entry_created' === ( $kinds[ $key ] ?? '' ) ) {
+				// Created and voided within one batch: the client never needs to hear of it.
+				unset( $cards[ $key ] );
+				continue;
+			}
+
+			if ( isset( $kinds[ $key ] ) ) {
+				continue;
+			}
+
+			$card = match ( $kind ) {
+				'update_published' => $this->update_card( $client_case, $event['object_id'] ),
+				'document_added'   => $this->document_card( $client_case, $event['object_id'] ),
+				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
+			};
+
+			$kinds[ $key ] = $kind;
+
+			if ( null !== $card ) {
+				$cards[ $key ] = $card;
+			}
+		}
+
+		return array_values( $cards );
+	}
+
+	/**
+	 * Card for a ledger event.
+	 *
+	 * @param CaseRecord $client_case         Case.
+	 * @param string     $kind         Event kind.
+	 * @param int        $id           Entry.
+	 * @param bool       $hide_amounts Leave the amount out.
+	 * @return MailCard|null
+	 */
+	private function entry_card( CaseRecord $client_case, string $kind, int $id, bool $hide_amounts ): ?MailCard {
+		$row = $this->app->ledger->find( $id );
+
+		if ( null === $row || $row->entry->case_id !== $client_case->id || ! $row->entry->visible || ( $row->entry->voided && 'entry_voided' !== $kind ) ) {
+			return null;
+		}
+
+		$entry  = $row->entry;
+		$amount = $hide_amounts ? null : Money::format( $entry->total );
+		$rows   = array( array( __( 'תאריך', 'diromax-portal' ), Labels::date( $entry->entry_date ) ) );
+
+		switch ( $entry->type ) {
+			case EntryType::Expense:
+				$rows[] = array( __( 'ספק', 'diromax-portal' ), $entry->payee );
+				$rows[] = array( __( 'סעיף בתקציב', 'diromax-portal' ), Settings::category_label( $entry->category ) );
+				$rows[] = array( __( 'שולם מ', 'diromax-portal' ), Labels::funding()[ $entry->funding->value ?? '' ] ?? '' );
+				break;
+			case EntryType::Payment:
+				$rows[] = array( __( 'אמצעי תשלום', 'diromax-portal' ), Labels::methods()[ $row->method ] ?? '' );
+				break;
+			case EntryType::Request:
+				$rows[] = array( __( 'לתשלום עד', 'diromax-portal' ), Labels::date( $entry->due_date ) );
+				$rows[] = array( __( 'למי משלמים', 'diromax-portal' ), Labels::pay_to( $entry->pay_to, $entry->payee ) );
+				break;
+			case EntryType::Refund:
+				break;
+		}
+
+		if ( '' !== $row->reference ) {
+			$rows[] = array( __( 'אסמכתא', 'diromax-portal' ), $row->reference );
+		}
+
+		return new MailCard(
+			tone: self::tone( $kind, $entry->type ),
+			badge: self::badge( $kind, $entry->type, $entry->status ),
+			title: $entry->description,
+			rows: array_values( array_filter( $rows, static fn( array $r ): bool => '' !== $r[1] ) ),
+			amount: $amount,
+			note: 'entry_voided' === $kind ? $row->void_reason : ( EntryType::Request === $entry->type ? $row->payment_details : '' ),
+			stage: null,
+			link: null === $entry->document_id ? null : $this->document_link( $client_case, $entry->document_id ),
+			subject: self::subject( $kind, $entry->type, $entry->description, $amount, Labels::date( $entry->due_date ) ),
+		);
+	}
+
+	/**
+	 * Card for a progress update.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $id   Update.
+	 * @return MailCard|null
+	 */
+	private function update_card( CaseRecord $client_case, int $id ): ?MailCard {
+		$update = $this->app->updates->find( $id );
+
+		if ( null === $update || $update['case_id'] !== $client_case->id || ! $update['visible'] ) {
+			return null;
+		}
+
+		$subject = null === $update['stage']
+			? __( 'עדכון מהשטח', 'diromax-portal' )
+			/* translators: 1: stage number, 2: stage name. */
+			: sprintf( __( 'התקדמנו לשלב %1$s: %2$s', 'diromax-portal' ), str_pad( (string) $update['stage'], 2, '0', STR_PAD_LEFT ), Stages::name( $update['stage'] ) );
+
+		return new MailCard(
+			tone: 'teal',
+			badge: __( 'עדכון התקדמות', 'diromax-portal' ),
+			title: $update['title'],
+			rows: array(),
+			amount: null,
+			note: $update['body'],
+			stage: $update['stage'],
+			link: null,
+			subject: $subject,
+		);
+	}
+
+	/**
+	 * Card for a new document.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $id   Document.
+	 * @return MailCard|null
+	 */
+	private function document_card( CaseRecord $client_case, int $id ): ?MailCard {
+		$document = $this->app->documents->find( $id );
+
+		if ( null === $document || $document->case_id !== $client_case->id || ! $document->visible ) {
+			return null;
+		}
+
+		return new MailCard(
+			tone: 'ink',
+			badge: __( 'מסמך חדש', 'diromax-portal' ),
+			title: $document->title,
+			rows: array( array( __( 'סוג', 'diromax-portal' ), Labels::document_kinds()[ $document->kind ] ?? '' ) ),
+			amount: null,
+			note: '',
+			stage: null,
+			link: $this->document_link( $client_case, $document->id ),
+			/* translators: %s: document title. */
+			subject: sprintf( __( 'מסמך חדש בתיק: %s', 'diromax-portal' ), $document->title ),
+		);
+	}
+
+	/**
+	 * Link to a document in the portal, when the client may see it.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $id   Document.
+	 * @return array{label:string, url:string}|null
+	 */
+	private function document_link( CaseRecord $client_case, int $id ): ?array {
+		$document = $this->app->documents->find( $id );
+
+		if ( null === $document || ! $document->visible || $document->case_id !== $client_case->id ) {
+			return null;
+		}
+
+		return array(
+			'label' => __( 'לצפייה במסמך באזור האישי', 'diromax-portal' ),
+			'url'   => Router::case_url( $client_case, 'documents' ),
+		);
+	}
+
+	/**
+	 * Badge text.
+	 *
+	 * @param string      $kind   Event kind.
+	 * @param EntryType   $type   Entry type.
+	 * @param EntryStatus $status Entry status.
+	 * @return string
+	 */
+	private static function badge( string $kind, EntryType $type, EntryStatus $status ): string {
+		return match ( true ) {
+			'entry_voided' === $kind                                  => __( 'תנועה בוטלה', 'diromax-portal' ),
+			'entry_updated' === $kind                                 => __( 'עודכנה תנועה', 'diromax-portal' ),
+			'request_settled' === $kind                               => __( 'דרישת תשלום שולמה', 'diromax-portal' ),
+			EntryType::Request === $type                              => __( 'דרישת תשלום', 'diromax-portal' ),
+			EntryType::Payment === $type                              => __( 'התקבל תשלום', 'diromax-portal' ),
+			EntryType::Refund === $type                               => __( 'בוצע החזר', 'diromax-portal' ),
+			EntryStatus::Committed === $status                        => __( 'התחייבות חדשה', 'diromax-portal' ),
+			default                                                   => __( 'הוצאה חדשה', 'diromax-portal' ),
+		};
+	}
+
+	/**
+	 * Badge colour.
+	 *
+	 * @param string    $kind Event kind.
+	 * @param EntryType $type Entry type.
+	 * @return string orange, blue, teal, ink or grey.
+	 */
+	private static function tone( string $kind, EntryType $type ): string {
+		return match ( true ) {
+			in_array( $kind, array( 'entry_voided', 'entry_updated' ), true ) => 'grey',
+			'request_settled' === $kind                                         => 'teal',
+			EntryType::Payment === $type, EntryType::Refund === $type           => 'blue',
+			default                                                             => 'orange',
+		};
+	}
+
+	/**
+	 * Subject line used when this card is alone in the email.
+	 *
+	 * @param string      $kind        Event kind.
+	 * @param EntryType   $type        Entry type.
+	 * @param string      $description Description.
+	 * @param string|null $amount      Formatted amount or null when hidden.
+	 * @param string      $due         Due date of a request.
+	 * @return string
+	 */
+	private static function subject( string $kind, EntryType $type, string $description, ?string $amount, string $due ): string {
+		$tail = null === $amount ? $description : $amount;
+
+		return match ( true ) {
+			/* translators: %s: description. */
+			'entry_voided' === $kind     => sprintf( __( 'בוטלה תנועה: %s', 'diromax-portal' ), $description ),
+			/* translators: %s: description. */
+			'entry_updated' === $kind    => sprintf( __( 'עודכנה תנועה: %s', 'diromax-portal' ), $description ),
+			/* translators: %s: description. */
+			'request_settled' === $kind  => sprintf( __( 'דרישת התשלום שולמה: %s', 'diromax-portal' ), $description ),
+			/* translators: 1: amount or description, 2: due date. */
+			EntryType::Request === $type => sprintf( __( 'דרישת תשלום: %1$s עד %2$s', 'diromax-portal' ), $tail, $due ),
+			/* translators: %s: amount or description. */
+			EntryType::Payment === $type => sprintf( __( 'קיבלנו את התשלום · %s', 'diromax-portal' ), $tail ),
+			/* translators: %s: amount or description. */
+			EntryType::Refund === $type  => sprintf( __( 'בוצע החזר · %s', 'diromax-portal' ), $tail ),
+			/* translators: %s: amount or description. */
+			default                      => sprintf( __( 'הוצאה חדשה בתיק: %s', 'diromax-portal' ), $tail ),
+		};
+	}
+}

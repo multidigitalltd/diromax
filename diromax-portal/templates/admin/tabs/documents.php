@@ -1,0 +1,118 @@
+<?php
+/**
+ * Admin tab: agreement and documents.
+ *
+ * @package Diromax\Portal
+ *
+ * @var array<string, mixed>             $view
+ * @var \Diromax\Portal\Data\CaseRecord $case
+ */
+
+declare( strict_types = 1 );
+
+use Diromax\Portal\Admin\Form;
+use Diromax\Portal\Service\Labels;
+
+defined( 'ABSPATH' ) || exit;
+
+$form = new Form( $view['flash'], 'document' );
+?>
+<?php if ( ! $view['key_ready'] ) : ?>
+	<div class="notice notice-error inline"><p><?php esc_html_e( 'העלאת מסמכים חסומה עד שיוגדר מפתח ההצפנה DX_PORTAL_KEY.', 'diromax-portal' ); ?></p></div>
+<?php else : ?>
+<details class="dxa-box" id="form-document" open>
+	<summary><h2><?php esc_html_e( 'העלאת מסמך', 'diromax-portal' ); ?></h2></summary>
+	<p class="description"><?php esc_html_e( 'הקובץ נשמר מוצפן בשרת ונפתח רק דרך האזור האישי. ההסכם החתום מועלה כאן בסוג "הסכם", ותנאיו נכתבים בלשונית פרטי התיק.', 'diromax-portal' ); ?></p>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+		<input type="hidden" name="action" value="dx_portal_upload_document">
+		<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
+		<?php wp_nonce_field( 'dx_portal_upload_document_' . $case->id ); ?>
+		<p class="dxa-field">
+			<label for="<?php echo esc_attr( $form->id( 'kind' ) ); ?>"><?php esc_html_e( 'סוג המסמך', 'diromax-portal' ); ?></label>
+			<select <?php echo $form->attrs( 'kind' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
+				<?php foreach ( $view['kinds'] as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>"<?php selected( $form->old( 'kind', 'agreement' ), $key ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</p>
+		<p class="dxa-field dxa-field--wide">
+			<label for="<?php echo esc_attr( $form->id( 'title' ) ); ?>"><?php esc_html_e( 'כותרת (רשות; ברירת מחדל: שם הקובץ)', 'diromax-portal' ); ?></label>
+			<input type="text" <?php echo $form->attrs( 'title' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?> value="<?php echo esc_attr( $form->old( 'title' ) ); ?>" maxlength="200">
+		</p>
+		<p class="dxa-field dxa-field--wide">
+			<label for="dxa-document-file"><?php esc_html_e( 'קובץ: PDF, JPG, PNG, WEBP, DOCX או XLSX, עד 20MB', 'diromax-portal' ); ?></label>
+			<input type="file" id="dxa-document-file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx" required<?php echo '' !== $form->error( 'file' ) ? ' aria-invalid="true" aria-describedby="dxa-document-file-error"' : ''; ?>>
+			<?php if ( '' !== $form->error( 'file' ) ) : ?>
+				<p class="dxa-error" id="dxa-document-file-error"><?php echo esc_html( $form->error( 'file' ) ); ?></p>
+			<?php endif; ?>
+		</p>
+		<fieldset class="dxa-field dxa-field--wide dxa-checks">
+			<legend class="screen-reader-text"><?php esc_html_e( 'נראות ועדכון הלקוח', 'diromax-portal' ); ?></legend>
+			<span><input type="checkbox" id="dxa-document-visible" name="visible" value="1" checked> <label for="dxa-document-visible"><?php esc_html_e( 'גלוי ללקוח', 'diromax-portal' ); ?></label></span>
+			<span><input type="checkbox" id="dxa-document-notify" name="notify" value="1" checked> <label for="dxa-document-notify"><?php esc_html_e( 'לעדכן את הלקוח במייל', 'diromax-portal' ); ?></label></span>
+		</fieldset>
+		<p class="submit"><button type="submit" class="button button-primary"><?php esc_html_e( 'העלאה', 'diromax-portal' ); ?></button></p>
+	</form>
+</details>
+<?php endif; ?>
+
+<h2><?php esc_html_e( 'מסמכי התיק', 'diromax-portal' ); ?></h2>
+<?php if ( array() === $view['documents'] ) : ?>
+	<p><?php esc_html_e( 'עדיין אין מסמכים.', 'diromax-portal' ); ?></p>
+<?php else : ?>
+<table class="widefat striped dxa-table">
+	<caption class="screen-reader-text"><?php esc_html_e( 'מסמכי התיק', 'diromax-portal' ); ?></caption>
+	<thead><tr>
+		<th scope="col"><?php esc_html_e( 'מסמך', 'diromax-portal' ); ?></th>
+		<th scope="col"><?php esc_html_e( 'סוג', 'diromax-portal' ); ?></th>
+		<th scope="col"><?php esc_html_e( 'הועלה', 'diromax-portal' ); ?></th>
+		<th scope="col"><?php esc_html_e( 'ללקוח', 'diromax-portal' ); ?></th>
+		<th scope="col"><?php esc_html_e( 'פעולות', 'diromax-portal' ); ?></th>
+	</tr></thead>
+	<tbody>
+		<?php foreach ( $view['documents'] as $document ) : ?>
+			<tr>
+				<td>
+					<a href="
+					<?php
+					echo esc_url(
+						wp_nonce_url(
+							add_query_arg(
+								array(
+									'action'      => 'dx_portal_download',
+									'document_id' => $document->id,
+								),
+								admin_url( 'admin-post.php' )
+							),
+							'dx_portal_download_' . $document->id
+						)
+					);
+					?>
+								"><?php echo esc_html( $document->title ); ?></a>
+					<br><span class="dxa-muted" dir="ltr"><?php echo esc_html( $document->original_name . ' · ' . size_format( $document->size, 1 ) ); ?></span>
+				</td>
+				<td><?php echo esc_html( $view['kinds'][ $document->kind ] ?? '' ); ?></td>
+				<td><?php echo esc_html( Labels::datetime( $document->created_at ) ); ?></td>
+				<td><?php echo $document->visible ? esc_html__( 'גלוי', 'diromax-portal' ) : '<span class="dxa-muted">' . esc_html__( 'מוסתר', 'diromax-portal' ) . '</span>'; ?></td>
+				<td class="dxa-actions">
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="dx_portal_document_visibility">
+						<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
+						<input type="hidden" name="document_id" value="<?php echo esc_attr( (string) $document->id ); ?>">
+						<input type="hidden" name="visible" value="<?php echo $document->visible ? '' : '1'; ?>">
+						<?php wp_nonce_field( 'dx_portal_document_visibility_' . $case->id ); ?>
+						<button type="submit" class="button-link"><?php echo $document->visible ? esc_html__( 'הסתרה מהלקוח', 'diromax-portal' ) : esc_html__( 'הצגה ללקוח', 'diromax-portal' ); ?></button>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="dx_portal_delete_document">
+						<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
+						<input type="hidden" name="document_id" value="<?php echo esc_attr( (string) $document->id ); ?>">
+						<?php wp_nonce_field( 'dx_portal_delete_document_' . $case->id ); ?>
+						<button type="submit" class="button-link button-link-delete" data-dxa-confirm="<?php esc_attr_e( 'למחוק את המסמך? אי אפשר לשחזר.', 'diromax-portal' ); ?>"><?php esc_html_e( 'מחיקה', 'diromax-portal' ); ?></button>
+					</form>
+				</td>
+			</tr>
+		<?php endforeach; ?>
+	</tbody>
+</table>
+<?php endif; ?>

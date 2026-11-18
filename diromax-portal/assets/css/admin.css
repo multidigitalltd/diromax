@@ -1,0 +1,65 @@
+/* Diromax portal — admin screens. Small additions on top of WordPress's own admin styles. */
+.dxa .dxa-meta { display: flex; flex-wrap: wrap; gap: 4px 18px; color: #50575e; margin: 4px 0 12px; }
+.dxa .dxa-back { margin: 12px 0 0; }
+.dxa .dxa-intro { max-width: 70ch; font-size: 14px; }
+.dxa .dxa-muted { color: #50575e; }
+.dxa .dxa-req { color: #50575e; font-weight: 400; }
+.dxa .dxa-note { display: inline-block; margin-top: 4px; padding: 2px 6px; background: #fcf9e8; border-inline-start: 3px solid #dba617; }
+.dxa .dxa-error { color: #b32d2e; font-weight: 600; margin: 4px 0 0; }
+.dxa [aria-invalid="true"] { border-color: #b32d2e; box-shadow: 0 0 0 1px #b32d2e; }
+.dxa-panel { margin-top: 20px; }
+
+.dxa-pending { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; background: #fff; border: 1px solid #c3c4c7; border-inline-start: 4px solid #ee7c1a; padding: 10px 16px; margin-bottom: 20px; }
+.dxa-pending p { margin: 0; font-weight: 600; }
+.dxa-pending__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dxa-pending__actions form { margin: 0; }
+
+.dxa-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: #c3c4c7; border: 1px solid #c3c4c7; margin: 0 0 24px; padding: 0; list-style: none; }
+.dxa-tiles li { background: #fff; padding: 14px 16px; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.dxa-tiles__k { color: #50575e; font-weight: 600; }
+.dxa-tiles__v { font-size: 20px; font-weight: 700; text-align: start; }
+.dxa-tiles__s { color: #50575e; }
+
+.dxa-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px 40px; }
+.dxa-list { margin: 0; padding: 0; list-style: none; }
+.dxa-list li { padding: 8px 0; border-bottom: 1px solid #dcdcde; margin: 0; }
+.dxa-list li strong { display: block; }
+.dxa-updates p { margin: 6px 0 0; }
+
+.dxa-box { background: #fff; border: 1px solid #c3c4c7; padding: 4px 16px 8px; margin: 0 0 24px; }
+.dxa-box > summary { cursor: pointer; list-style-position: inside; }
+.dxa-box > summary h2 { display: inline; font-size: 1.15em; }
+.dxa-entry { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.dxa-field { margin: 8px 0; }
+.dxa-field label { display: block; font-weight: 600; margin-bottom: 4px; }
+.dxa-field input[type="text"], .dxa-field input[type="date"], .dxa-field input[type="email"], .dxa-field select, .dxa-field textarea { width: 100%; max-width: 100%; }
+.dxa-field--wide { grid-column: 1 / -1; }
+.dxa-checks { display: flex; flex-wrap: wrap; gap: 8px 24px; border: 0; padding: 0; }
+.dxa-checks label { display: inline; font-weight: 400; }
+.dxa-amount { direction: ltr; text-align: end; max-width: 180px; }
+.dxa-entry [data-dxa-for][hidden] { display: none; }
+
+.dxa-table td, .dxa-table th { vertical-align: top; }
+.dxa-ledger .dxa-num { white-space: nowrap; font-weight: 600; }
+.dxa-voided td { opacity: .7; }
+.dxa-voided strong, .dxa-voided .dxa-num { text-decoration: line-through; }
+.dxa-actions { min-width: 140px; }
+.dxa-actions form { margin: 0 0 4px; }
+.dxa-actions details { margin-bottom: 6px; }
+.dxa-actions details[open] { background: #f6f7f7; padding: 8px; border: 1px solid #dcdcde; min-width: min(560px, 80vw); }
+.dxa-actions summary { cursor: pointer; color: #2271b1; }
+
+.dxa-badge { display: inline-block; padding: 1px 8px; border: 1px solid #1d2327; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.dxa-badge--payment, .dxa-badge--refund { background: #1d3a8f; border-color: #1d3a8f; color: #fff; }
+.dxa-badge--request { background: #ee7c1a; border-color: #ee7c1a; color: #15171c; }
+.dxa-badge--late { background: #b32d2e; border-color: #b32d2e; color: #fff; }
+
+.dxa-meter { display: inline-block; width: 70px; height: 8px; background: #dcdcde; vertical-align: middle; position: relative; }
+.dxa-meter i { position: absolute; inset-block: 0; inset-inline-start: 0; background: #1d3a8f; }
+
+.dxa-stages { border: 0; padding: 0; }
+.dxa-stages legend { font-weight: 600; margin-bottom: 8px; }
+.dxa-stages p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 4px 0; }
+.dxa-skip { color: #50575e; margin-inline-start: auto; }
+.dxa-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dxa-danger { margin-top: 32px; padding: 4px 16px 16px; border: 1px solid #b32d2e; background: #fff; }

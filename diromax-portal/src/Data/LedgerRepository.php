@@ -1,0 +1,232 @@
+<?php
+/**
+ * Ledger table.
+ *
+ * @package Diromax\Portal
+ */
+
+declare( strict_types = 1 );
+
+namespace Diromax\Portal\Data;
+
+use Diromax\Portal\Domain\EntryDraft;
+use Diromax\Portal\Domain\EntryStatus;
+use Diromax\Portal\Support\Db;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Ledger rows. Rows are never deleted: they are voided (spec section 3).
+ */
+final class LedgerRepository {
+
+	/** Columns returned by every read. */
+	private const COLUMNS = 'id, case_id, type, status, entry_date, due_date, category, payee, description, net, vat, total, vat_rate, funding, pay_to, method, reference, payment_details, internal_note, visible, request_id, document_id, created_by, created_at, updated_at, voided_at, void_reason';
+
+	/**
+	 * Constructor.
+	 *
+	 * @param \wpdb $db Database.
+	 */
+	public function __construct( private readonly \wpdb $db ) {}
+
+	/**
+	 * Insert an entry.
+	 *
+	 * @param int        $case_id     Case.
+	 * @param EntryDraft $draft       Validated entry.
+	 * @param int        $user_id     Author.
+	 * @param string     $now         UTC DATETIME.
+	 * @param int|null   $request_id  Request this entry settles.
+	 * @param int|null   $document_id Attached document.
+	 * @return int New ID, 0 on failure.
+	 */
+	public function insert( int $case_id, EntryDraft $draft, int $user_id, string $now, ?int $request_id = null, ?int $document_id = null ): int {
+		$data = array_merge(
+			self::draft_columns( $draft ),
+			array(
+				'case_id'     => $case_id,
+				'type'        => $draft->type->value,
+				'request_id'  => $request_id,
+				'document_id' => $document_id,
+				'created_by'  => $user_id,
+				'created_at'  => $now,
+				'updated_by'  => $user_id,
+				'updated_at'  => $now,
+			)
+		);
+
+		return false === $this->db->insert( Schema::table( 'ledger' ), $data ) ? 0 : (int) $this->db->insert_id;
+	}
+
+	/**
+	 * Update an entry's editable fields. The type never changes.
+	 *
+	 * @param int        $id      Entry.
+	 * @param EntryDraft $draft   Validated entry.
+	 * @param int        $user_id Editor.
+	 * @param string     $now     UTC DATETIME.
+	 * @return bool
+	 */
+	public function update( int $id, EntryDraft $draft, int $user_id, string $now ): bool {
+		$data               = self::draft_columns( $draft );
+		$data['updated_by'] = $user_id;
+		$data['updated_at'] = $now;
+
+		return false !== $this->db->update( Schema::table( 'ledger' ), $data, array( 'id' => $id ) );
+	}
+
+	/**
+	 * Attach a document.
+	 *
+	 * @param int $id          Entry.
+	 * @param int $document_id Document.
+	 */
+	public function attach_document( int $id, int $document_id ): void {
+		$this->db->update( Schema::table( 'ledger' ), array( 'document_id' => $document_id ), array( 'id' => $id ) );
+	}
+
+	/**
+	 * Void an entry. Only a live entry can be voided.
+	 *
+	 * @param int    $id      Entry.
+	 * @param int    $user_id Who voided it.
+	 * @param string $reason  Reason, shown to the client.
+	 * @param string $now     UTC DATETIME.
+	 * @return bool Whether a live entry was voided.
+	 */
+	public function void( int $id, int $user_id, string $reason, string $now ): bool {
+		// The IS NULL condition makes a second void a no-op.
+		return 1 === Db::write(
+			$this->db,
+			'UPDATE %i SET voided_at = %s, voided_by = %d, void_reason = %s, updated_at = %s, updated_by = %d WHERE id = %d AND voided_at IS NULL',
+			Schema::table( 'ledger' ),
+			$now,
+			$user_id,
+			$reason,
+			$now,
+			$user_id,
+			$id
+		);
+	}
+
+	/**
+	 * Mark an open request as paid. Atomic: a second call changes nothing.
+	 *
+	 * @param int    $id      Request.
+	 * @param int    $user_id Who settled it.
+	 * @param string $now     UTC DATETIME.
+	 * @return bool Whether the request was open and is now paid.
+	 */
+	public function settle_request( int $id, int $user_id, string $now ): bool {
+		// The status condition guards against settling twice.
+		return 1 === Db::write(
+			$this->db,
+			"UPDATE %i SET status = %s, updated_at = %s, updated_by = %d WHERE id = %d AND type = 'request' AND status = %s AND voided_at IS NULL",
+			Schema::table( 'ledger' ),
+			EntryStatus::Paid->value,
+			$now,
+			$user_id,
+			$id,
+			EntryStatus::Open->value
+		);
+	}
+
+	/**
+	 * Reopen a paid request whose settling entry was voided.
+	 *
+	 * @param int    $id      Request.
+	 * @param int    $user_id Who reopened it.
+	 * @param string $now     UTC DATETIME.
+	 * @return bool
+	 */
+	public function reopen_request( int $id, int $user_id, string $now ): bool {
+		return 1 === Db::write(
+			$this->db,
+			"UPDATE %i SET status = %s, updated_at = %s, updated_by = %d WHERE id = %d AND type = 'request' AND status = %s",
+			Schema::table( 'ledger' ),
+			EntryStatus::Open->value,
+			$now,
+			$user_id,
+			$id,
+			EntryStatus::Paid->value
+		);
+	}
+
+	/**
+	 * Entry by ID.
+	 *
+	 * @param int $id Entry.
+	 * @return LedgerRow|null
+	 */
+	public function find( int $id ): ?LedgerRow {
+		$row = $this->db->get_row(
+			$this->db->prepare( 'SELECT ' . self::COLUMNS . ' FROM %i WHERE id = %d', Schema::table( 'ledger' ), $id ),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? LedgerRow::from_row( $row ) : null;
+	}
+
+	/**
+	 * Every entry of a case, newest first.
+	 *
+	 * @param int  $case_id      Case.
+	 * @param bool $visible_only Only entries shown to the client.
+	 * @return LedgerRow[]
+	 */
+	public function for_case( int $case_id, bool $visible_only ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE case_id = %d AND visible >= %d ORDER BY entry_date DESC, id DESC LIMIT 2000',
+				Schema::table( 'ledger' ),
+				$case_id,
+				$visible_only ? 1 : 0
+			),
+			ARRAY_A
+		);
+
+		return array_map( array( LedgerRow::class, 'from_row' ), (array) $rows );
+	}
+
+	/**
+	 * Payee names used before, for autocomplete.
+	 *
+	 * @return string[]
+	 */
+	public function payees(): array {
+		$rows = $this->db->get_col(
+			$this->db->prepare( "SELECT DISTINCT payee FROM %i WHERE payee <> '' AND voided_at IS NULL ORDER BY payee LIMIT 300", Schema::table( 'ledger' ) )
+		);
+
+		return array_map( 'strval', (array) $rows );
+	}
+
+	/**
+	 * Columns shared by insert and update.
+	 *
+	 * @param EntryDraft $draft Draft.
+	 * @return array<string, string|int|null>
+	 */
+	private static function draft_columns( EntryDraft $draft ): array {
+		return array(
+			'status'          => $draft->status->value,
+			'entry_date'      => $draft->entry_date,
+			'due_date'        => $draft->due_date,
+			'category'        => $draft->category,
+			'payee'           => $draft->payee,
+			'description'     => $draft->description,
+			'net'             => $draft->net,
+			'vat'             => $draft->vat,
+			'total'           => $draft->total,
+			'vat_rate'        => $draft->vat_rate,
+			'funding'         => $draft->funding->value ?? '',
+			'pay_to'          => $draft->pay_to->value ?? '',
+			'method'          => $draft->method,
+			'reference'       => $draft->reference,
+			'payment_details' => $draft->payment_details,
+			'internal_note'   => $draft->internal_note,
+			'visible'         => $draft->visible ? 1 : 0,
+		);
+	}
+}
