@@ -243,6 +243,72 @@ function dx_customize_register( $wp_customize ) {
 			)
 		);
 	}
+
+	/* ---------------------------------------------------------------
+	 * Privacy, leads and credit (Multi Digital standard 15.2, 15.4, 15.6)
+	 * ------------------------------------------------------------ */
+	$wp_customize->add_section(
+		'dx_privacy',
+		array(
+			'title'       => __( 'דירומקס — פרטיות ולידים', 'diromax' ),
+			'description' => __( 'מדיניות הפרטיות נבחרת בהגדרות ← פרטיות. הודעת הפרטיות באתר מקשרת אליה.', 'diromax' ),
+			'priority'    => 22,
+		)
+	);
+
+	$wp_customize->add_setting(
+		'dx_terms_page',
+		array(
+			'default'           => 0,
+			'sanitize_callback' => 'absint',
+		)
+	);
+	$wp_customize->add_control(
+		'dx_terms_page',
+		array(
+			'label'   => __( 'עמוד תנאי שימוש (מקושר מהפוטר)', 'diromax' ),
+			'section' => 'dx_privacy',
+			'type'    => 'dropdown-pages',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'dx_lead_retention',
+		array(
+			'default'           => 24,
+			'sanitize_callback' => static fn( $value ) => max( 1, min( 120, absint( $value ) ) ),
+		)
+	);
+	$wp_customize->add_control(
+		'dx_lead_retention',
+		array(
+			'label'       => __( 'תקופת שמירת לידים (חודשים)', 'diromax' ),
+			'description' => __( 'ליד ישן יותר נמחק אוטומטית, והמחיקה נרשמת ביומן הלידים.', 'diromax' ),
+			'section'     => 'dx_privacy',
+			'type'        => 'number',
+			'input_attrs' => array(
+				'min' => 1,
+				'max' => 120,
+			),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'dx_credit',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'dx_sanitize_bool',
+		)
+	);
+	$wp_customize->add_control(
+		'dx_credit',
+		array(
+			'label'       => __( 'קרדיט Multi Digital בפוטר', 'diromax' ),
+			'description' => __( 'להסרה רק אם סוכם כך עם Multi Digital.', 'diromax' ),
+			'section'     => 'dx_privacy',
+			'type'        => 'checkbox',
+		)
+	);
 }
 add_action( 'customize_register', 'dx_customize_register' );
 

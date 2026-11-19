@@ -22,7 +22,10 @@ require_once DX_DIR . '/inc/assets.php';
 require_once DX_DIR . '/inc/accessibility.php';
 require_once DX_DIR . '/inc/seo.php';
 require_once DX_DIR . '/inc/customizer.php';
+require_once DX_DIR . '/inc/turnstile.php';
+require_once DX_DIR . '/inc/privacy.php';
 require_once DX_DIR . '/inc/leads.php';
+require_once DX_DIR . '/inc/leads-crm.php';
 require_once DX_DIR . '/inc/projects.php';
 
 if ( is_admin() ) {

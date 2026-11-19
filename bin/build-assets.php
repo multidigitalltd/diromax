@@ -11,6 +11,7 @@
  *   diromax-theme/style.css              ->  style.min.css
  *   diromax-theme/assets/js/forms.js     ->  assets/js/forms.min.js
  *   diromax-theme/assets/js/a11y.js      ->  assets/js/a11y.min.js
+ *   diromax-theme/assets/js/privacy.js   ->  assets/js/privacy.min.js
  *   diromax-portal/assets/css/*.css      ->  *.min.css
  *   diromax-portal/assets/js/*.js        ->  *.min.js
  *
@@ -99,6 +100,11 @@ $jobs = array(
 	array(
 		'src'  => $theme . '/assets/js/a11y.js',
 		'dst'  => $theme . '/assets/js/a11y.min.js',
+		'func' => 'dx_minify_js',
+	),
+	array(
+		'src'  => $theme . '/assets/js/privacy.js',
+		'dst'  => $theme . '/assets/js/privacy.min.js',
 		'func' => 'dx_minify_js',
 	),
 );

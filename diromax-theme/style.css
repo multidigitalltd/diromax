@@ -591,6 +591,27 @@ textarea.dx-input { resize: vertical; }
 .dx-footer__links a:active { color: var(--dx-orange-active); }
 .dx-footer__phone { font-family: var(--dx-font-num); font-size: 19px; font-weight: 800; color: #fff; direction: ltr; }
 .dx-footer__bottom { padding-top: 24px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font-size: 13.5px; color: var(--dx-footer-muted); }
+.dx-footer__credit { color: var(--dx-footer-muted); text-decoration: underline; text-underline-offset: 3px; }
+.dx-footer__credit:hover { color: var(--dx-orange); }
+.dx-footer__linkbtn { font: inherit; font-size: 16px; font-weight: 500; color: var(--dx-footer-fg); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 24px; }
+.dx-footer__linkbtn:hover { color: var(--dx-orange); }
+
+/* First-visit privacy notice (standard 15.5): fixed, so it never shifts the layout. */
+.dx-privacy {
+  /* The opposite corner to the accessibility toolbar's launcher. */
+  position: fixed; z-index: 70; inset-inline-end: 16px; bottom: 76px;
+  width: min(420px, calc(100% - 32px)); background: var(--dx-white, #fff); color: var(--dx-ink);
+  border: 2px solid var(--dx-ink); box-shadow: 6px 6px 0 var(--dx-ink);
+}
+body:not(:has(.dx-sticky)) .dx-privacy { bottom: 16px; }
+.dx-privacy[hidden] { display: none; }
+.dx-privacy__in { padding: 18px 20px 20px; }
+.dx-privacy__h { font-size: 17px; font-weight: 800; margin: 0 0 8px; }
+.dx-privacy p { font-size: 15px; line-height: 1.55; margin: 0 0 14px; color: var(--dx-body, #3a3d44); }
+.dx-privacy a { color: var(--dx-blue-text, #1d3a8f); font-weight: 700; text-decoration: underline; }
+.dx-privacy:focus { outline: 3px solid var(--dx-orange); outline-offset: 2px; }
+.dx-privacy .dx-btn { min-height: 44px; padding: 10px 26px; font-size: 15px; }
+@media print { .dx-privacy { display: none !important; } }
 
 .dx-sticky { position: fixed; bottom: 0; inset-inline: 0; z-index: 60; background: var(--dx-blue); border-top: 2px solid var(--dx-ink); display: flex; }
 .dx-sticky a, .dx-sticky button {

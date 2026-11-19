@@ -48,6 +48,7 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 			<input type="hidden" name="action" value="dx_lead">
 			<input type="hidden" name="dx_source" value="<?php echo esc_url( dx_current_url() ); ?>">
 			<?php wp_nonce_field( 'dx_lead', 'nonce', false ); ?>
+			<input type="hidden" name="dx_utm" value="" data-dx-utm>
 
 			<p class="dx-hp" aria-hidden="true">
 				<label for="<?php echo esc_attr( $dx_uid ); ?>-hp"><?php esc_html_e( 'אל תמלא שדה זה', 'diromax' ); ?></label>
@@ -144,6 +145,9 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 							maxlength="2000"></textarea>
 					</p>
 
+					<?php if ( dx_turnstile_enabled() ) : ?>
+						<div class="cf-turnstile" data-sitekey="<?php echo esc_attr( dx_turnstile_site_key() ); ?>" data-action="dx_lead" data-language="he" data-refresh-expired="auto"></div>
+					<?php endif; ?>
 					<button class="dx-btn dx-btn--orange dx-btn--block" type="submit"><?php dx_the_text( 'form.btn_blue' ); ?></button>
 
 				<?php else : ?>
@@ -157,6 +161,9 @@ $dx_sent    = ( $dx_notice && 'success' === $dx_notice['status'] );
 						</select>
 					</p>
 
+					<?php if ( dx_turnstile_enabled() ) : ?>
+						<div class="cf-turnstile" data-sitekey="<?php echo esc_attr( dx_turnstile_site_key() ); ?>" data-action="dx_lead" data-language="he" data-refresh-expired="auto"></div>
+					<?php endif; ?>
 					<button class="dx-btn dx-btn--blue dx-btn--block" type="submit"><?php dx_the_text( 'form.btn_light' ); ?></button>
 					<p class="dx-note"><?php dx_the_text( 'form.note' ); ?></p>
 

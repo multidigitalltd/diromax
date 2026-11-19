@@ -25,6 +25,11 @@ tests_add_filter(
 	}
 );
 
+// The Diromax theme is active in the tests too, straight from the repository.
+tests_add_filter( 'theme_root', static fn(): string => $dx_portal_root );
+tests_add_filter( 'pre_option_template', static fn(): string => 'diromax-theme' );
+tests_add_filter( 'pre_option_stylesheet', static fn(): string => 'diromax-theme' );
+
 // Tests run inside a transaction; nested writes must use savepoints.
 tests_add_filter( 'dx_portal_nested_transactions', '__return_true' );
 

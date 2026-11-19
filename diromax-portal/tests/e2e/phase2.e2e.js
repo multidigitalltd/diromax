@@ -24,6 +24,14 @@ function localDate(offsetDays) {
   return d.toISOString().slice(0, 10);
 }
 
+// The theme's first-visit privacy notice is tested in theme.e2e.js; here it is acknowledged once per browser.
+async function dismissPrivacy(page) {
+  const ok = page.locator('[data-dx-privacy-ok]');
+  if (await ok.isVisible().catch(() => false)) {
+    await ok.click();
+  }
+}
+
 (async () => {
   const browser = await chromium.launch();
   const errors = [];
@@ -105,6 +113,7 @@ function localDate(offsetDays) {
   const page = await ctx.newPage();
   watch(page);
   await page.goto(BASE + '/portal/login/');
+  await dismissPrivacy(page);
   before = mailFiles().length;
   await page.fill('#dxp-email', 'cohen@example.org');
   await page.click('form:has(#dxp-email) button[type=submit]');
@@ -187,6 +196,7 @@ function localDate(offsetDays) {
 
   const staff = await (await browser.newContext()).newPage();
   await staff.goto(BASE + '/portal/login/');
+  await dismissPrivacy(staff);
   await staff.click('.dxp-alt summary');
   await staff.fill('#dxp-pw-email', 'daniel@example.org');
   await staff.fill('#dxp-pw', 'Manager-Dev-Pass-2026!');
