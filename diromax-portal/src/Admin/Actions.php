@@ -13,6 +13,7 @@ use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
+use Diromax\Portal\Service\DemoCase;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\ReminderService;
 use Diromax\Portal\Service\UpdateService;
@@ -72,6 +73,7 @@ final class Actions {
 		}
 
 		add_action( 'admin_post_dx_portal_save_settings', array( $this, 'save_settings' ) );
+		add_action( 'admin_post_dx_portal_demo_case', array( $this, 'demo_case' ) );
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
 		add_action( 'admin_post_dx_portal_export', array( $this, 'export' ) );
@@ -126,6 +128,23 @@ final class Actions {
 			'delete_case'         => $this->delete_case( $client_case, $input, $actor ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};
+	}
+
+	/**
+	 * Create the sample case (dashboard button on a fresh install).
+	 */
+	public function demo_case(): void {
+		check_admin_referer( 'dx_portal_demo_case' );
+
+		$result = ( new DemoCase( $this->app ) )->create( get_current_user_id() );
+
+		if ( $result instanceof WP_Error ) {
+			Flash::set( 'error', $result->get_error_message() );
+			self::redirect( add_query_arg( 'page', Admin::PAGE_DASHBOARD, admin_url( 'admin.php' ) ) );
+		}
+
+		Flash::set( 'success', __( 'נוצר תיק לדוגמה עם תקציב, תנועות, דרישות תשלום, עדכונים והחלטה. אין בו לקוחות, ולכן לא נשלח שום מייל. כדי למחוק אותו: סוגרים את התיק בלשונית "פרטי התיק", ומנהל מערכת מוחק אותו שם.', 'diromax-portal' ) );
+		self::redirect( Admin::case_url( $result->id ) );
 	}
 
 	/**

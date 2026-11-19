@@ -12,6 +12,7 @@ namespace Diromax\Portal\Admin;
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Portal\CaseView;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
@@ -82,17 +83,38 @@ final class Pages {
 		$stale   = Settings::all()['stale_days'];
 		$repo    = $this->app->dashboard;
 
+		$overdue = $repo->requests_due( $manager, '1000-01-01', $day( -1 ) );
+		$scope   = 0 === $manager ? null : $manager;
+		$cases   = $this->app->cases->active_for( $scope, 20 );
+
 		return array(
 			'all'        => 0 === $manager,
 			'today'      => $today,
 			'stale_days' => $stale,
-			'overdue'    => $repo->requests_due( $manager, '1000-01-01', $day( -1 ) ),
+			'has_cases'  => array() !== $cases || $this->app->cases->any_for( $scope ),
+			'cases'      => $cases,
+			'totals'     => $this->app->cases->active_totals( $scope ) + self::overdue_totals( $repo->requests_due_total( $manager, '1000-01-01', $day( -1 ) ) ),
+			'recent'     => $this->app->audit->recent( $manager, 8 ),
+			'overdue'    => $overdue,
 			'upcoming'   => $repo->requests_due( $manager, $today, $day( 7 ) ),
 			'decisions'  => $repo->pending_decisions( $manager ),
 			'actions'    => $repo->client_actions( $manager, $this->app->clock->mysql_in( -7 * DAY_IN_SECONDS ) ),
 			'stale'      => $repo->stale_cases( $manager, $this->app->clock->mysql_in( -$stale * DAY_IN_SECONDS ) ),
 			'quiet'      => $repo->never_signed_in( $manager, $this->app->clock->mysql_in( -3 * DAY_IN_SECONDS ) ),
 			'failed'     => $repo->failed_mail( $manager ),
+		);
+	}
+
+	/**
+	 * Overdue figures under the keys the dashboard reads.
+	 *
+	 * @param array{count:int, total:int} $overdue Count and sum of overdue requests.
+	 * @return array{overdue:int, overdue_count:int}
+	 */
+	private static function overdue_totals( array $overdue ): array {
+		return array(
+			'overdue'       => $overdue['total'],
+			'overdue_count' => $overdue['count'],
 		);
 	}
 
@@ -172,6 +194,8 @@ final class Pages {
 				'statuses'  => Labels::case_statuses(),
 				'can_all'   => $this->app->policy->can_manage_all( $user ),
 				'can_purge' => $this->app->policy->can_delete_case( $user, $client_case ),
+				'steps'     => CaseView::stages( $client_case ),
+				'counts'    => $this->tab_counts( $client_case ),
 			),
 			$this->tab_data( $client_case, $tab )
 		);
@@ -231,6 +255,26 @@ final class Pages {
 			),
 			default     => array(),
 		};
+	}
+
+	/**
+	 * Small numbers next to tab names: open requests and pending decisions.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return array<string, int>
+	 */
+	private function tab_counts( CaseRecord $client_case ): array {
+		$pending = 0;
+
+		foreach ( $this->app->decisions->for_case( $client_case->id ) as $decision ) {
+			$pending += 'pending' === $decision->status->value ? 1 : 0;
+		}
+
+		return array(
+			'finance'   => (int) ( $client_case->summary['open_request_count'] ?? 0 ),
+			'decisions' => $pending,
+			'members'   => count( $this->app->members->for_case( $client_case->id ) ),
+		);
 	}
 
 	/**

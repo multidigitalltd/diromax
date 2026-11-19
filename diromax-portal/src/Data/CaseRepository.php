@@ -185,6 +185,81 @@ final class CaseRepository {
 	}
 
 	/**
+	 * Active cases for the dashboard, most recently changed first, with
+	 * their cached summaries: every case for an administrator (null), only
+	 * the manager's own otherwise.
+	 *
+	 * @param int|null $manager_id Manager, or null for all.
+	 * @param int      $limit      Maximum rows, 1–500.
+	 * @return CaseRecord[]
+	 */
+	public function active_for( ?int $manager_id, int $limit = 200 ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT ' . self::COLUMNS . " FROM %i WHERE status = 'active' AND ( %d = 0 OR manager_id = %d ) ORDER BY updated_at DESC, id DESC LIMIT %d",
+				Schema::table( 'cases' ),
+				(int) $manager_id,
+				(int) $manager_id,
+				max( 1, min( 500, $limit ) )
+			),
+			ARRAY_A
+		);
+
+		return array_map( array( CaseRecord::class, 'from_row' ), (array) $rows );
+	}
+
+	/**
+	 * Totals across every active case in scope, from the cached summaries,
+	 * computed in the database so no list limit cuts them short.
+	 *
+	 * @param int|null $manager_id Manager, or null for all.
+	 * @return array{cases:int, budget:int, cost:int, committed:int, open:int, open_count:int}
+	 */
+	public function active_totals( ?int $manager_id ): array {
+		$row = $this->db->get_row(
+			$this->db->prepare(
+				"SELECT COUNT(*) AS cases,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.budget') AS SIGNED)), 0) AS budget,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.cost_to_date') AS SIGNED)), 0) AS cost,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.committed') AS SIGNED)), 0) AS committed,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.open_requests') AS SIGNED)), 0) AS open,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.open_request_count') AS SIGNED)), 0) AS open_count
+				   FROM %i WHERE status = 'active' AND ( %d = 0 OR manager_id = %d )",
+				Schema::table( 'cases' ),
+				(int) $manager_id,
+				(int) $manager_id
+			),
+			ARRAY_A
+		);
+
+		return array(
+			'cases'      => (int) ( $row['cases'] ?? 0 ),
+			'budget'     => (int) ( $row['budget'] ?? 0 ),
+			'cost'       => (int) ( $row['cost'] ?? 0 ),
+			'committed'  => (int) ( $row['committed'] ?? 0 ),
+			'open'       => (int) ( $row['open'] ?? 0 ),
+			'open_count' => (int) ( $row['open_count'] ?? 0 ),
+		);
+	}
+
+	/**
+	 * Does the user see any case at all, in any status?
+	 *
+	 * @param int|null $manager_id Manager, or null for all.
+	 * @return bool
+	 */
+	public function any_for( ?int $manager_id ): bool {
+		return null !== $this->db->get_var(
+			$this->db->prepare(
+				'SELECT id FROM %i WHERE ( %d = 0 OR manager_id = %d ) LIMIT 1',
+				Schema::table( 'cases' ),
+				(int) $manager_id,
+				(int) $manager_id
+			)
+		);
+	}
+
+	/**
 	 * Every active case (monthly summary).
 	 *
 	 * @return CaseRecord[]

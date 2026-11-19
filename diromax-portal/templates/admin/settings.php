@@ -12,9 +12,15 @@ declare( strict_types = 1 );
 defined( 'ABSPATH' ) || exit;
 
 $settings = $view['settings'];
+$header   = array(
+	'current' => 'settings',
+	'eyebrow' => __( 'תיקי לקוחות', 'diromax-portal' ),
+	'title'   => __( 'הגדרות האזור האישי', 'diromax-portal' ),
+	'meta'    => array( __( 'כספים, מיילים ללקוחות, תזכורות ושמירת מידע. חלות על כל התיקים.', 'diromax-portal' ) ),
+);
 ?>
 <div class="wrap dxa">
-	<h1><?php esc_html_e( 'הגדרות האזור האישי', 'diromax-portal' ); ?></h1>
+	<?php require __DIR__ . '/parts/header.php'; ?>
 	<?php require __DIR__ . '/parts/flash.php'; ?>
 
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">

@@ -150,7 +150,17 @@ final class CasesTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_stage( $item ): string {
-		return esc_html( str_pad( (string) $item->stage, 2, '0', STR_PAD_LEFT ) . ' · ' . Stages::name( $item->stage ) );
+		$segments = '';
+
+		for ( $step = 1; $step <= 7; $step++ ) {
+			$segments .= '<i class="' . esc_attr( $step < $item->stage ? 'is-done' : ( $step === $item->stage ? 'is-now' : '' ) ) . '"></i>';
+		}
+
+		return sprintf(
+			'<span class="dxa-cell-stack"><span>%1$s</span><span class="dxa-mini" aria-hidden="true">%2$s</span></span>',
+			esc_html( str_pad( (string) $item->stage, 2, '0', STR_PAD_LEFT ) . ' · ' . Stages::name( $item->stage ) ),
+			$segments
+		);
 	}
 
 	/**
@@ -170,7 +180,7 @@ final class CasesTable extends \WP_List_Table {
 		$share = Money::share_bps( $cost, $budget );
 
 		return sprintf(
-			'<span class="dxa-meter" aria-hidden="true"><i style="width:%1$s%%"></i></span> %2$s <span class="dxa-muted">(%3$s)</span>',
+			'<span class="dxa-cell-stack"><span><strong>%2$s</strong> <span class="dxa-muted">· %3$s</span></span><span class="dxa-bar" aria-hidden="true"><i style="width:%1$s%%"></i></span></span>',
 			esc_attr( (string) min( 100, intdiv( $share, 100 ) ) ),
 			esc_html( Money::percent( $share ) ),
 			esc_html( Money::format( $cost ) )
@@ -216,6 +226,10 @@ final class CasesTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_status( $item ): string {
-		return esc_html( Labels::case_statuses()[ $item->status->value ] ?? '' );
+		return sprintf(
+			'<span class="dxa-chip dxa-chip--%1$s">%2$s</span>',
+			esc_attr( $item->status->value ),
+			esc_html( Labels::case_statuses()[ $item->status->value ] ?? '' )
+		);
 	}
 }

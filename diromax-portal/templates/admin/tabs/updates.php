@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 $form = new Form( $view['flash'], 'update' );
 ?>
-<details class="dxa-box" id="form-update" open>
+<details class="dxa-box dxa-box--add" id="form-update"<?php echo array() === $view['updates'] || $form->failed() ? ' open' : ''; ?>>
 	<summary><h2><?php esc_html_e( 'עדכון חדש', 'diromax-portal' ); ?></h2></summary>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
 		<input type="hidden" name="action" value="dx_portal_add_update">

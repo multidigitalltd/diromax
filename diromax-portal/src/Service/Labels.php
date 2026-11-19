@@ -150,6 +150,44 @@ final class Labels {
 	}
 
 	/**
+	 * Readable names of audit actions, for activity lists.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function audit_actions(): array {
+		return array(
+			'case.created'            => __( 'התיק נפתח', 'diromax-portal' ),
+			'case.updated'            => __( 'פרטי התיק עודכנו', 'diromax-portal' ),
+			'case.stage_changed'      => __( 'שלב התיק השתנה', 'diromax-portal' ),
+			'case.status_changed'     => __( 'סטטוס התיק השתנה', 'diromax-portal' ),
+			'member.added'            => __( 'לקוח נוסף', 'diromax-portal' ),
+			'member.removed'          => __( 'לקוח הוסר', 'diromax-portal' ),
+			'member.invited'          => __( 'נשלחה הזמנה', 'diromax-portal' ),
+			'member.mode'             => __( 'העדפת המיילים של לקוח השתנתה', 'diromax-portal' ),
+			'budget.updated'          => __( 'התקציב עודכן', 'diromax-portal' ),
+			'ledger.created'          => __( 'נוספה תנועה', 'diromax-portal' ),
+			'ledger.updated'          => __( 'עודכנה תנועה', 'diromax-portal' ),
+			'ledger.voided'           => __( 'בוטלה תנועה', 'diromax-portal' ),
+			'ledger.request_settled'  => __( 'דרישת תשלום סומנה כשולמה', 'diromax-portal' ),
+			'reminder.sent'           => __( 'נשלחה תזכורת תשלום', 'diromax-portal' ),
+			'update.published'        => __( 'פורסם עדכון', 'diromax-portal' ),
+			'decision.created'        => __( 'נשלחה החלטה לאישור', 'diromax-portal' ),
+			'decision.answered'       => __( 'הלקוח ענה על החלטה', 'diromax-portal' ),
+			'decision.withdrawn'      => __( 'החלטה בוטלה', 'diromax-portal' ),
+			'agreement.acknowledged'  => __( 'הלקוח אישר קריאת הסכם', 'diromax-portal' ),
+			'document.uploaded'       => __( 'הועלה מסמך', 'diromax-portal' ),
+			'document.downloaded'     => __( 'הורד מסמך', 'diromax-portal' ),
+			'document.deleted'        => __( 'נמחק מסמך', 'diromax-portal' ),
+			'document.visibility'     => __( 'שונתה נראות של מסמך', 'diromax-portal' ),
+			'portal.case_viewed'      => __( 'הלקוח צפה בתיק', 'diromax-portal' ),
+			'portal.signed_in'        => __( 'הלקוח נכנס לאזור האישי', 'diromax-portal' ),
+			'portal.password_changed' => __( 'הלקוח עדכן סיסמה', 'diromax-portal' ),
+			'mail.sent_now'           => __( 'עדכונים נשלחו ידנית', 'diromax-portal' ),
+			'mail.cancelled'          => __( 'שליחת עדכונים בוטלה', 'diromax-portal' ),
+		);
+	}
+
+	/**
 	 * Document kinds.
 	 *
 	 * @return array<string, string>
