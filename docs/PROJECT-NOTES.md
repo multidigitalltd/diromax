@@ -31,6 +31,7 @@ composer test                         # PHPUnit: unit + WordPress integration (n
 bash diromax-portal/tests/e2e/setup.sh /tmp/dx-e2e   # throwaway WordPress for the browser tests (client, manager, phase2 scripts)
 php bin/build-assets.php              # minified CSS/JS for the theme and the plugin
 bash bin/build-zip.sh                 # dist/diromax.zip (theme)
+bash bin/build-plugin-zip.sh          # dist/diromax-portal.zip (plugin, without tests)
 ```
 
 ## Architecture
