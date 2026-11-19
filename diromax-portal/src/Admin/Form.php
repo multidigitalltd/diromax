@@ -26,6 +26,15 @@ final class Form {
 	public function __construct( private readonly ?array $flash, private readonly string $form ) {}
 
 	/**
+	 * Did the last save of this form fail? Then it is shown open.
+	 *
+	 * @return bool
+	 */
+	public function failed(): bool {
+		return null !== $this->flash && 'error' === $this->flash['type'] && $this->form === $this->flash['form'];
+	}
+
+	/**
 	 * Submitted value after a failed save, or the default.
 	 *
 	 * @param string $field   Field.

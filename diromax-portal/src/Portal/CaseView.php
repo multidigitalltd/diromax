@@ -125,7 +125,7 @@ final class CaseView {
 	 * @param CaseRecord $client_case Case.
 	 * @return array<int, array{number:string, name:string, status:string, label:string}>
 	 */
-	private static function stages( CaseRecord $client_case ): array {
+	public static function stages( CaseRecord $client_case ): array {
 		$labels = array(
 			'done'    => __( 'הושלם', 'diromax-portal' ),
 			'active'  => __( 'בתהליך', 'diromax-portal' ),

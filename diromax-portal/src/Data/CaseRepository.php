@@ -185,6 +185,47 @@ final class CaseRepository {
 	}
 
 	/**
+	 * Active cases for the dashboard, most recently changed first, with
+	 * their cached summaries: every case for an administrator (null), only
+	 * the manager's own otherwise.
+	 *
+	 * @param int|null $manager_id Manager, or null for all.
+	 * @param int      $limit      Maximum rows, 1–500.
+	 * @return CaseRecord[]
+	 */
+	public function active_for( ?int $manager_id, int $limit = 200 ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT ' . self::COLUMNS . " FROM %i WHERE status = 'active' AND ( %d = 0 OR manager_id = %d ) ORDER BY updated_at DESC, id DESC LIMIT %d",
+				Schema::table( 'cases' ),
+				(int) $manager_id,
+				(int) $manager_id,
+				max( 1, min( 500, $limit ) )
+			),
+			ARRAY_A
+		);
+
+		return array_map( array( CaseRecord::class, 'from_row' ), (array) $rows );
+	}
+
+	/**
+	 * Does the user see any case at all, in any status?
+	 *
+	 * @param int|null $manager_id Manager, or null for all.
+	 * @return bool
+	 */
+	public function any_for( ?int $manager_id ): bool {
+		return null !== $this->db->get_var(
+			$this->db->prepare(
+				'SELECT id FROM %i WHERE ( %d = 0 OR manager_id = %d ) LIMIT 1',
+				Schema::table( 'cases' ),
+				(int) $manager_id,
+				(int) $manager_id
+			)
+		);
+	}
+
+	/**
 	 * Every active case (monthly summary).
 	 *
 	 * @return CaseRecord[]

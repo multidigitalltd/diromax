@@ -55,6 +55,7 @@ final class Admin {
 		( new Actions( $this->app ) )->register();
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
+		add_filter( 'admin_body_class', array( $this, 'body_class' ) );
 		add_filter( 'post_row_actions', array( new LeadLink( $this->app ), 'row_actions' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'notices' ) );
 
@@ -99,6 +100,7 @@ final class Admin {
 		$js     = file_exists( DX_PORTAL_DIR . 'assets/js/admin' . $suffix . '.js' ) ? 'assets/js/admin' . $suffix . '.js' : 'assets/js/admin.js';
 
 		wp_enqueue_style( 'dx-portal-admin', DX_PORTAL_URL . $css, array(), DX_PORTAL_VERSION );
+		wp_add_inline_style( 'dx-portal-admin', self::font_faces() );
 		wp_enqueue_script(
 			'dx-portal-admin',
 			DX_PORTAL_URL . $js,
@@ -109,6 +111,53 @@ final class Admin {
 				'strategy'  => 'defer',
 			)
 		);
+	}
+
+	/**
+	 * Body class that scopes the plugin's admin design to its own screens.
+	 *
+	 * @param string $classes Space-separated classes.
+	 * @return string
+	 */
+	public function body_class( string $classes ): string {
+		$screen = get_current_screen();
+
+		return null !== $screen && self::is_plugin_screen( $screen->id ) ? $classes . ' dxa-screen' : $classes;
+	}
+
+	/**
+	 * The site's own fonts, from the Diromax theme when it is installed,
+	 * so the admin screens match the portal. Self-hosted, no third party.
+	 *
+	 * @return string CSS, or '' without the theme's font files.
+	 */
+	private static function font_faces(): string {
+		$dir   = get_template_directory() . '/assets/fonts/';
+		$uri   = get_template_directory_uri() . '/assets/fonts/';
+		$latin = 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD';
+		$faces = array(
+			array( 'Anomalia', 'anomalia-demibold-aaa.woff', 'woff', '600 700', '' ),
+			array( 'Anomalia', 'anomalia-bold-aaa.woff', 'woff', '800 900', '' ),
+			array( 'Heebo', 'heebo-hebrew.woff2', 'woff2', '100 900', 'U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F' ),
+			array( 'Heebo', 'heebo-latin.woff2', 'woff2', '100 900', $latin ),
+			array( 'Archivo', 'archivo-latin.woff2', 'woff2', '100 900', $latin ),
+		);
+		$css   = '';
+
+		foreach ( $faces as [ $family, $file, $format, $weight, $range ] ) {
+			if ( is_readable( $dir . $file ) ) {
+				$css .= sprintf(
+					"@font-face{font-family:'%1\$s';src:url('%2\$s') format('%3\$s');font-weight:%4\$s;font-display:swap;%5\$s}",
+					$family,
+					esc_url( $uri . $file ),
+					$format,
+					$weight,
+					'' === $range ? '' : 'unicode-range:' . $range . ';'
+				);
+			}
+		}
+
+		return $css;
 	}
 
 	/**

@@ -21,7 +21,7 @@ $flash    = $view['flash'];
 $open     = is_array( $flash ) && 'error' === $flash['type'] ? (string) $flash['form'] : '';
 $statuses = Labels::decision_statuses();
 ?>
-<details class="dxa-box" id="form-decision"<?php echo array() === $view['decisions'] || 'decision' === $open ? ' open' : ''; ?>>
+<details class="dxa-box dxa-box--add" id="form-decision"<?php echo array() === $view['decisions'] || 'decision' === $open ? ' open' : ''; ?>>
 	<summary><h2><?php esc_html_e( 'בקשת החלטה מהלקוח', 'diromax-portal' ); ?></h2></summary>
 	<p class="description"><?php esc_html_e( 'הלקוח מאשר או דוחה באזור האישי. התשובה נרשמת בתיק עם התאריך, השעה וטביעת אצבע של מה שהוצג לו. זה אישור עסקי, לא חתימה דיגיטלית.', 'diromax-portal' ); ?></p>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">

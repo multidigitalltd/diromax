@@ -31,7 +31,7 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 	<?php require __DIR__ . '/../parts/case-fields.php'; ?>
 
 	<h2><?php esc_html_e( 'שלבי התהליך', 'diromax-portal' ); ?></h2>
-	<fieldset class="dxa-stages">
+	<fieldset class="dxa-stages" id="dxa-stages">
 		<legend><?php esc_html_e( 'השלב הנוכחי. השלבים שלפניו מסומנים כהושלמו.', 'diromax-portal' ); ?></legend>
 		<?php foreach ( $view['stages'] as $number => $name ) : ?>
 			<p>

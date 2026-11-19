@@ -43,6 +43,11 @@ async function axe(page, label) {
 
   // Quick add: an expense with an invoice attached, notify on.
   await page.goto(BASE + `/wp-admin/admin.php?page=dx-cases&case=${caseId}&tab=finance`);
+  const entryForm = page.locator('#form-entry');
+  check('the new-entry form starts collapsed when the case has entries', !(await entryForm.evaluate(e => e.open)));
+  await entryForm.locator(':scope > summary').focus();
+  await page.keyboard.press('Enter');
+  check('it opens from the keyboard', await entryForm.evaluate(e => e.open));
   const typeVisible = async (sel) => page.isVisible(sel);
   check('entry form shows expense fields only', await typeVisible('#dxa-entry-funding') && !(await typeVisible('#dxa-entry-due_date')));
   await page.selectOption('#dxa-entry-type', 'request');
@@ -63,12 +68,14 @@ async function axe(page, label) {
   check('new row with its invoice link', (await page.textContent('.dxa-ledger')).includes('יועץ קונסטרוקציה') );
 
   // Invalid input comes back with an accessible field error and the values kept.
+  await entryForm.locator(':scope > summary').click();
   await page.fill('#dxa-entry-description', 'סכום שגוי');
   await page.fill('#dxa-entry-amount', '-5');
   await page.click('#form-entry button[type=submit]');
   await page.waitForLoadState('networkidle');
   const invalid = await page.getAttribute('#dxa-entry-amount', 'aria-invalid');
   const describedBy = await page.getAttribute('#dxa-entry-amount', 'aria-describedby');
+  check('a failed save reopens the form', await entryForm.evaluate(e => e.open));
   check('invalid amount → field error linked by aria-describedby, value kept', invalid === 'true' && describedBy && (await page.textContent('#' + describedBy)).includes('הסכום') && (await page.inputValue('#dxa-entry-description')) === 'סכום שגוי');
   await page.screenshot({ path: out('13-admin-finance-error.png') });
   await axe(page, 'finance tab with errors');

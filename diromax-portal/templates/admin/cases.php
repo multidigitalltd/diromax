@@ -14,10 +14,22 @@ use Diromax\Portal\Admin\Admin;
 
 defined( 'ABSPATH' ) || exit;
 ?>
+<?php
+$header = array(
+	'current' => 'cases',
+	'eyebrow' => __( 'תיקי לקוחות', 'diromax-portal' ),
+	'title'   => __( 'כל התיקים', 'diromax-portal' ),
+	'actions' => array(
+		array(
+			'label'   => __( '+ תיק חדש', 'diromax-portal' ),
+			'url'     => add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ),
+			'primary' => true,
+		),
+	),
+);
+?>
 <div class="wrap dxa">
-	<h1 class="wp-heading-inline"><?php esc_html_e( 'תיקי לקוחות', 'diromax-portal' ); ?></h1>
-	<a href="<?php echo esc_url( add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ) ); ?>" class="page-title-action"><?php esc_html_e( 'תיק חדש', 'diromax-portal' ); ?></a>
-	<hr class="wp-header-end">
+	<?php require __DIR__ . '/parts/header.php'; ?>
 	<?php require __DIR__ . '/parts/flash.php'; ?>
 	<?php $table->views(); ?>
 	<form method="get">

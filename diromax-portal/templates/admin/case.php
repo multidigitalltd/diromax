@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin: one case — header, tabs, active tab.
+ * Admin: one case — head, stages, tabs, active tab.
  *
  * @package Diromax\Portal
  *
@@ -16,29 +16,49 @@ defined( 'ABSPATH' ) || exit;
 /** Case being viewed. @var \Diromax\Portal\Data\CaseRecord $case */
 $case    = $view['case'];
 $manager = $view['manager'];
+$meta    = array();
+
+if ( $manager instanceof WP_User ) {
+	/* translators: %s: manager name. */
+	$meta[] = sprintf( __( 'מנהל פרויקט: %s', 'diromax-portal' ), $manager->display_name );
+}
+foreach ( array( $case->property_type, $case->scope ) as $detail ) {
+	if ( '' !== $detail ) {
+		$meta[] = $detail;
+	}
+}
+
+$header     = array(
+	'current' => 'cases',
+	'back'    => array( __( 'כל התיקים', 'diromax-portal' ), add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) ),
+	'eyebrow' => $case->number . ' · ' . ( $view['statuses'][ $case->status->value ] ?? '' ),
+	'title'   => $case->title,
+	'meta'    => $meta,
+	'actions' => array(
+		array(
+			'label'   => __( 'צפייה כלקוח', 'diromax-portal' ),
+			'url'     => (string) $view['portal'],
+			'new_tab' => true,
+		),
+	),
+);
+$stages     = $view['steps'];
+$stages_url = Admin::case_url( $case->id, 'details' ) . '#dxa-stages';
 ?>
 <div class="wrap dxa">
-	<p class="dxa-back"><a href="<?php echo esc_url( add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) ); ?>">&rarr; <?php esc_html_e( 'כל התיקים', 'diromax-portal' ); ?></a></p>
-	<h1 class="wp-heading-inline"><?php echo esc_html( $case->title ); ?></h1>
-	<a href="<?php echo esc_url( (string) $view['portal'] ); ?>" class="page-title-action" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'צפייה כלקוח', 'diromax-portal' ); ?><span class="screen-reader-text"> <?php esc_html_e( '(נפתח בחלון חדש)', 'diromax-portal' ); ?></span></a>
-	<p class="dxa-meta">
-		<span><?php echo esc_html( $case->number ); ?></span>
-		<span><?php echo esc_html( (string) ( $view['statuses'][ $case->status->value ] ?? '' ) ); ?></span>
-		<?php if ( $manager instanceof WP_User ) : ?>
-			<span>
-				<?php
-				/* translators: %s: manager name. */
-				echo esc_html( sprintf( __( 'מנהל פרויקט: %s', 'diromax-portal' ), $manager->display_name ) );
-				?>
-			</span>
-		<?php endif; ?>
-	</p>
-	<hr class="wp-header-end">
+	<?php require __DIR__ . '/parts/header.php'; ?>
 	<?php require __DIR__ . '/parts/flash.php'; ?>
+	<?php require __DIR__ . '/parts/stepper.php'; ?>
 
-	<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'לשוניות התיק', 'diromax-portal' ); ?>">
+	<nav class="nav-tab-wrapper dxa-tabs" aria-label="<?php esc_attr_e( 'לשוניות התיק', 'diromax-portal' ); ?>">
 		<?php foreach ( $view['tabs'] as $key => $label ) : ?>
-			<a href="<?php echo esc_url( Admin::case_url( $case->id, $key ) ); ?>" class="nav-tab<?php echo $key === $view['tab'] ? ' nav-tab-active' : ''; ?>"<?php echo $key === $view['tab'] ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $label ); ?></a>
+			<?php $count = (int) ( $view['counts'][ $key ] ?? 0 ); ?>
+			<a href="<?php echo esc_url( Admin::case_url( $case->id, $key ) ); ?>" class="nav-tab<?php echo $key === $view['tab'] ? ' nav-tab-active' : ''; ?>"<?php echo $key === $view['tab'] ? ' aria-current="page"' : ''; ?>>
+				<?php echo esc_html( $label ); ?>
+				<?php if ( $count > 0 ) : ?>
+					<span class="dxa-tabs__n"><?php echo esc_html( (string) $count ); ?></span>
+				<?php endif; ?>
+			</a>
 		<?php endforeach; ?>
 	</nav>
 

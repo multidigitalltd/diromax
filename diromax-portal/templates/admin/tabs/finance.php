@@ -33,7 +33,7 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 	<?php endforeach; ?>
 </datalist>
 
-<details class="dxa-box" id="form-entry" open>
+<details class="dxa-box dxa-box--add" id="form-entry"<?php echo array() === $view['rows'] || $form->failed() ? ' open' : ''; ?>>
 	<summary><h2><?php esc_html_e( 'תנועה חדשה', 'diromax-portal' ); ?></h2></summary>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
 		<input type="hidden" name="action" value="dx_portal_add_entry">

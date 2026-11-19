@@ -15,6 +15,7 @@ use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\ReminderPolicy;
 use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\Stages;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -27,17 +28,111 @@ $case_link = static function ( array $row, string $tab ): void {
 	);
 };
 $statuses  = Labels::decision_statuses();
+$user_name = wp_get_current_user()->display_name;
+$header    = array(
+	'current' => 'dashboard',
+	'eyebrow' => $view['all'] ? __( 'כל התיקים הפעילים במשרד', 'diromax-portal' ) : __( 'התיקים הפעילים שלך', 'diromax-portal' ),
+	'title'   => __( 'לוח בקרה', 'diromax-portal' ),
+	/* translators: %s: user's name. */
+	'meta'    => array( sprintf( __( 'שלום, %s', 'diromax-portal' ), $user_name ), Labels::date( (string) $view['today'] ) ),
+	'actions' => array(
+		array(
+			'label'   => __( '+ תיק חדש', 'diromax-portal' ),
+			'url'     => add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ),
+			'primary' => true,
+		),
+		array(
+			'label' => __( 'כל התיקים', 'diromax-portal' ),
+			'url'   => add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ),
+		),
+	),
+);
 ?>
 <div class="wrap dxa dxa-dash">
-	<h1 class="wp-heading-inline"><?php esc_html_e( 'לוח בקרה', 'diromax-portal' ); ?></h1>
-	<a href="<?php echo esc_url( add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) ); ?>" class="page-title-action"><?php esc_html_e( 'כל התיקים', 'diromax-portal' ); ?></a>
-	<hr class="wp-header-end">
-	<p class="description">
-		<?php echo $view['all'] ? esc_html__( 'כל התיקים הפעילים במשרד.', 'diromax-portal' ) : esc_html__( 'התיקים הפעילים שלך.', 'diromax-portal' ); ?>
-	</p>
+	<?php require __DIR__ . '/parts/header.php'; ?>
+	<?php require __DIR__ . '/parts/flash.php'; ?>
 
+	<?php if ( ! $view['has_cases'] ) : ?>
+		<section class="dxa-welcome" aria-labelledby="dxa-welcome-title">
+			<h2 id="dxa-welcome-title"><?php esc_html_e( 'ברוכים הבאים לתיקי הלקוחות', 'diromax-portal' ); ?></h2>
+			<p class="dxa-welcome__lead"><?php esc_html_e( 'כאן מנהלים כל פרויקט השבחה מההסכם ועד המכירה: תקציב, הוצאות, דרישות תשלום, מסמכים ועדכונים. הלקוח רואה את התיק שלו באזור האישי באתר, ומקבל מייל מעוצב על כל עדכון.', 'diromax-portal' ); ?></p>
+			<ol class="dxa-welcome__steps">
+				<li><strong><?php esc_html_e( 'פותחים תיק', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'כתובת הנכס, ההסכם ומנהל הפרויקט.', 'diromax-portal' ); ?></li>
+				<li><strong><?php esc_html_e( 'קובעים תקציב', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'לפי סעיפים: תכנון, יועצים, אגרות, ביצוע.', 'diromax-portal' ); ?></li>
+				<li><strong><?php esc_html_e( 'מוסיפים את הלקוח', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'הוא מקבל קישור כניסה במייל, בלי סיסמה.', 'diromax-portal' ); ?></li>
+				<li><strong><?php esc_html_e( 'מזינים תנועות ועדכונים', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'והלקוח רואה הכל מיד.', 'diromax-portal' ); ?></li>
+			</ol>
+			<div class="dxa-welcome__actions">
+				<a class="dxa-btn dxa-btn--primary" href="<?php echo esc_url( add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'פתיחת תיק ראשון', 'diromax-portal' ); ?></a>
+				<?php require __DIR__ . '/parts/demo-button.php'; ?>
+			</div>
+			<p class="dxa-muted"><?php esc_html_e( 'התיק לדוגמה מגיע מלא: תקציב, תנועות, דרישת תשלום באיחור, עדכונים והחלטה שממתינה ללקוח. אין בו לקוחות, ולכן לא יוצא ממנו שום מייל.', 'diromax-portal' ); ?></p>
+		</section>
+	<?php else : ?>
+		<?php $dash_totals = $view['totals']; ?>
+		<ul class="dxa-kpis" aria-label="<?php esc_attr_e( 'סיכום התיקים הפעילים', 'diromax-portal' ); ?>">
+			<li>
+				<span class="dxa-kpis__k"><?php esc_html_e( 'תיקים פעילים', 'diromax-portal' ); ?></span>
+				<span class="dxa-kpis__v"><?php echo esc_html( (string) $dash_totals['cases'] ); ?></span>
+			</li>
+			<li>
+				<span class="dxa-kpis__k"><?php esc_html_e( 'תקציב בניהול', 'diromax-portal' ); ?></span>
+				<span class="dxa-kpis__v" dir="ltr"><?php echo esc_html( Money::format( $dash_totals['budget'] ) ); ?></span>
+			</li>
+			<li>
+				<span class="dxa-kpis__k"><?php esc_html_e( 'שולם עד היום', 'diromax-portal' ); ?></span>
+				<span class="dxa-kpis__v" dir="ltr"><?php echo esc_html( Money::format( $dash_totals['cost'] ) ); ?></span>
+				<?php if ( $dash_totals['budget'] > 0 ) : ?>
+					<span class="dxa-kpis__s">
+						<?php
+						/* translators: %s: share of the budget. */
+						echo esc_html( sprintf( __( '%s מהתקציב', 'diromax-portal' ), Money::percent( Money::share_bps( $dash_totals['cost'], $dash_totals['budget'] ) ) ) );
+						?>
+					</span>
+					<span class="dxa-bar" aria-hidden="true"><i style="width:<?php echo esc_attr( (string) min( 100, intdiv( Money::share_bps( $dash_totals['cost'], $dash_totals['budget'] ), 100 ) ) ); ?>%"></i></span>
+				<?php endif; ?>
+			</li>
+			<li>
+				<span class="dxa-kpis__k"><?php esc_html_e( 'התחייבויות פתוחות', 'diromax-portal' ); ?></span>
+				<span class="dxa-kpis__v" dir="ltr"><?php echo esc_html( Money::format( $dash_totals['committed'] ) ); ?></span>
+			</li>
+			<li>
+				<span class="dxa-kpis__k"><?php esc_html_e( 'דרישות תשלום פתוחות', 'diromax-portal' ); ?></span>
+				<span class="dxa-kpis__v" dir="ltr"><?php echo esc_html( Money::format( $dash_totals['open'] ) ); ?></span>
+				<span class="dxa-kpis__s">
+					<?php
+					/* translators: %d: number of open requests. */
+					echo esc_html( sprintf( _n( '%d דרישה', '%d דרישות', $dash_totals['open_count'], 'diromax-portal' ), $dash_totals['open_count'] ) );
+					?>
+				</span>
+			</li>
+			<li class="<?php echo $dash_totals['overdue_count'] > 0 ? 'dxa-kpis--hot' : ''; ?>">
+				<span class="dxa-kpis__k"><?php esc_html_e( 'באיחור', 'diromax-portal' ); ?></span>
+				<span class="dxa-kpis__v" dir="ltr"><?php echo esc_html( Money::format( $dash_totals['overdue'] ) ); ?></span>
+				<span class="dxa-kpis__s">
+					<?php
+					echo esc_html(
+						0 === $dash_totals['overdue_count']
+							? __( 'אין איחורים', 'diromax-portal' )
+							/* translators: %d: number of overdue requests. */
+							: sprintf( _n( '%d דרישה', '%d דרישות', $dash_totals['overdue_count'], 'diromax-portal' ), $dash_totals['overdue_count'] )
+					);
+					?>
+				</span>
+			</li>
+		</ul>
+	<?php endif; ?>
+
+	<div class="dxa-dash-grid">
+	<div class="dxa-dash-main">
+	<h2 class="dxa-section-title"><?php esc_html_e( 'דורש טיפול', 'diromax-portal' ); ?></h2>
+	<?php $attention = count( $view['overdue'] ) + count( $view['upcoming'] ) + count( $view['decisions'] ) + count( $view['actions'] ) + count( $view['stale'] ) + count( $view['quiet'] ) + count( $view['failed'] ); ?>
+	<?php if ( 0 === $attention ) : ?>
+		<p class="dxa-allclear" role="status"><span aria-hidden="true">✓</span> <?php esc_html_e( 'אין כרגע שום דבר שמחכה לטיפול: אין דרישות באיחור או בשבוע הקרוב, אין החלטות פתוחות, וכל הלקוחות קיבלו עדכון לאחרונה.', 'diromax-portal' ); ?></p>
+	<?php endif; ?>
+	<?php if ( $attention > 0 ) : ?>
 	<div class="dxa-cards">
-		<section class="dxa-card dxa-card--hot" aria-labelledby="dxa-dash-overdue">
+		<section class="dxa-card dxa-card--hot<?php echo array() === $view['overdue'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-overdue">
 			<h2 id="dxa-dash-overdue"><?php esc_html_e( 'דרישות תשלום באיחור', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['overdue'] ) ); ?></span></h2>
 			<?php if ( array() === $view['overdue'] ) : ?>
 				<p><?php esc_html_e( 'אין דרישות באיחור.', 'diromax-portal' ); ?></p>
@@ -71,7 +166,7 @@ $statuses  = Labels::decision_statuses();
 			<?php endif; ?>
 		</section>
 
-		<section class="dxa-card" aria-labelledby="dxa-dash-upcoming">
+		<section class="dxa-card<?php echo array() === $view['upcoming'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-upcoming">
 			<h2 id="dxa-dash-upcoming"><?php esc_html_e( 'לתשלום ב-7 הימים הקרובים', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['upcoming'] ) ); ?></span></h2>
 			<?php if ( array() === $view['upcoming'] ) : ?>
 				<p><?php esc_html_e( 'אין דרישות שמועדן מתקרב.', 'diromax-portal' ); ?></p>
@@ -97,7 +192,7 @@ $statuses  = Labels::decision_statuses();
 			<?php endif; ?>
 		</section>
 
-		<section class="dxa-card" aria-labelledby="dxa-dash-decisions">
+		<section class="dxa-card<?php echo array() === $view['decisions'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-decisions">
 			<h2 id="dxa-dash-decisions"><?php esc_html_e( 'החלטות שממתינות ללקוח', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['decisions'] ) ); ?></span></h2>
 			<?php if ( array() === $view['decisions'] ) : ?>
 				<p><?php esc_html_e( 'אין החלטות פתוחות.', 'diromax-portal' ); ?></p>
@@ -123,7 +218,7 @@ $statuses  = Labels::decision_statuses();
 			<?php endif; ?>
 		</section>
 
-		<section class="dxa-card" aria-labelledby="dxa-dash-actions">
+		<section class="dxa-card<?php echo array() === $view['actions'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-actions">
 			<h2 id="dxa-dash-actions"><?php esc_html_e( 'תשובות ואישורים מהשבוע האחרון', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['actions'] ) ); ?></span></h2>
 			<?php if ( array() === $view['actions'] ) : ?>
 				<p><?php esc_html_e( 'לקוחות לא ענו על החלטות ולא אישרו הסכמים השבוע.', 'diromax-portal' ); ?></p>
@@ -157,7 +252,7 @@ $statuses  = Labels::decision_statuses();
 			<?php endif; ?>
 		</section>
 
-		<section class="dxa-card" aria-labelledby="dxa-dash-stale">
+		<section class="dxa-card<?php echo array() === $view['stale'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-stale">
 			<h2 id="dxa-dash-stale">
 				<?php
 				/* translators: %d: days. */
@@ -185,7 +280,7 @@ $statuses  = Labels::decision_statuses();
 			<?php endif; ?>
 		</section>
 
-		<section class="dxa-card" aria-labelledby="dxa-dash-quiet">
+		<section class="dxa-card<?php echo array() === $view['quiet'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-quiet">
 			<h2 id="dxa-dash-quiet"><?php esc_html_e( 'לקוחות שהוזמנו ועוד לא נכנסו', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['quiet'] ) ); ?></span></h2>
 			<?php if ( array() === $view['quiet'] ) : ?>
 				<p><?php esc_html_e( 'כל מי שהוזמן לפני יותר מ-3 ימים כבר נכנס.', 'diromax-portal' ); ?></p>
@@ -226,5 +321,76 @@ $statuses  = Labels::decision_statuses();
 				<p class="description"><?php esc_html_e( 'בדרך כלל בעיה בהגדרות המייל של האתר. היומן של כל תיק מראה מה נכשל.', 'diromax-portal' ); ?></p>
 			</section>
 		<?php endif; ?>
+	</div>
+	<?php endif; ?>
+	</div>
+
+	<aside class="dxa-dash-side" aria-label="<?php esc_attr_e( 'תיקים ופעילות', 'diromax-portal' ); ?>">
+		<section class="dxa-card dxa-card--plain" aria-labelledby="dxa-dash-cases">
+			<h2 id="dxa-dash-cases"><?php esc_html_e( 'התיקים הפעילים', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['cases'] ) ); ?></span></h2>
+			<?php if ( array() === $view['cases'] ) : ?>
+				<p><?php esc_html_e( 'אין תיקים פעילים.', 'diromax-portal' ); ?></p>
+			<?php else : ?>
+				<ul class="dxa-cases">
+					<?php foreach ( array_slice( $view['cases'], 0, 8 ) as $active ) : ?>
+						<?php
+						$budget = (int) ( $active->summary['budget'] ?? 0 );
+						$share  = $budget > 0 ? Money::share_bps( (int) ( $active->summary['cost_to_date'] ?? 0 ), $budget ) : 0;
+						?>
+						<li class="dxa-cases__i">
+							<a class="dxa-cases__t" href="<?php echo esc_url( Admin::case_url( $active->id ) ); ?>"><?php echo esc_html( $active->title ); ?></a>
+							<span class="dxa-cases__m">
+								<?php
+								/* translators: 1: case number, 2: stage number, 3: stage name. */
+								echo esc_html( sprintf( __( '%1$s · שלב %2$s · %3$s', 'diromax-portal' ), $active->number, str_pad( (string) $active->stage, 2, '0', STR_PAD_LEFT ), Stages::name( $active->stage ) ) );
+								?>
+							</span>
+							<span class="dxa-mini" aria-hidden="true">
+								<?php for ( $step = 1; $step <= 7; $step++ ) : ?>
+									<i class="<?php echo esc_attr( $step < $active->stage ? 'is-done' : ( $step === $active->stage ? 'is-now' : '' ) ); ?>"></i>
+								<?php endfor; ?>
+							</span>
+							<?php if ( $budget > 0 ) : ?>
+								<span class="dxa-cases__b">
+									<span class="dxa-bar" aria-hidden="true"><i style="width:<?php echo esc_attr( (string) min( 100, intdiv( $share, 100 ) ) ); ?>%"></i></span>
+									<?php
+									/* translators: 1: share of the budget, 2: budget. */
+									echo esc_html( sprintf( __( '%1$s מתוך %2$s', 'diromax-portal' ), Money::percent( $share ), Money::format( $budget ) ) );
+									?>
+								</span>
+							<?php endif; ?>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+				<p class="dxa-card__more"><a href="<?php echo esc_url( add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'לכל התיקים', 'diromax-portal' ); ?></a></p>
+			<?php endif; ?>
+		</section>
+
+		<section class="dxa-card dxa-card--plain" aria-labelledby="dxa-dash-activity">
+			<h2 id="dxa-dash-activity"><?php esc_html_e( 'פעילות אחרונה', 'diromax-portal' ); ?></h2>
+			<?php if ( array() === $view['recent'] ) : ?>
+				<p><?php esc_html_e( 'אין עדיין פעילות.', 'diromax-portal' ); ?></p>
+			<?php else : ?>
+				<?php $audit_labels = Labels::audit_actions(); ?>
+				<ul class="dxa-feed">
+					<?php foreach ( $view['recent'] as $entry ) : ?>
+						<li>
+							<strong><?php echo esc_html( $audit_labels[ $entry['action'] ] ?? $entry['action'] ); ?></strong>
+							<a href="<?php echo esc_url( Admin::case_url( $entry['case_id'] ) ); ?>"><?php echo esc_html( $entry['case_title'] ); ?></a>
+							<span class="dxa-muted"><?php echo esc_html( Labels::datetime( $entry['created_at'] ) . ' · ' . ( '' === $entry['user'] ? __( 'מערכת', 'diromax-portal' ) : $entry['user'] ) ); ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
+		</section>
+
+		<?php if ( $view['has_cases'] ) : ?>
+			<section class="dxa-card dxa-card--plain dxa-card--quiet" aria-labelledby="dxa-dash-demo">
+				<h2 id="dxa-dash-demo"><?php esc_html_e( 'תיק לדוגמה', 'diromax-portal' ); ?></h2>
+				<p><?php esc_html_e( 'תיק מלא לניסיון: תקציב, תנועות, דרישות תשלום, עדכונים והחלטה. בלי לקוחות ובלי מיילים.', 'diromax-portal' ); ?></p>
+				<?php require __DIR__ . '/parts/demo-button.php'; ?>
+			</section>
+		<?php endif; ?>
+	</aside>
 	</div>
 </div>

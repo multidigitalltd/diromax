@@ -60,6 +60,7 @@ async function dismissPrivacy(page) {
 
   // A request due in three days → upcoming card and a manual reminder.
   await admin.goto(tab('finance'));
+  await admin.click('#form-entry > summary');
   await admin.selectOption('#dxa-entry-type', 'request');
   await admin.fill('#dxa-entry-description', 'מקדמה לקבלן הגג');
   await admin.fill('#dxa-entry-amount', '15000');
@@ -213,6 +214,22 @@ async function dismissPrivacy(page) {
   }
   await mp.screenshot({ path: out('35-portal-account-mobile.png'), fullPage: true });
   await m.close();
+
+  // The sample case, from the dashboard: a full case, and no email at all.
+  await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
+  const mailsBeforeDemo = mailFiles().length;
+  await admin.click('form:has(input[value="dx_portal_demo_case"]) button[type=submit]');
+  await admin.waitForLoadState('networkidle');
+  check('sample case opens on its overview with a notice', (await admin.textContent('h1')).includes('תיק לדוגמה') && (await admin.textContent('.notice-success')).includes('נוצר תיק לדוגמה'));
+  check('sample case: stage 05 is the current step', (await admin.textContent('.dxa-step--active')).includes('05'));
+  await axe(admin, 'case header, stages and tabs', '.dxa');
+  await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
+  const demoDash = await admin.textContent('.dxa-dash');
+  check('dashboard: totals band, the sample case listed, its overdue request flagged', (await admin.locator('.dxa-kpis li').count()) === 6 && demoDash.includes('תיק לדוגמה') && demoDash.includes('השלמת אגרות לוועדה'));
+  check('dashboard: recent activity across the manager\'s cases', (await admin.locator('.dxa-feed li').count()) > 0);
+  await axe(admin, 'dashboard with totals and activity', '.dxa');
+  await admin.screenshot({ path: out('36-admin-dashboard-upgraded.png'), fullPage: true });
+  check('the sample case sent no email', mailFiles().length === mailsBeforeDemo);
 
   check('no script errors or failed assets', errors.length === 0, errors.join(' | '));
   fs.writeFileSync(out('phase2-results.json'), JSON.stringify(results, null, 2));

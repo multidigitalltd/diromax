@@ -97,6 +97,45 @@ final class AuditLog {
 	}
 
 	/**
+	 * Recent entries across cases, newest first: every case for an
+	 * administrator (manager 0), only the manager's own cases otherwise.
+	 *
+	 * @param int $manager Manager user ID, or 0 for all cases.
+	 * @param int $limit   Maximum rows, 1–100.
+	 * @return array<int, array{action:string, case_id:int, case_title:string, number:string, created_at:string, user:string}>
+	 */
+	public function recent( int $manager, int $limit = 12 ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT a.action, a.case_id, a.created_at, c.title, c.number, u.display_name
+				   FROM %i a INNER JOIN %i c ON c.id = a.case_id LEFT JOIN %i u ON u.ID = a.user_id
+				  WHERE ( %d = 0 OR c.manager_id = %d ) AND a.action <> %s
+				  ORDER BY a.id DESC LIMIT %d',
+				Schema::table( 'audit' ),
+				Schema::table( 'cases' ),
+				$this->db->users,
+				$manager,
+				$manager,
+				'document.downloaded',
+				max( 1, min( 100, $limit ) )
+			),
+			ARRAY_A
+		);
+
+		return array_map(
+			static fn( array $row ): array => array(
+				'action'     => (string) $row['action'],
+				'case_id'    => (int) $row['case_id'],
+				'case_title' => (string) $row['title'],
+				'number'     => (string) $row['number'],
+				'created_at' => (string) $row['created_at'],
+				'user'       => (string) ( $row['display_name'] ?? '' ),
+			),
+			(array) $rows
+		);
+	}
+
+	/**
 	 * Delete entries not tied to a case that are older than the cut-off (retention).
 	 *
 	 * @param string $before UTC DATETIME.
