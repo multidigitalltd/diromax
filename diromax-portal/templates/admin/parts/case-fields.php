@@ -28,7 +28,7 @@ $managers = is_array( $view['managers'] ?? null ) ? $view['managers'] : array();
 		<tr>
 			<th scope="row"><label for="<?php echo esc_attr( $form->id( $name ) ); ?>"><?php echo esc_html( $label ); ?><?php echo $required ? ' <span class="dxa-req">' . esc_html__( '(חובה)', 'diromax-portal' ) . '</span>' : ''; ?></label></th>
 			<td>
-				<input type="text" class="regular-text" <?php echo $form->attrs( $name ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?> value="<?php echo esc_attr( $form->old( $name, null === $current ? '' : (string) $current->{$name} ) ); ?>" maxlength="<?php echo esc_attr( (string) $max ); ?>"<?php echo $required ? ' required' : ''; ?>>
+				<input type="text" class="regular-text" <?php echo $form->attrs( $name ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?> value="<?php echo esc_attr( $form->old( $name, null === $current ? (string) ( $view['prefill'][ $name ] ?? '' ) : (string) $current->{$name} ) ); ?>" maxlength="<?php echo esc_attr( (string) $max ); ?>"<?php echo $required ? ' required' : ''; ?>>
 				<?php $form->print_error( $name ); ?>
 				<?php if ( '' !== $hint ) : ?>
 					<p class="description"><?php echo esc_html( $hint ); ?></p>

@@ -28,7 +28,7 @@ final class Router {
 	public const ARG = 'dx_portal_id';
 
 	/** Views the router accepts. */
-	public const VIEWS = array( 'home', 'login', 'logout', 'case', 'doc' );
+	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc' );
 
 	/**
 	 * Register the rewrite rules.
@@ -37,7 +37,7 @@ final class Router {
 		$base = self::base();
 
 		add_rewrite_rule( '^' . $base . '/?$', 'index.php?' . self::VIEW . '=home', 'top' );
-		add_rewrite_rule( '^' . $base . '/(login|logout)/?$', 'index.php?' . self::VIEW . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/(login|logout|account)/?$', 'index.php?' . self::VIEW . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/(case|doc)/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=$matches[1]&' . self::ARG . '=$matches[2]', 'top' );
 	}
 
@@ -76,6 +76,15 @@ final class Router {
 	}
 
 	/**
+	 * The client's account page: password and email preferences.
+	 *
+	 * @return string
+	 */
+	public static function account_url(): string {
+		return self::url( 'account' );
+	}
+
+	/**
 	 * Logout endpoint (POST only).
 	 *
 	 * @return string
@@ -94,7 +103,7 @@ final class Router {
 	public static function case_url( CaseRecord $client_case, string $tab = '' ): string {
 		$url = self::url( 'case', $client_case->public_id );
 
-		return in_array( $tab, array( 'finance', 'documents', 'updates' ), true ) ? add_query_arg( 'tab', $tab, $url ) : $url;
+		return in_array( $tab, array( 'finance', 'documents', 'updates', 'decisions' ), true ) ? add_query_arg( 'tab', $tab, $url ) : $url;
 	}
 
 	/**

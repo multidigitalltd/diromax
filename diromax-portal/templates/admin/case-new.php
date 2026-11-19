@@ -24,6 +24,17 @@ $form = new Form( $view['flash'], 'case' );
 		<input type="hidden" name="action" value="dx_portal_create_case">
 		<input type="hidden" name="case_id" value="0">
 		<?php wp_nonce_field( 'dx_portal_create_case_0' ); ?>
+		<?php if ( null !== $view['lead'] ) : ?>
+			<input type="hidden" name="lead_id" value="<?php echo esc_attr( (string) $view['lead']['lead_id'] ); ?>">
+			<div class="notice notice-info inline">
+				<p>
+					<?php
+					/* translators: 1: name, 2: phone. */
+					echo esc_html( sprintf( __( 'נפתח מליד: %1$s, %2$s. אחרי השמירה מוסיפים אותו כלקוח בלשונית "לקוחות" (צריך את כתובת המייל שלו).', 'diromax-portal' ), $view['lead']['name'], $view['lead']['phone'] ) );
+					?>
+				</p>
+			</div>
+		<?php endif; ?>
 		<?php require __DIR__ . '/parts/case-fields.php'; ?>
 		<?php submit_button( __( 'פתיחת התיק', 'diromax-portal' ) ); ?>
 	</form>

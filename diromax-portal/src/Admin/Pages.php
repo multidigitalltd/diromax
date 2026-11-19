@@ -14,6 +14,7 @@ use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\LeadLink;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Settings;
 
@@ -25,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
 final class Pages {
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'details', 'members', 'budget', 'finance', 'updates', 'documents', 'log' );
+	public const TABS = array( 'overview', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -54,6 +55,48 @@ final class Pages {
 	}
 
 	/**
+	 * Manager dashboard (spec 15.8): what needs attention, across the user's cases.
+	 */
+	public function dashboard(): void {
+		$user = get_current_user_id();
+
+		if ( ! $this->app->policy->can_use_admin( $user ) ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		$view = $this->dashboard_data( $user );
+
+		include DX_PORTAL_DIR . 'templates/admin/dashboard.php';
+	}
+
+	/**
+	 * Dashboard cards for a user: everything for an administrator, own cases for a manager.
+	 *
+	 * @param int $user User.
+	 * @return array<string, mixed>
+	 */
+	public function dashboard_data( int $user ): array {
+		$manager = $this->app->policy->can_manage_all( $user ) ? 0 : $user;
+		$today   = $this->app->clock->today();
+		$day     = static fn( int $days ): string => gmdate( 'Y-m-d', (int) strtotime( $today . ' ' . sprintf( '%+d', $days ) . ' days UTC' ) );
+		$stale   = Settings::all()['stale_days'];
+		$repo    = $this->app->dashboard;
+
+		return array(
+			'all'        => 0 === $manager,
+			'today'      => $today,
+			'stale_days' => $stale,
+			'overdue'    => $repo->requests_due( $manager, '1000-01-01', $day( -1 ) ),
+			'upcoming'   => $repo->requests_due( $manager, $today, $day( 7 ) ),
+			'decisions'  => $repo->pending_decisions( $manager ),
+			'actions'    => $repo->client_actions( $manager, $this->app->clock->mysql_in( -7 * DAY_IN_SECONDS ) ),
+			'stale'      => $repo->stale_cases( $manager, $this->app->clock->mysql_in( -$stale * DAY_IN_SECONDS ) ),
+			'quiet'      => $repo->never_signed_in( $manager, $this->app->clock->mysql_in( -3 * DAY_IN_SECONDS ) ),
+			'failed'     => $repo->failed_mail( $manager ),
+		);
+	}
+
+	/**
 	 * New case form.
 	 */
 	public function new_case(): void {
@@ -63,10 +106,14 @@ final class Pages {
 			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only prefill; the lead is checked again on save.
+		$lead = isset( $_GET['lead'] ) ? ( new LeadLink( $this->app ) )->prefill( absint( $_GET['lead'] ), $user ) : null;
 		$view = array(
 			'flash'    => Flash::take(),
 			'managers' => $this->app->policy->can_manage_all( $user ) ? $this->app->case_service->managers() : array(),
 			'user'     => $user,
+			'lead'     => $lead,
+			'prefill'  => $lead ?? array(),
 		);
 
 		include DX_PORTAL_DIR . 'templates/admin/case-new.php';
@@ -154,6 +201,7 @@ final class Pages {
 			'members'   => array(
 				'members' => $this->app->members->for_case( $client_case->id ),
 				'roles'   => Labels::roles(),
+				'modes'   => Labels::notify_modes(),
 			),
 			'budget'    => array(
 				'planned'    => $this->app->budget->planned( $client_case->id ),
@@ -166,6 +214,7 @@ final class Pages {
 				'documents'  => $this->documents_by_id( $client_case ),
 				'today'      => $this->app->clock->today(),
 			),
+			'decisions' => $this->decisions_data( $client_case ),
 			'updates'   => array(
 				'updates' => $this->app->updates->for_case( $client_case->id, false ),
 				'stages'  => Stages::names(),
@@ -174,6 +223,7 @@ final class Pages {
 				'documents' => $this->app->documents->for_case( $client_case->id, false ),
 				'kinds'     => Labels::document_kinds(),
 				'key_ready' => $this->app->store->is_configured(),
+				'acks'      => $this->app->acknowledgements->for_case( $client_case->id ),
 			),
 			'log'       => array(
 				'audit' => $this->app->audit->for_case( $client_case->id, 300 ),
@@ -181,6 +231,28 @@ final class Pages {
 			),
 			default     => array(),
 		};
+	}
+
+	/**
+	 * Data of the decisions tab.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return array<string, mixed>
+	 */
+	private function decisions_data( CaseRecord $client_case ): array {
+		$decisions = $this->app->decisions->for_case( $client_case->id );
+		$names     = array();
+
+		foreach ( array_unique( array_filter( array_map( static fn( $d ): ?int => $d->answered_by, $decisions ) ) ) as $user_id ) {
+			$user              = get_userdata( (int) $user_id );
+			$names[ $user_id ] = $user ? (string) $user->display_name : '';
+		}
+
+		return array(
+			'decisions' => $decisions,
+			'names'     => $names,
+			'documents' => $this->app->documents->for_case( $client_case->id, true ),
+		);
 	}
 
 	/**
@@ -211,6 +283,7 @@ final class Pages {
 			'members'   => __( 'לקוחות', 'diromax-portal' ),
 			'budget'    => __( 'תקציב', 'diromax-portal' ),
 			'finance'   => __( 'כספים', 'diromax-portal' ),
+			'decisions' => __( 'החלטות', 'diromax-portal' ),
 			'updates'   => __( 'עדכונים', 'diromax-portal' ),
 			'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 			'log'       => __( 'יומן', 'diromax-portal' ),

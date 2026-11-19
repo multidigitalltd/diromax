@@ -37,6 +37,7 @@ final readonly class CaseRecord {
 	 * @param array<string, mixed>|null                                               $summary       Cached manager summary.
 	 * @param string                                                                  $created_at    UTC.
 	 * @param string|null                                                             $closed_at     UTC.
+	 * @param int|null                                                                $lead_id       Lead (theme dx_lead post) the case was opened from.
 	 */
 	public function __construct(
 		public int $id,
@@ -55,6 +56,7 @@ final readonly class CaseRecord {
 		public ?array $summary,
 		public string $created_at,
 		public ?string $closed_at,
+		public ?int $lead_id = null,
 	) {}
 
 	/**
@@ -84,6 +86,7 @@ final readonly class CaseRecord {
 			summary: is_array( $summary ) ? $summary : null,
 			created_at: (string) $row['created_at'],
 			closed_at: $row['closed_at'] ?? null,
+			lead_id: isset( $row['lead_id'] ) ? (int) $row['lead_id'] : null,
 		);
 	}
 

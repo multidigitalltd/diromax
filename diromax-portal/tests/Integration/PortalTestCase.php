@@ -33,6 +33,13 @@ abstract class PortalTestCase extends \WP_UnitTestCase {
 	 */
 	protected array $mails = array();
 
+	/**
+	 * Temporary upload files.
+	 *
+	 * @var string[]
+	 */
+	private array $fixtures = array();
+
 	public function set_up(): void {
 		parent::set_up();
 
@@ -46,6 +53,14 @@ abstract class PortalTestCase extends \WP_UnitTestCase {
 
 	public function tear_down(): void {
 		remove_filter( 'pre_wp_mail', array( $this, 'capture_mail' ), 10 );
+		remove_filter( 'dx_portal_is_uploaded_file', '__return_true' );
+
+		foreach ( $this->fixtures as $file ) {
+			if ( is_file( $file ) ) {
+				unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Test cleanup.
+			}
+		}
+
 		parent::tear_down();
 	}
 
@@ -118,6 +133,42 @@ abstract class PortalTestCase extends \WP_UnitTestCase {
 	 * @param array<string, string> $overrides Fields.
 	 * @return array<string, string>
 	 */
+	/**
+	 * Upload a small PDF to a case.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $manager     Uploading manager.
+	 * @param string     $kind        Document kind.
+	 * @param bool       $visible     Shown to the client.
+	 * @return \Diromax\Portal\Data\DocumentRecord
+	 */
+	protected function add_document( CaseRecord $client_case, int $manager, string $kind = 'agreement', bool $visible = true ): \Diromax\Portal\Data\DocumentRecord {
+		add_filter( 'dx_portal_is_uploaded_file', '__return_true' );
+
+		$path             = (string) tempnam( sys_get_temp_dir(), 'dxt' );
+		$this->fixtures[] = $path;
+		file_put_contents( $path, "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n" . wp_rand() . "\ntrailer << /Root 1 0 R >>\n%%EOF\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+
+		$document = $this->app->document_service->upload(
+			$client_case,
+			array(
+				'name'     => 'מסמך.pdf',
+				'type'     => 'application/pdf',
+				'tmp_name' => $path,
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => (int) filesize( $path ),
+			),
+			$kind,
+			'agreement' === $kind ? 'הסכם ניהול' : 'הצעת מחיר',
+			$visible,
+			$manager,
+			false
+		);
+		$this->assertInstanceOf( \Diromax\Portal\Data\DocumentRecord::class, $document );
+
+		return $document;
+	}
+
 	protected static function expense( array $overrides = array() ): array {
 		return array_merge(
 			array(

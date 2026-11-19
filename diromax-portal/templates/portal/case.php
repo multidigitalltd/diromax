@@ -20,9 +20,16 @@ $request    = $view['request'];
 $current    = (string) $view['tab'];
 $tab_labels = array(
 	'finance'   => __( 'כספים', 'diromax-portal' ),
+	'decisions' => __( 'החלטות', 'diromax-portal' ),
 	'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 	'updates'   => __( 'עדכונים', 'diromax-portal' ),
 );
+$waiting    = count( array_filter( $view['decisions'], static fn( array $d ): bool => $d['pending'] ) );
+$notice     = $view['notice'] ?? null;
+
+if ( array() === $view['decisions'] ) {
+	unset( $tab_labels['decisions'] );
+}
 ?>
 <section class="dxp-head" aria-labelledby="dxp-case-title">
 	<div class="dxp-wrap">
@@ -113,7 +120,44 @@ $tab_labels = array(
 </section>
 <?php endif; ?>
 
+<?php if ( ( $waiting > 0 && $view['can_answer'] ) || array() !== $view['to_confirm'] ) : ?>
+<section class="dxp-todo" aria-labelledby="dxp-todo-title">
+	<div class="dxp-wrap">
+		<h2 id="dxp-todo-title" class="dxp-todo__k"><?php esc_html_e( 'מחכה לך', 'diromax-portal' ); ?></h2>
+		<ul>
+			<?php if ( $waiting > 0 && $view['can_answer'] ) : ?>
+				<li>
+					<a href="<?php echo esc_url( add_query_arg( 'tab', 'decisions' ) ); ?>">
+						<?php
+						echo esc_html(
+							1 === $waiting
+								? __( 'החלטה אחת שמחכה לאישורך', 'diromax-portal' )
+								/* translators: %d: number of decisions. */
+								: sprintf( __( '%d החלטות שמחכות לאישורך', 'diromax-portal' ), $waiting )
+						);
+						?>
+					</a>
+				</li>
+			<?php endif; ?>
+			<?php foreach ( $view['to_confirm'] as $document ) : ?>
+				<li>
+					<a href="<?php echo esc_url( add_query_arg( 'tab', 'documents' ) . '#agreement-ack' ); ?>">
+						<?php
+						/* translators: %s: document title. */
+						echo esc_html( sprintf( __( 'אישור קריאה: %s', 'diromax-portal' ), $document['title'] ) );
+						?>
+					</a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
+</section>
+<?php endif; ?>
+
 <div class="dxp-wrap">
+	<?php if ( null !== $notice ) : ?>
+		<p class="dxp-notice dxp-notice--<?php echo esc_attr( (string) $notice['type'] ); ?>" role="<?php echo 'error' === $notice['type'] ? 'alert' : 'status'; ?>"><?php echo esc_html( (string) $notice['text'] ); ?></p>
+	<?php endif; ?>
 	<ul class="dxp-kpis" aria-label="<?php esc_attr_e( 'המצב הכספי', 'diromax-portal' ); ?>">
 		<?php foreach ( $view['kpis'] as $tile ) : ?>
 			<li class="dxp-kpi<?php echo $tile['highlight'] ? ' dxp-kpi--hl' : ''; ?>">
@@ -136,6 +180,12 @@ $tab_labels = array(
 				<?php if ( 'updates' === $key && array() !== $view['updates'] ) : ?>
 					<span class="dxp-cnt"><?php echo esc_html( (string) count( $view['updates'] ) ); ?></span>
 				<?php endif; ?>
+				<?php if ( 'decisions' === $key && $waiting > 0 ) : ?>
+					<span class="dxp-cnt dxp-cnt--hot">
+						<?php echo esc_html( (string) $waiting ); ?>
+						<span class="dxp-sr"><?php esc_html_e( 'ממתינות', 'diromax-portal' ); ?></span>
+					</span>
+				<?php endif; ?>
 			</a>
 		<?php endforeach; ?>
 	</nav>
@@ -143,6 +193,7 @@ $tab_labels = array(
 	<?php
 	$panel = array(
 		'finance'   => 'finance',
+		'decisions' => 'decisions',
 		'documents' => 'documents',
 		'updates'   => 'updates',
 	)[ $current ] ?? 'finance';

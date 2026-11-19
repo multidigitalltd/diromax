@@ -16,7 +16,14 @@ defined( 'ABSPATH' ) || exit;
 
 $form = new Form( $view['flash'], 'details' );
 $view = array_merge( $view, array( 'managers' => $view['can_all'] ? $view['managers'] : array() ) );
+$lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 ?>
+<?php if ( $lead instanceof WP_Post && current_user_can( 'edit_post', $lead->ID ) ) : ?>
+	<p class="dxa-muted">
+		<?php esc_html_e( 'התיק נפתח מליד:', 'diromax-portal' ); ?>
+		<a href="<?php echo esc_url( (string) get_edit_post_link( $lead->ID ) ); ?>"><?php echo esc_html( get_the_title( $lead ) ); ?></a>
+	</p>
+<?php endif; ?>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="form-details">
 	<input type="hidden" name="action" value="dx_portal_update_case">
 	<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">

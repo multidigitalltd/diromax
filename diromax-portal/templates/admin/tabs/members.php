@@ -34,7 +34,26 @@ $form = new Form( $view['flash'], 'member' );
 				<td><?php echo esc_html( $member->name ); ?></td>
 				<td dir="ltr"><?php echo esc_html( $member->email ); ?></td>
 				<td><?php echo esc_html( $view['roles'][ $member->role->value ] ?? '' ); ?></td>
-				<td><?php echo $member->notify ? esc_html__( 'מקבל', 'diromax-portal' ) : esc_html__( 'לא מקבל', 'diromax-portal' ); ?></td>
+				<td>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="dxa-inline">
+						<input type="hidden" name="action" value="dx_portal_member_mode">
+						<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
+						<input type="hidden" name="user_id" value="<?php echo esc_attr( (string) $member->user_id ); ?>">
+						<?php wp_nonce_field( 'dx_portal_member_mode_' . $case->id ); ?>
+						<label class="screen-reader-text" for="dxa-mode-<?php echo esc_attr( (string) $member->user_id ); ?>">
+							<?php
+							/* translators: %s: member name. */
+							echo esc_html( sprintf( __( 'מיילים ל%s', 'diromax-portal' ), $member->name ) );
+							?>
+						</label>
+						<select id="dxa-mode-<?php echo esc_attr( (string) $member->user_id ); ?>" name="mode">
+							<?php foreach ( $view['modes'] as $value => $label ) : ?>
+								<option value="<?php echo esc_attr( (string) $value ); ?>"<?php selected( $member->mode()->value, $value ); ?>><?php echo esc_html( (string) $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<button type="submit" class="button button-small"><?php esc_html_e( 'שמירה', 'diromax-portal' ); ?></button>
+					</form>
+				</td>
 				<td><?php echo esc_html( Labels::datetime( $member->invited_at ) . ' / ' . ( null === $member->last_seen_at ? '—' : Labels::datetime( $member->last_seen_at ) ) ); ?></td>
 				<td class="dxa-actions">
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">

@@ -21,13 +21,13 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '1';
+	public const VERSION = '2';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
 
 	/** Every table, without prefix. */
-	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens' );
+	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements' );
 
 	/**
 	 * Full table name.
@@ -96,6 +96,8 @@ final class Schema {
 		$events  = self::table( 'events' );
 		$mail    = self::table( 'mail_log' );
 		$tokens  = self::table( 'login_tokens' );
+		$choices = self::table( 'decisions' );
+		$acks    = self::table( 'acknowledgements' );
 
 		return array(
 			"CREATE TABLE {$cases} (
@@ -116,16 +118,20 @@ final class Schema {
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   closed_at datetime DEFAULT NULL,
+  lead_id bigint(20) unsigned DEFAULT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY public_id (public_id),
   UNIQUE KEY number (number),
-  KEY manager_status (manager_id,status)
+  KEY manager_status (manager_id,status),
+  KEY lead_id (lead_id)
 ) {$c};",
 			"CREATE TABLE {$members} (
   case_id bigint(20) unsigned NOT NULL,
   user_id bigint(20) unsigned NOT NULL,
   role varchar(20) NOT NULL DEFAULT 'owner',
   notify tinyint(1) NOT NULL DEFAULT 1,
+  digest tinyint(1) NOT NULL DEFAULT 0,
+  digest_sent_at datetime DEFAULT NULL,
   invited_at datetime DEFAULT NULL,
   last_seen_at datetime DEFAULT NULL,
   created_at datetime NOT NULL,
@@ -162,8 +168,12 @@ final class Schema {
   voided_by bigint(20) unsigned DEFAULT NULL,
   voided_at datetime DEFAULT NULL,
   void_reason varchar(200) NOT NULL DEFAULT '',
+  reminders_sent tinyint(3) unsigned NOT NULL DEFAULT 0,
+  overdue_reminders tinyint(3) unsigned NOT NULL DEFAULT 0,
+  last_reminder_on date DEFAULT NULL,
   PRIMARY KEY  (id),
   KEY case_date (case_id,entry_date),
+  KEY type_status_due (type,status,due_date),
   KEY case_type (case_id,type,status),
   KEY request_id (request_id),
   KEY document_id (document_id)
@@ -269,6 +279,37 @@ final class Schema {
   KEY user_id (user_id),
   KEY expires_at (expires_at)
 ) {$c};",
+			"CREATE TABLE {$choices} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  title varchar(200) NOT NULL,
+  body text NOT NULL,
+  amount bigint(20) DEFAULT NULL,
+  document_id bigint(20) unsigned DEFAULT NULL,
+  due_date date DEFAULT NULL,
+  status varchar(12) NOT NULL DEFAULT 'pending',
+  fingerprint char(64) NOT NULL DEFAULT '',
+  answer_note varchar(500) NOT NULL DEFAULT '',
+  answered_by bigint(20) unsigned DEFAULT NULL,
+  answered_at datetime DEFAULT NULL,
+  withdraw_reason varchar(200) NOT NULL DEFAULT '',
+  created_by bigint(20) unsigned NOT NULL,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY case_status (case_id,status),
+  KEY status_updated (status,updated_at),
+  KEY document_id (document_id)
+) {$c};",
+			"CREATE TABLE {$acks} (
+  document_id bigint(20) unsigned NOT NULL,
+  user_id bigint(20) unsigned NOT NULL,
+  case_id bigint(20) unsigned NOT NULL,
+  sha256 char(64) NOT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (document_id,user_id),
+  KEY case_created (case_id,created_at)
+) {$c};",
 		);
 	}
 
@@ -300,6 +341,11 @@ final class Schema {
 			'dx_mail_case'      => array( 'mail_log', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_tokens_user'    => array( 'login_tokens', "FOREIGN KEY (user_id) REFERENCES {$users} (ID) ON DELETE CASCADE" ),
 			'dx_cases_stage'    => array( 'cases', 'CHECK (stage BETWEEN 1 AND 7)' ),
+			'dx_choices_case'   => array( 'decisions', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_choices_doc'    => array( 'decisions', 'FOREIGN KEY (document_id) REFERENCES ' . self::table( 'documents' ) . ' (id) ON DELETE SET NULL' ),
+			'dx_choices_amount' => array( 'decisions', 'CHECK (amount IS NULL OR amount >= 0)' ),
+			'dx_acks_case'      => array( 'acknowledgements', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_acks_doc'       => array( 'acknowledgements', 'FOREIGN KEY (document_id) REFERENCES ' . self::table( 'documents' ) . ' (id) ON DELETE CASCADE' ),
 		);
 	}
 

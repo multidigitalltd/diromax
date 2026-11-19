@@ -229,8 +229,8 @@ final class CaseServiceTest extends PortalTestCase {
 			)
 		);
 
-		$this->assertSame( 13, $count( 'FOREIGN KEY' ) );
-		$this->assertSame( 3, $count( 'CHECK' ) );
+		$this->assertSame( 17, $count( 'FOREIGN KEY' ) );
+		$this->assertSame( 4, $count( 'CHECK' ) );
 		$this->assertSame( Schema::VERSION, get_option( Schema::OPTION ) );
 	}
 

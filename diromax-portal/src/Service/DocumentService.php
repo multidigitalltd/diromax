@@ -110,6 +110,11 @@ final class DocumentService {
 			return Errors::forbidden();
 		}
 
+		if ( $this->app->decisions->uses_document( $document->id ) ) {
+			// The decision's record of what the client saw depends on this file.
+			return new WP_Error( 'dx_document_in_use', __( 'המסמך מצורף להחלטה בתיק, ולכן אי אפשר למחוק אותו. אפשר להסתיר אותו מהלקוח.', 'diromax-portal' ) );
+		}
+
 		$this->app->store->delete( $document->stored_name );
 		$this->app->documents->delete( $document->id );
 		$this->app->audit->record( 'document.deleted', $client_case->id, 'document', $document->id, array( 'title' => $document->title ), $this->app->clock->mysql() );

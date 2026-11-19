@@ -13,6 +13,8 @@ use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Portal\Controller;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Security\ClientGuard;
+use Diromax\Portal\Service\DailyJobs;
+use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Service\Retention;
 
 defined( 'ABSPATH' ) || exit;
@@ -37,6 +39,13 @@ final class Hooks {
 		add_filter( 'cron_schedules', array( self::class, 'cron_schedules' ) ); // phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval -- Five minutes: the email batch window needs it (spec 8.2).
 		add_action( Plugin::CRON_NOTIFY, array( $app->notifier, 'run' ) );
 		add_action(
+			Plugin::CRON_NOTIFY,
+			static function () use ( $app ): void {
+				( new DailyJobs( $app ) )->maybe_run();
+			},
+			20
+		);
+		add_action(
 			Plugin::CRON_CLEANUP,
 			static function () use ( $retention ): void {
 				$retention->cleanup();
@@ -48,6 +57,10 @@ final class Hooks {
 		add_filter( 'wp_privacy_personal_data_erasers', array( $retention, 'register_eraser' ) );
 
 		add_filter( 'dx_nav_links', array( self::class, 'nav_link' ), 10, 2 );
+		add_filter(
+			'attach_session_information',
+			static fn( array $session ): array => ( new PasswordService( Plugin::instance() ) )->stamp_session( $session )
+		);
 
 		ClientGuard::register( $app );
 

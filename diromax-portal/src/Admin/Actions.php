@@ -11,7 +11,10 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Service\CsvExport;
+use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
+use Diromax\Portal\Service\ReminderService;
 use Diromax\Portal\Service\UpdateService;
 use Diromax\Portal\Settings;
 use WP_Error;
@@ -29,19 +32,23 @@ final class Actions {
 
 	/** Action => [single-line fields, multi-line fields]. */
 	private const ACTIONS = array(
-		'create_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id' ), array() ),
+		'create_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'lead_id' ), array() ),
 		'update_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'stage' ), array() ),
 		'case_status'         => array( array( 'status' ), array() ),
 		'add_member'          => array( array( 'email', 'name', 'role', 'notify', 'invite' ), array() ),
 		'remove_member'       => array( array( 'user_id' ), array() ),
+		'member_mode'         => array( array( 'user_id', 'mode' ), array() ),
 		'invite'              => array( array( 'user_id' ), array() ),
 		'save_budget'         => array( array(), array() ),
 		'add_entry'           => array( array( 'type', 'status', 'entry_date', 'due_date', 'amount', 'vat_mode', 'category', 'payee', 'description', 'funding', 'pay_to', 'method', 'reference', 'visible', 'notify' ), array( 'payment_details', 'internal_note' ) ),
 		'update_entry'        => array( array( 'entry_id', 'status', 'entry_date', 'due_date', 'amount', 'vat_mode', 'category', 'payee', 'description', 'funding', 'pay_to', 'method', 'reference', 'visible', 'notify' ), array( 'payment_details', 'internal_note' ) ),
 		'void_entry'          => array( array( 'entry_id', 'reason', 'notify' ), array() ),
 		'settle_request'      => array( array( 'entry_id', 'entry_date', 'category', 'method', 'reference', 'notify' ), array() ),
+		'send_reminder'       => array( array( 'entry_id' ), array() ),
 		'add_update'          => array( array( 'title', 'stage', 'visible', 'notify' ), array( 'body' ) ),
 		'upload_document'     => array( array( 'kind', 'title', 'visible', 'notify' ), array() ),
+		'add_decision'        => array( array( 'title', 'amount', 'document_id', 'due_date', 'notify' ), array( 'body' ) ),
+		'withdraw_decision'   => array( array( 'decision_id', 'reason' ), array() ),
 		'document_visibility' => array( array( 'document_id', 'visible' ), array() ),
 		'delete_document'     => array( array( 'document_id' ), array() ),
 		'send_now'            => array( array(), array() ),
@@ -67,6 +74,7 @@ final class Actions {
 		add_action( 'admin_post_dx_portal_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
+		add_action( 'admin_post_dx_portal_export', array( $this, 'export' ) );
 	}
 
 	/**
@@ -99,14 +107,18 @@ final class Actions {
 			'case_status'         => $this->case_status( $client_case, $input, $actor ),
 			'add_member'          => $this->add_member( $client_case, $input, $actor ),
 			'remove_member'       => $this->remove_member( $client_case, $input, $actor ),
+			'member_mode'         => $this->member_mode( $client_case, $input, $actor ),
 			'invite'              => $this->invite( $client_case, $input, $actor ),
 			'save_budget'         => $this->save_budget( $client_case, $actor ),
 			'add_entry'           => $this->add_entry( $client_case, $input, $actor ),
 			'update_entry'        => $this->update_entry( $client_case, $input, $actor ),
 			'void_entry'          => $this->void_entry( $client_case, $input, $actor ),
 			'settle_request'      => $this->settle_request( $client_case, $input, $actor ),
+			'send_reminder'       => $this->finish( $client_case, 'finance', ( new ReminderService( $this->app ) )->send_now( $client_case, absint( $input['entry_id'] ), $actor ), __( 'התזכורת נשלחה ללקוח.', 'diromax-portal' ) ),
 			'add_update'          => $this->add_update( $client_case, $input, $actor ),
 			'upload_document'     => $this->upload_document( $client_case, $input, $actor ),
+			'add_decision'        => $this->finish( $client_case, 'decisions', ( new DecisionService( $this->app ) )->create( $client_case, $input, $actor ), __( 'הבקשה נשלחה ללקוח.', 'diromax-portal' ), 'decision', $input ),
+			'withdraw_decision'   => $this->finish( $client_case, 'decisions', ( new DecisionService( $this->app ) )->withdraw( $client_case, absint( $input['decision_id'] ), $input['reason'], $actor ), __( 'הבקשה בוטלה.', 'diromax-portal' ), 'withdraw-' . absint( $input['decision_id'] ), $input ),
 			'document_visibility' => $this->document_visibility( $client_case, $input, $actor ),
 			'delete_document'     => $this->delete_document( $client_case, $input, $actor ),
 			'send_now'            => $this->send_now( $client_case, $actor ),
@@ -180,6 +192,17 @@ final class Actions {
 	 */
 	private function remove_member( CaseRecord $client_case, array $input, int $actor ): void {
 		$this->finish( $client_case, 'members', $this->app->case_service->remove_member( $client_case, absint( $input['user_id'] ), $actor ), __( 'הלקוח הוסר מהתיק.', 'diromax-portal' ) );
+	}
+
+	/**
+	 * Change a member's email mode.
+	 *
+	 * @param CaseRecord            $client_case Case.
+	 * @param array<string, string> $input       Fields.
+	 * @param int                   $actor       Actor.
+	 */
+	private function member_mode( CaseRecord $client_case, array $input, int $actor ): void {
+		$this->finish( $client_case, 'members', $this->app->case_service->set_member_mode( $client_case, absint( $input['user_id'] ), $input['mode'], $actor ), __( 'העדפת המיילים נשמרה.', 'diromax-portal' ) );
 	}
 
 	/**
@@ -391,7 +414,12 @@ final class Actions {
 			'payment_details'  => sanitize_textarea_field( (string) ( $raw['payment_details'] ?? '' ) ),
 			'access_months'    => sanitize_text_field( (string) ( $raw['access_months'] ?? '' ) ),
 			'categories'       => self::categories_input( (string) ( $raw['categories'] ?? '' ) ),
+			'monthly_summary'  => isset( $raw['monthly_summary'] ) ? '1' : '0',
 		);
+
+		foreach ( array( 'daily_hour', 'remind_before_days', 'remind_overdue_every', 'remind_overdue_max', 'stale_days' ) as $number ) {
+			$input[ $number ] = sanitize_text_field( (string) ( $raw[ $number ] ?? '' ) );
+		}
 
 		$before = Settings::all();
 		$after  = Settings::save( $input );
@@ -415,6 +443,24 @@ final class Actions {
 			wp_die( esc_html__( 'המסמך לא נמצא.', 'diromax-portal' ), '', array( 'response' => 404 ) );
 		}
 
+		exit;
+	}
+
+	/**
+	 * Download the case's finance table as CSV (every entry, staff columns).
+	 */
+	public function export(): void {
+		$case_id = isset( $_GET['case_id'] ) ? absint( $_GET['case_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified on the next line.
+		check_admin_referer( 'dx_portal_export_' . $case_id );
+
+		$client_case = $this->app->cases->find( $case_id );
+		$csv         = null === $client_case ? Errors::not_found() : ( new CsvExport( $this->app ) )->build( $client_case, get_current_user_id(), true );
+
+		if ( $csv instanceof WP_Error || null === $client_case ) {
+			wp_die( esc_html__( 'התיק לא נמצא, או שאין לך הרשאה אליו.', 'diromax-portal' ), '', array( 'response' => 404 ) );
+		}
+
+		CsvExport::output( $csv, CsvExport::filename( $client_case, $this->app->clock->today() ) );
 		exit;
 	}
 

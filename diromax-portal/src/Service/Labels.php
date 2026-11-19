@@ -14,7 +14,9 @@ use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
 use Diromax\Portal\Domain\Funding;
 use Diromax\Portal\Domain\LedgerEntry;
+use Diromax\Portal\Domain\DecisionStatus;
 use Diromax\Portal\Domain\MemberRole;
+use Diromax\Portal\Domain\NotifyMode;
 use Diromax\Portal\Domain\PayTo;
 
 defined( 'ABSPATH' ) || exit;
@@ -117,6 +119,33 @@ final class Labels {
 			MemberRole::Owner->value   => __( 'בעלים', 'diromax-portal' ),
 			MemberRole::Partner->value => __( 'שותף / יורש', 'diromax-portal' ),
 			MemberRole::Viewer->value  => __( 'צופה', 'diromax-portal' ),
+		);
+	}
+
+	/**
+	 * Email modes of a member.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function notify_modes(): array {
+		return array(
+			NotifyMode::Instant->value => __( 'מייל על כל עדכון', 'diromax-portal' ),
+			NotifyMode::Daily->value   => __( 'סיכום יומי', 'diromax-portal' ),
+			NotifyMode::Off->value     => __( 'בלי מיילים', 'diromax-portal' ),
+		);
+	}
+
+	/**
+	 * Decision statuses.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function decision_statuses(): array {
+		return array(
+			DecisionStatus::Pending->value   => __( 'ממתינה לתשובה', 'diromax-portal' ),
+			DecisionStatus::Approved->value  => __( 'אושרה', 'diromax-portal' ),
+			DecisionStatus::Declined->value  => __( 'נדחתה', 'diromax-portal' ),
+			DecisionStatus::Withdrawn->value => __( 'בוטלה', 'diromax-portal' ),
 		);
 	}
 

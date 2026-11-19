@@ -79,11 +79,14 @@ a{text-decoration:none;}
 		</tr></table>
 		<h1 class="dx-h1 dx-text" style="margin:0 0 14px;font-family:<?php echo esc_attr( $font ); ?>;font-size:30px;line-height:1.15;font-weight:900;color:#15171c;"><?php echo esc_html( $headline ); ?></h1>
 		<p class="dx-body" style="margin:0;font-size:16px;line-height:1.6;color:#3a3d44;">
-			<?php
-			/* translators: %s: recipient name. */
-			echo esc_html( sprintf( __( 'שלום %s,', 'diromax-portal' ), (string) ( $view['greeting'] ?? '' ) ) );
-			?>
-			<br><?php echo esc_html( (string) ( $view['intro'] ?? '' ) ); ?>
+			<?php if ( '' !== (string) ( $view['greeting'] ?? '' ) ) : ?>
+				<?php
+				/* translators: %s: recipient name. */
+				echo esc_html( sprintf( __( 'שלום %s,', 'diromax-portal' ), (string) $view['greeting'] ) );
+				?>
+				<br>
+			<?php endif; ?>
+			<?php echo esc_html( (string) ( $view['intro'] ?? '' ) ); ?>
 		</p>
 	</td></tr>
 

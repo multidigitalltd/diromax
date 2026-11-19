@@ -43,6 +43,9 @@ define( 'DX_PORTAL_PRIVATE_DIR', '$work/private' );
 define( 'WP_HOME', 'http://127.0.0.1:8088' );
 define( 'WP_SITEURL', 'http://127.0.0.1:8088' );
 define( 'DISABLE_WP_CRON', true );
+// No outbound HTTP (update checks would stall the single-threaded server).
+define( 'WP_HTTP_BLOCK_EXTERNAL', true );
+define( 'AUTOMATIC_UPDATER_DISABLED', true );
 if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', __DIR__ . '/' ); }
 require_once ABSPATH . 'wp-settings.php';
 CONFIG
@@ -55,6 +58,19 @@ add_filter( 'pre_wp_mail', static function ( \$short, array \$atts ) {
 	return true;
 }, 10, 2 );
 MAIL
+
+# No update checks: they need WordPress.org, which a sandbox may not reach.
+cat > "$wp/wp-content/mu-plugins/e2e-no-updates.php" <<'NOUPDATES'
+<?php
+add_action(
+	'init',
+	static function () {
+		remove_action( 'admin_init', '_maybe_update_core' );
+		remove_action( 'admin_init', '_maybe_update_plugins' );
+		remove_action( 'admin_init', '_maybe_update_themes' );
+	}
+);
+NOUPDATES
 
 php "$here/install.php" "$wp"
 php "$here/seed.php" "$wp"
