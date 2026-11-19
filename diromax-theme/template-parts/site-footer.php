@@ -9,7 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$dx_a11y_page = dx_a11y_url();
 ?>
 <footer class="dx-footer">
 	<div class="dx-wrap dx-pad-strip">
@@ -43,24 +42,16 @@ $dx_a11y_page = dx_a11y_url();
 				</div>
 			</div>
 
-			<?php
-			$dx_has_menu = has_nav_menu( 'footer' );
-			$dx_legal    = $dx_has_menu ? dx_nav_links( 'footer' ) : array();
-			?>
-			<?php if ( $dx_has_menu || $dx_a11y_page ) : ?>
-				<nav aria-label="<?php esc_attr_e( 'מידע משפטי ונגישות', 'diromax' ); ?>">
-					<h2 class="dx-footer__h"><?php dx_the_text( 'general.footer_col_info' ); ?></h2>
-					<div class="dx-footer__links">
-						<?php if ( $dx_has_menu ) : ?>
-							<?php foreach ( $dx_legal as $dx_link ) : ?>
-								<a href="<?php echo esc_url( $dx_link['url'] ); ?>"><?php echo esc_html( $dx_link['label'] ); ?></a>
-							<?php endforeach; ?>
-						<?php elseif ( $dx_a11y_page ) : ?>
-							<a href="<?php echo esc_url( $dx_a11y_page ); ?>"><?php esc_html_e( 'הצהרת נגישות', 'diromax' ); ?></a>
-						<?php endif; ?>
-					</div>
-				</nav>
-			<?php endif; ?>
+			<?php $dx_legal = dx_legal_links(); ?>
+			<nav aria-label="<?php esc_attr_e( 'מידע משפטי ונגישות', 'diromax' ); ?>">
+				<h2 class="dx-footer__h"><?php dx_the_text( 'general.footer_col_info' ); ?></h2>
+				<div class="dx-footer__links">
+					<?php foreach ( $dx_legal as $dx_link ) : ?>
+						<a href="<?php echo esc_url( $dx_link['url'] ); ?>"><?php echo esc_html( $dx_link['label'] ); ?></a>
+					<?php endforeach; ?>
+					<button type="button" class="dx-footer__linkbtn" data-dx-privacy-open hidden><?php dx_the_text( 'general.privacy_settings' ); ?></button>
+				</div>
+			</nav>
 
 		</div>
 		<div class="dx-footer__bottom">
@@ -76,6 +67,9 @@ $dx_a11y_page = dx_a11y_url();
 				?>
 			</span>
 			<span><?php dx_the_text( 'general.footer_note' ); ?></span>
+			<?php if ( dx_show_credit() ) : ?>
+				<a class="dx-footer__credit" href="https://m-d.co.il" target="_blank" rel="noopener"><?php dx_the_text( 'general.credit' ); ?><span class="dx-sr-only"> <?php esc_html_e( '(נפתח בחלון חדש)', 'diromax' ); ?></span></a>
+			<?php endif; ?>
 		</div>
 	</div>
 </footer>

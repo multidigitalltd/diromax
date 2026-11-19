@@ -137,7 +137,7 @@ php bin/build-assets.php
 ```bash
 bash diromax-portal/tests/e2e/setup.sh /tmp/dx-e2e
 cd diromax-portal/tests/e2e && npm ci --ignore-scripts
-node client.e2e.js /tmp/dx-e2e && node manager.e2e.js /tmp/dx-e2e && node phase2.e2e.js /tmp/dx-e2e
+node client.e2e.js /tmp/dx-e2e && node manager.e2e.js /tmp/dx-e2e && node phase2.e2e.js /tmp/dx-e2e && node theme.e2e.js /tmp/dx-e2e
 ```
 
 ### מבנה

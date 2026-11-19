@@ -215,6 +215,7 @@
 						button.disabled = false;
 						button.textContent = label;
 					}
+					resetCaptcha(form);
 					showAlert(form, res && res.data && res.data.message);
 				});
 		}).catch(function () {
@@ -225,6 +226,36 @@
 			showAlert(form, cfg.strings.error);
 		});
 	});
+
+	// A Turnstile token is single-use: a resubmission needs a fresh one (standard 15.3.4).
+	function resetCaptcha(form) {
+		var widget = form.querySelector('.cf-turnstile');
+		if (widget && window.turnstile && window.turnstile.reset) {
+			window.turnstile.reset(widget);
+		}
+	}
+
+	// Campaign source (standard 15.2.2): utm_* of the landing page, kept for the session.
+	(function utm() {
+		var value = '';
+		try {
+			var params = new URLSearchParams(window.location.search);
+			var parts = ['utm_source', 'utm_medium', 'utm_campaign'].map(function (key) {
+				return (params.get(key) || '').slice(0, 60);
+			});
+			if (parts.join('')) {
+				value = parts.join(' / ');
+				window.sessionStorage.setItem('dx_utm', value);
+			} else {
+				value = window.sessionStorage.getItem('dx_utm') || '';
+			}
+		} catch (e) {
+			value = '';
+		}
+		Array.prototype.forEach.call(document.querySelectorAll('[data-dx-utm]'), function (field) {
+			field.value = value;
+		});
+	})();
 
 	// Clear a field error as soon as the visitor starts fixing it.
 	document.addEventListener('input', function (e) {

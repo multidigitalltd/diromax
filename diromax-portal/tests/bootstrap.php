@@ -25,6 +25,16 @@ tests_add_filter(
 	}
 );
 
+// The Diromax theme is active in the tests too, straight from the repository.
+tests_add_filter(
+	'muplugins_loaded',
+	static function () use ( $dx_portal_root ): void {
+		register_theme_directory( $dx_portal_root );
+	}
+);
+tests_add_filter( 'pre_option_template', static fn(): string => 'diromax-theme' );
+tests_add_filter( 'pre_option_stylesheet', static fn(): string => 'diromax-theme' );
+
 // Tests run inside a transaction; nested writes must use savepoints.
 tests_add_filter( 'dx_portal_nested_transactions', '__return_true' );
 
@@ -38,3 +48,7 @@ require $dx_portal_tests_dir . '/includes/bootstrap.php';
 
 // Install once, outside any test transaction (DDL would end it).
 Diromax\Portal\Plugin::activate();
+
+// What the next request does on a real site: the theme grants lead access to
+// the roles the portal has just created.
+dx_leads_grant_caps();

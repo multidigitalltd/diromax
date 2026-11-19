@@ -44,7 +44,8 @@ function dx_register_lead_cpt() {
 			'show_ui'         => true,
 			'menu_icon'       => 'dashicons-phone',
 			'supports'        => array( 'title', 'editor' ),
-			'capability_type' => 'post',
+			// A capability of its own (standard 15.2.3): see dx_leads_grant_caps().
+			'capability_type' => array( 'dx_lead', 'dx_leads' ),
 			'map_meta_cap'    => true,
 			'capabilities'    => array( 'create_posts' => 'do_not_allow' ),
 		)
@@ -145,6 +146,14 @@ function dx_process_lead() {
 		return true;
 	}
 
+	if ( dx_turnstile_enabled() && ! dx_turnstile_verify( isset( $_POST['cf-turnstile-response'] ) ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) ) : '', 'dx_lead' ) ) {
+		return new WP_Error(
+			'dx_captcha',
+			__( 'לא הצלחנו לאמת שהפנייה נשלחה מדפדפן. אפשר לנסות שוב או להתקשר אלינו.', 'diromax' ),
+			array( 'status' => 400 )
+		);
+	}
+
 	if ( dx_lead_rate_exceeded() ) {
 		return new WP_Error(
 			'dx_rate',
@@ -225,8 +234,9 @@ function dx_process_lead() {
 		}
 	}
 
+	dx_lead_store_crm( $post_id, dx_lead_utm( $_POST['dx_utm'] ?? '' ) );
 	dx_lead_rate_bump();
-	dx_mail_lead( $name, $body );
+	dx_lead_notify( $post_id );
 
 	/**
 	 * Fires once a lead is stored. Hook a CRM here.
@@ -269,31 +279,6 @@ function dx_lead_source( $value ) {
 	$home = wp_parse_url( home_url(), PHP_URL_HOST );
 
 	return ( $host && $home && strtolower( $host ) === strtolower( $home ) ) ? $url : '';
-}
-
-/**
- * Notify the office. Failure is not fatal — the lead is already stored.
- *
- * @param string $name Lead name.
- * @param string $body Plain-text body.
- */
-function dx_mail_lead( $name, $body ) {
-	$to = get_theme_mod( 'dx_lead_to' );
-
-	if ( ! is_email( $to ) ) {
-		$to = get_option( 'admin_email' );
-	}
-
-	wp_mail(
-		$to,
-		sprintf(
-			/* translators: %s: lead name. */
-			__( 'ליד חדש מהאתר — %s', 'diromax' ),
-			$name
-		),
-		$body,
-		array( 'Content-Type: text/plain; charset=UTF-8' )
-	);
 }
 
 /**
@@ -359,6 +344,7 @@ function dx_lead_notice() {
 		'dx_required' => array( 'error', __( 'צריך שם וטלפון כדי שנוכל לחזור אליך.', 'diromax' ) ),
 		'dx_phone'    => array( 'error', __( 'מספר הטלפון לא נראה תקין. אפשר לבדוק אותו שוב?', 'diromax' ) ),
 		'dx_store'    => array( 'error', __( 'לא הצלחנו לשמור את הפנייה. אפשר להתקשר אלינו ישירות.', 'diromax' ) ),
+		'dx_captcha'  => array( 'error', __( 'לא הצלחנו לאמת שהפנייה נשלחה מדפדפן. אפשר לנסות שוב או להתקשר אלינו.', 'diromax' ) ),
 	);
 
 	if ( ! isset( $messages[ $flag ] ) ) {

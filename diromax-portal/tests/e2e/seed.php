@@ -53,5 +53,15 @@ $app->ledger_service->add( $case, $e( array( 'entry_date' => '2026-11-14', 'amou
 
 $app->notifier->process_case( $case->id, true );
 
+// Legal pages the footer links (standard 15.6): privacy policy, terms, accessibility statement.
+$privacy_page = (int) get_option( 'wp_page_for_privacy_policy' );
+if ( $privacy_page ) {
+	wp_update_post( array( 'ID' => $privacy_page, 'post_status' => 'publish', 'post_title' => 'מדיניות פרטיות' ) );
+}
+set_theme_mod( 'dx_terms_page', wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'תנאי שימוש', 'post_content' => 'תנאי השימוש באתר.' ) ) );
+$a11y_page = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'הצהרת נגישות', 'post_content' => 'הצהרת הנגישות.' ) );
+update_post_meta( $a11y_page, '_wp_page_template', 'page-templates/template-accessibility.php' );
+delete_transient( 'dx_a11y_url' );
+
 $fresh = $app->cases->find( $case->id );
 printf( "manager=%d client=%d case=%d public=%s stage=%d\n", $manager, $member, $case->id, $fresh->public_id, $fresh->stage );

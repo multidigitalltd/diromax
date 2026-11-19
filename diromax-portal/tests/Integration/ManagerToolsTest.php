@@ -20,11 +20,6 @@ use WP_Error;
 
 final class ManagerToolsTest extends PortalTestCase {
 
-	public function tear_down(): void {
-		unregister_post_type( LeadLink::POST_TYPE );
-		parent::tear_down();
-	}
-
 	public function test_the_client_csv_has_only_what_the_client_sees_and_defuses_formulas(): void {
 		[ $manager, $case, $client ] = $this->case_with_client();
 		$this->app->ledger_service->add(
@@ -174,7 +169,6 @@ final class ManagerToolsTest extends PortalTestCase {
 	}
 
 	public function test_a_case_opened_from_a_lead_is_linked_both_ways_once(): void {
-		$this->register_leads();
 		$admin = $this->admin();
 		$lead  = $this->lead();
 
@@ -210,9 +204,9 @@ final class ManagerToolsTest extends PortalTestCase {
 	}
 
 	public function test_a_user_who_cannot_edit_the_lead_cannot_use_it(): void {
-		$this->register_leads();
 		$manager = $this->manager();
 		$lead    = $this->lead();
+		( new \WP_User( $manager ) )->add_cap( 'edit_others_dx_leads', false );
 
 		$this->assertNull( ( new LeadLink( $this->app ) )->prefill( $lead, $manager ) );
 		$this->assertInstanceOf(
@@ -239,7 +233,6 @@ final class ManagerToolsTest extends PortalTestCase {
 	}
 
 	public function test_lead_row_actions(): void {
-		$this->register_leads();
 		$admin = $this->admin();
 		wp_set_current_user( $admin );
 		$lead  = $this->lead();
@@ -298,21 +291,6 @@ final class ManagerToolsTest extends PortalTestCase {
 			$manager
 		);
 		$this->assertIsInt( $id );
-	}
-
-	/**
-	 * The theme's lead post type, as the theme registers it.
-	 */
-	private function register_leads(): void {
-		register_post_type(
-			LeadLink::POST_TYPE,
-			array(
-				'public'          => false,
-				'show_ui'         => true,
-				'capability_type' => 'post',
-				'map_meta_cap'    => true,
-			)
-		);
 	}
 
 	/**

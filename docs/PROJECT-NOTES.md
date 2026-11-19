@@ -35,7 +35,9 @@ bash bin/build-zip.sh                 # dist/diromax.zip (theme)
 
 ## Architecture
 
-- `diromax-theme/` — the site's look and copy. Business data never lives here.
+- `diromax-theme/` — the site's look and copy. Business data never lives here, except the leads from the contact form (custom post type `dx_lead`).
+  - Multi Digital web defaults (standard 15): leads have their own capability (administrators and project managers), status, internal notes, consent record, campaign source, retention with automatic deletion (default 24 months), an audited CSV export and a retried notification (`inc/leads-crm.php`); Turnstile on the lead form when `DX_TURNSTILE_*` are defined (`inc/turnstile.php`); first-visit privacy notice, legal footer links and the Multi Digital credit (`inc/privacy.php`).
+  - The theme is loaded in the PHPUnit integration suite (`ThemeWebDefaultsTest`) and covered by `tests/e2e/theme.e2e.js`. It is not yet under PHPCS/PHPStan in CI (its own conventions differ from the plugin's ruleset).
 - `diromax-portal/` — the client portal plugin. Namespace `Diromax\Portal`, PSR-4 under `src/`.
   - `src/Domain` — pure PHP: money, VAT, ledger rules, the summary calculator. No WordPress calls; unit-tested to 100%.
   - `src/Security` — capabilities, the single access policy, rate limiting, document encryption, Turnstile.

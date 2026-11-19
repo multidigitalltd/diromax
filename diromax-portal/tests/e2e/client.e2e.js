@@ -21,6 +21,14 @@ function latestMail() {
   return JSON.parse(fs.readFileSync(path.join(S, 'mails', files[files.length - 1]), 'utf8'));
 }
 
+// The theme's first-visit privacy notice is tested in theme.e2e.js; here it is acknowledged once per browser.
+async function dismissPrivacy(page) {
+  const ok = page.locator('[data-dx-privacy-ok]');
+  if (await ok.isVisible().catch(() => false)) {
+    await ok.click();
+  }
+}
+
 (async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
@@ -35,6 +43,7 @@ function latestMail() {
   check('portal redirects anonymous visitors to login', page.url().startsWith(BASE + '/portal/login/'));
   const h = resp.headers();
   check('login page: no-store + noindex + nosniff + frame', /no-store/.test(h['cache-control'] || '') && /noindex/.test(h['x-robots-tag'] || '') && h['x-content-type-options'] === 'nosniff' && /SAMEORIGIN/.test(h['x-frame-options'] || ''), JSON.stringify({ cc: h['cache-control'], robots: h['x-robots-tag'], ref: h['referrer-policy'] }));
+  await dismissPrivacy(page);
   await page.screenshot({ path: out('01-login.png') });
   await axe(page, 'login form');
 

@@ -30,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php endif; ?>
 
 <?php
+get_template_part( 'template-parts/privacy-notice' );
 dx_a11y_toolbar();
 wp_footer();
 ?>

@@ -146,6 +146,10 @@ jobs:
         working-directory: diromax-portal/tests/e2e
         run: node phase2.e2e.js "$RUNNER_TEMP/e2e"
 
+      - name: Theme web defaults (privacy notice, footer, leads CRM)
+        working-directory: diromax-portal/tests/e2e
+        run: node theme.e2e.js "$RUNNER_TEMP/e2e"
+
       - name: No PHP warnings or notices
         run: |
           if [ -f "$RUNNER_TEMP/e2e/debug.log" ] && grep -v '"source":"diromax-portal"' "$RUNNER_TEMP/e2e/debug.log"; then
