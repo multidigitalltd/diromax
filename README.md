@@ -189,8 +189,8 @@ HTML סמנטי, H1 יחיד, Open Graph ו-Twitter Card, ו-JSON-LD: `RealEstat
 ```bash
 php bin/build-assets.php      # בנייה מחדש של הקבצים המוקטנים (ערכה ותוסף)
 composer install              # כלי הפיתוח
-composer lint                 # PHPCS
-composer analyse              # PHPStan
+composer lint                 # PHPCS (תוסף וערכה)
+composer analyse              # PHPStan (תוסף וערכה, רמה 8)
 composer test                 # PHPUnit: יחידה + אינטגרציה
 ```
 

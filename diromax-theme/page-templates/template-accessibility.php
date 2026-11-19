@@ -18,7 +18,8 @@ get_header();
 $dx_a11y_name  = dx_opt( 'a11y_name', '' );
 $dx_a11y_phone = dx_opt( 'a11y_phone', '' );
 $dx_a11y_mail  = dx_opt( 'a11y_email', '' );
-$dx_updated    = dx_opt( 'a11y_updated', '' );
+$dx_updated_at = strtotime( dx_opt( 'a11y_updated', '' ) );
+$dx_updated    = false === $dx_updated_at ? false : wp_date( get_option( 'date_format' ), $dx_updated_at );
 
 if ( '' === $dx_a11y_phone ) {
 	$dx_a11y_phone = dx_phone();
@@ -68,7 +69,7 @@ if ( ! is_email( $dx_a11y_mail ) ) {
 				<?php endif; ?>
 				<div class="dx-row">
 					<dt class="dx-row__k"><?php esc_html_e( 'טלפון', 'diromax' ); ?></dt>
-					<dd><a class="dx-row__v" href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', $dx_a11y_phone ) ); ?>"><?php echo esc_html( $dx_a11y_phone ); ?></a></dd>
+					<dd><a class="dx-row__v" href="tel:<?php echo esc_attr( dx_phone_digits( $dx_a11y_phone ) ); ?>"><?php echo esc_html( $dx_a11y_phone ); ?></a></dd>
 				</div>
 				<div class="dx-row">
 					<dt class="dx-row__k"><?php esc_html_e( 'דוא״ל', 'diromax' ); ?></dt>
@@ -78,13 +79,13 @@ if ( ! is_email( $dx_a11y_mail ) ) {
 
 			<p><?php esc_html_e( 'נשתדל להשיב לכל פנייה בהקדם ולתקן את הליקוי במהירות האפשרית.', 'diromax' ); ?></p>
 
-			<?php if ( '' !== $dx_updated ) : ?>
+			<?php if ( is_string( $dx_updated ) ) : ?>
 				<p class="dx-meta">
 					<?php
 					printf(
 						/* translators: %s: statement update date. */
 						esc_html__( 'תאריך עדכון ההצהרה: %s', 'diromax' ),
-						esc_html( wp_date( get_option( 'date_format' ), strtotime( $dx_updated ) ) )
+						esc_html( $dx_updated )
 					);
 					?>
 				</p>

@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Defaults are not repeated here — they come from inc/content.php.
  *
- * @return array<string,array{label:string,note?:string,fields:array}>
+ * @return array<string,array{label:string,note?:string,fields:array<string,array<int,mixed>>}>
  */
 function dx_content_schema() {
 	return array(
@@ -69,8 +69,8 @@ function dx_content_schema() {
 		),
 
 		'improve'  => array(
-			'label' => 'עמוד השבחת נכסים',
-			'note'  => 'זהו גם עמוד הבית. המקטעים מופיעים כאן בסדר שבו הם מוצגים באתר.',
+			'label'  => 'עמוד השבחת נכסים',
+			'note'   => 'זהו גם עמוד הבית. המקטעים מופיעים כאן בסדר שבו הם מוצגים באתר.',
 			'fields' => array(
 				'hero_eyebrow'    => array( 'הירו: תווית עליונה', 'text' ),
 				'hero_title'      => array( 'הירו: כותרת ראשית', 'lines' ),
@@ -79,7 +79,14 @@ function dx_content_schema() {
 				'hero_btn'        => array( 'הירו: כפתור כתום', 'text' ),
 				'hero_btn2'       => array( 'הירו: כפתור מסגרת', 'text' ),
 				'hero_img_alt'    => array( 'הירו: תיאור התמונה לקוראי מסך', 'text' ),
-				'facts'           => array( 'הירו: שלוש הנקודות מתחת לכפתורים', 'repeater', array( 't' => 'כותרת', 's' => 'שורת משנה' ) ),
+				'facts'           => array(
+					'הירו: שלוש הנקודות מתחת לכפתורים',
+					'repeater',
+					array(
+						't' => 'כותרת',
+						's' => 'שורת משנה',
+					),
+				),
 
 				'band_eyebrow'    => array( 'פס כחול: תווית', 'text' ),
 				'band_quote'      => array( 'פס כחול: המשפט הגדול', 'lines' ),
@@ -89,16 +96,38 @@ function dx_content_schema() {
 
 				's1_kicker'       => array( 'מקטע 01: תווית', 'text' ),
 				's1_title'        => array( 'מקטע 01: כותרת', 'lines' ),
-				'unknowns'        => array( 'מקטע 01: שלוש העמודות', 'repeater', array( 'h' => 'כותרת', 'p' => 'טקסט' ) ),
+				'unknowns'        => array(
+					'מקטע 01: שלוש העמודות',
+					'repeater',
+					array(
+						'h' => 'כותרת',
+						'p' => 'טקסט',
+					),
+				),
 
 				's2_kicker'       => array( 'מקטע 02: תווית', 'text' ),
 				's2_title'        => array( 'מקטע 02: כותרת', 'lines' ),
-				'tools'           => array( 'מקטע 02: הכלים', 'repeater', array( 'h' => 'כותרת', 'p' => 'טקסט' ) ),
+				'tools'           => array(
+					'מקטע 02: הכלים',
+					'repeater',
+					array(
+						'h' => 'כותרת',
+						'p' => 'טקסט',
+					),
+				),
 
 				's3_kicker'       => array( 'מקטע 03: תווית', 'text' ),
 				's3_title'        => array( 'מקטע 03: כותרת', 'lines' ),
 				's3_intro'        => array( 'מקטע 03: פסקת פתיחה', 'textarea' ),
-				'steps'           => array( 'מקטע 03: שלבי התהליך', 'repeater', array( 'n' => 'מספר', 't' => 'כותרת', 'b' => 'תיאור' ) ),
+				'steps'           => array(
+					'מקטע 03: שלבי התהליך',
+					'repeater',
+					array(
+						'n' => 'מספר',
+						't' => 'כותרת',
+						'b' => 'תיאור',
+					),
+				),
 
 				's4_kicker'       => array( 'מקטע 04: תווית', 'text' ),
 				's4_title'        => array( 'מקטע 04: כותרת', 'lines' ),
@@ -106,26 +135,64 @@ function dx_content_schema() {
 				's4_col_stage'    => array( 'מקטע 04: כותרת עמודה — השלב', 'text' ),
 				's4_col_alone'    => array( 'מקטע 04: כותרת עמודה — לבד', 'text' ),
 				's4_col_us'       => array( 'מקטע 04: כותרת עמודה — איתנו', 'text' ),
-				'compare'         => array( 'מקטע 04: שורות הטבלה', 'repeater', array( 's' => 'השלב', 'a' => 'להשביח לבד', 'u' => 'עם דירומקס' ) ),
+				'compare'         => array(
+					'מקטע 04: שורות הטבלה',
+					'repeater',
+					array(
+						's' => 'השלב',
+						'a' => 'להשביח לבד',
+						'u' => 'עם דירומקס',
+					),
+				),
 
 				's5_kicker'       => array( 'מקטע 05: תווית', 'text' ),
 				's5_title'        => array( 'מקטע 05: כותרת', 'lines' ),
 				's5_intro'        => array( 'מקטע 05: פסקת פתיחה', 'textarea' ),
-				'cost_cards'      => array( 'מקטע 05: שלושת הכרטיסים', 'repeater', array( 'rule' => 'צבע הקו (grey / teal / orange)', 'h' => 'כותרת', 'p' => 'טקסט' ) ),
+				'cost_cards'      => array(
+					'מקטע 05: שלושת הכרטיסים',
+					'repeater',
+					array(
+						'rule' => 'צבע הקו (grey / teal / orange)',
+						'h'    => 'כותרת',
+						'p'    => 'טקסט',
+					),
+				),
 				'callout'         => array( 'מקטע 05: הפס הכתום', 'textarea' ),
 				'box_eyebrow'     => array( 'מקטע 05: תווית התיבה', 'text' ),
 				'box_title'       => array( 'מקטע 05: כותרת התיבה', 'lines' ),
 				'box_intro'       => array( 'מקטע 05: פסקת התיבה', 'textarea' ),
-				'tracks'          => array( 'מקטע 05: המסלולים', 'repeater', array( 'h' => 'כותרת', 'p' => 'טקסט' ) ),
+				'tracks'          => array(
+					'מקטע 05: המסלולים',
+					'repeater',
+					array(
+						'h' => 'כותרת',
+						'p' => 'טקסט',
+					),
+				),
 				'box_rule'        => array( 'מקטע 05: משפט הסיום של התיבה', 'textarea' ),
 
 				'diff_eyebrow'    => array( 'בידול: תווית', 'text' ),
 				'diff_title'      => array( 'בידול: כותרת', 'lines' ),
-				'differentiators' => array( 'בידול: שלושת הכרטיסים', 'repeater', array( 'l' => 'אות', 'h' => 'כותרת', 'p' => 'טקסט' ) ),
+				'differentiators' => array(
+					'בידול: שלושת הכרטיסים',
+					'repeater',
+					array(
+						'l' => 'אות',
+						'h' => 'כותרת',
+						'p' => 'טקסט',
+					),
+				),
 
 				's6_kicker'       => array( 'מקטע 06: תווית', 'text' ),
 				's6_title'        => array( 'מקטע 06: כותרת', 'lines' ),
-				'audience'        => array( 'מקטע 06: קהלי היעד', 'repeater', array( 'h' => 'כותרת', 'p' => 'טקסט' ) ),
+				'audience'        => array(
+					'מקטע 06: קהלי היעד',
+					'repeater',
+					array(
+						'h' => 'כותרת',
+						'p' => 'טקסט',
+					),
+				),
 
 				's7_kicker'       => array( 'מקטע 07: תווית', 'text' ),
 				's7_title'        => array( 'מקטע 07: כותרת', 'lines' ),
@@ -135,7 +202,14 @@ function dx_content_schema() {
 				's8_kicker'       => array( 'מקטע 08: תווית', 'text' ),
 				's8_title'        => array( 'מקטע 08: כותרת', 'lines' ),
 				's8_btn'          => array( 'מקטע 08: כפתור', 'text' ),
-				'faq'             => array( 'מקטע 08: השאלות בעמוד הבית', 'repeater', array( 'q' => 'שאלה', 'a' => 'תשובה' ) ),
+				'faq'             => array(
+					'מקטע 08: השאלות בעמוד הבית',
+					'repeater',
+					array(
+						'q' => 'שאלה',
+						'a' => 'תשובה',
+					),
+				),
 
 				'cta_title'       => array( 'מקטע סיום: כותרת', 'lines' ),
 				'cta_intro'       => array( 'מקטע סיום: פסקה', 'textarea' ),
@@ -150,7 +224,15 @@ function dx_content_schema() {
 				'eyebrow'   => array( 'תווית', 'text' ),
 				'title'     => array( 'כותרת ראשית', 'lines' ),
 				'lead'      => array( 'פסקת פתיחה', 'textarea' ),
-				'services'  => array( 'השירותים', 'repeater', array( 'n' => 'מספר', 'h' => 'כותרת', 'p' => 'טקסט' ) ),
+				'services'  => array(
+					'השירותים',
+					'repeater',
+					array(
+						'n' => 'מספר',
+						'h' => 'כותרת',
+						'p' => 'טקסט',
+					),
+				),
 				'strip'     => array( 'פס כחול: משפט', 'textarea' ),
 				'strip_btn' => array( 'פס כחול: כפתור', 'text' ),
 			),
@@ -162,7 +244,14 @@ function dx_content_schema() {
 				'eyebrow' => array( 'תווית', 'text' ),
 				'title'   => array( 'כותרת ראשית', 'lines' ),
 				'btn'     => array( 'כפתור בתחתית', 'text' ),
-				'items'   => array( 'השאלות והתשובות', 'repeater', array( 'q' => 'שאלה', 'a' => 'תשובה' ) ),
+				'items'   => array(
+					'השאלות והתשובות',
+					'repeater',
+					array(
+						'q' => 'שאלה',
+						'a' => 'תשובה',
+					),
+				),
 			),
 		),
 
@@ -189,13 +278,20 @@ function dx_content_schema() {
 				'row_mail'   => array( 'תווית שורה: דוא״ל', 'text' ),
 				'row_area'   => array( 'תווית שורה: אזור פעילות', 'text' ),
 				'next_title' => array( 'כותרת התיבה "מה קורה אחרי"', 'text' ),
-				'steps'      => array( 'שלבי התיבה', 'repeater', array( 'n' => 'מספר', 't' => 'טקסט' ) ),
+				'steps'      => array(
+					'שלבי התיבה',
+					'repeater',
+					array(
+						'n' => 'מספר',
+						't' => 'טקסט',
+					),
+				),
 			),
 		),
 
 		'form'     => array(
-			'label' => 'טופס יצירת קשר',
-			'note'  => 'הטופס מופיע בעמוד הבית, בעמוד ההשבחה ובעמוד צור קשר.',
+			'label'  => 'טופס יצירת קשר',
+			'note'   => 'הטופס מופיע בעמוד הבית, בעמוד ההשבחה ובעמוד צור קשר.',
 			'fields' => array(
 				'light_title'   => array( 'כותרת הטופס בעמוד הבית', 'text' ),
 				'blue_title'    => array( 'כותרת הטופס בעמוד צור קשר', 'text' ),
@@ -223,6 +319,8 @@ function dx_content_schema() {
 
 /**
  * Register the editor screen.
+ *
+ * @return void
  */
 function dx_content_menu() {
 	add_menu_page(
@@ -240,9 +338,9 @@ add_action( 'admin_menu', 'dx_content_menu' );
 /**
  * Sanitise one submitted value according to its declared type.
  *
- * @param mixed  $value Raw value.
- * @param string $type  Field type.
- * @param array  $cols  Repeater columns.
+ * @param mixed                $value Raw value.
+ * @param string               $type  Field type.
+ * @param array<string,string> $cols Repeater columns.
  * @return mixed
  */
 function dx_sanitize_content_value( $value, $type, array $cols = array() ) {
@@ -257,7 +355,7 @@ function dx_sanitize_content_value( $value, $type, array $cols = array() ) {
 			$lines = preg_split( '/\R/', (string) $value );
 			$out   = array();
 
-			foreach ( (array) $lines as $item ) {
+			foreach ( false === $lines ? array() : $lines as $item ) {
 				$item = sanitize_text_field( wp_unslash( $item ) );
 
 				if ( '' !== trim( $item ) ) {
@@ -277,7 +375,7 @@ function dx_sanitize_content_value( $value, $type, array $cols = array() ) {
 				$empty = true;
 
 				foreach ( array_keys( $cols ) as $col ) {
-					$field = sanitize_textarea_field( wp_unslash( (string) ( $row[ $col ] ?? '' ) ) );
+					$field         = sanitize_textarea_field( wp_unslash( (string) ( $row[ $col ] ?? '' ) ) );
 					$clean[ $col ] = $field;
 
 					if ( '' !== trim( $field ) ) {
@@ -298,6 +396,8 @@ function dx_sanitize_content_value( $value, $type, array $cols = array() ) {
 
 /**
  * Save handler. Stores only what differs from the theme defaults.
+ *
+ * @return void
  */
 function dx_content_save() {
 	if ( ! current_user_can( 'edit_theme_options' ) ) {
@@ -364,6 +464,7 @@ add_action( 'admin_post_dx_save_content', 'dx_content_save' );
  *
  * @param string $group  Group key.
  * @param string $status Status flag.
+ * @return void
  */
 function dx_content_redirect( $group, $status ) {
 	wp_safe_redirect(
@@ -382,14 +483,15 @@ function dx_content_redirect( $group, $status ) {
 /**
  * Render one field's input.
  *
- * @param string $key   Field key.
- * @param array  $field Schema entry.
- * @param mixed  $value Current value.
+ * @param string           $key   Field key.
+ * @param array<int,mixed> $field Schema entry.
+ * @param mixed            $value Current value.
+ * @return void
  */
 function dx_content_field( $key, $field, $value ) {
 	list( $label, $type ) = $field;
-	$cols = $field[2] ?? array();
-	$id   = 'dx-' . $key;
+	$cols                 = $field[2] ?? array();
+	$id                   = 'dx-' . $key;
 	?>
 	<tr>
 		<th scope="row">
@@ -471,6 +573,8 @@ function dx_content_field( $key, $field, $value ) {
 
 /**
  * The editor screen.
+ *
+ * @return void
  */
 function dx_content_screen() {
 	if ( ! current_user_can( 'edit_theme_options' ) ) {
@@ -551,6 +655,7 @@ function dx_content_screen() {
  * Loaded only on this screen.
  *
  * @param string $hook Current admin page.
+ * @return void
  */
 function dx_content_admin_assets( $hook ) {
 	if ( 'toplevel_page_dx-content' !== $hook ) {
@@ -608,7 +713,7 @@ document.addEventListener("click",function(e){
 });
 })();
 JS;
-	wp_register_script( 'dx-content-admin', '', array(), DX_VERSION, true );
+	wp_register_script( 'dx-content-admin', false, array(), DX_VERSION, true );
 	wp_enqueue_script( 'dx-content-admin' );
 	wp_add_inline_script( 'dx-content-admin', $js );
 }

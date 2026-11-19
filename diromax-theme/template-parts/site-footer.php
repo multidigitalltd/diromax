@@ -60,7 +60,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				printf(
 					/* translators: 1: current year, 2: site name, 3: rights sentence. */
 					'© %1$s %2$s. %3$s',
-					esc_html( wp_date( 'Y' ) ),
+					esc_html( current_datetime()->format( 'Y' ) ),
 					esc_html( get_bloginfo( 'name' ) ),
 					esc_html( (string) dx_content( 'general.footer_rights' ) )
 				);

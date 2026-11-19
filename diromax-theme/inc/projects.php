@@ -11,6 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Register the projects post type.
+ *
+ * @return void
  */
 function dx_register_project_cpt() {
 	register_post_type(
@@ -35,6 +37,8 @@ add_action( 'init', 'dx_register_project_cpt' );
 
 /**
  * Meta box for the two image IDs.
+ *
+ * @return void
  */
 function dx_project_meta_box() {
 	add_meta_box(
@@ -51,6 +55,7 @@ add_action( 'add_meta_boxes', 'dx_project_meta_box' );
  * Meta box markup.
  *
  * @param WP_Post $post Current project.
+ * @return void
  */
 function dx_project_meta_box_html( $post ) {
 	wp_nonce_field( 'dx_project_meta', 'dx_project_nonce' );
@@ -74,6 +79,7 @@ function dx_project_meta_box_html( $post ) {
  * Persist the meta box values.
  *
  * @param int $post_id Project ID.
+ * @return void
  */
 function dx_project_save( $post_id ) {
 	if ( ! isset( $_POST['dx_project_nonce'] )
@@ -99,6 +105,7 @@ add_action( 'save_post_dx_project', 'dx_project_save' );
  * Render one before/after card, or the empty placeholder pair from the design.
  *
  * @param WP_Post|null $post Project, or null for the placeholder.
+ * @return void
  */
 function dx_project_card( $post = null ) {
 	$title     = (string) dx_content( 'improve.project_title' );

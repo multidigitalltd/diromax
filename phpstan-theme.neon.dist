@@ -1,0 +1,14 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 8
+    paths:
+        - diromax-theme
+    excludePaths:
+        - diromax-theme/assets
+    dynamicConstantNames:
+        - DX_TURNSTILE_SITE_KEY
+        - DX_TURNSTILE_SECRET_KEY
+    bootstrapFiles:
+        - phpstan-theme-bootstrap.php

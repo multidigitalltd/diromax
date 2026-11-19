@@ -34,9 +34,18 @@
     "sort-packages": true
   },
   "scripts": {
-    "lint": "phpcs",
-    "lint:fix": "phpcbf",
-    "analyse": "phpstan analyse --memory-limit=1G --no-progress",
+    "lint": [
+      "phpcs",
+      "phpcs --standard=phpcs-theme.xml.dist"
+    ],
+    "lint:fix": [
+      "phpcbf",
+      "phpcbf --standard=phpcs-theme.xml.dist"
+    ],
+    "analyse": [
+      "phpstan analyse --memory-limit=1G --no-progress",
+      "phpstan analyse -c phpstan-theme.neon.dist --memory-limit=2G --no-progress"
+    ],
     "test": "phpunit",
     "test:unit": "phpunit -c phpunit-unit.xml.dist",
     "audit:deps": "composer audit --locked"

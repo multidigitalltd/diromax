@@ -91,6 +91,8 @@ function dx_show_credit() {
 
 /**
  * The privacy notice script, small and deferred, on every front-end page.
+ *
+ * @return void
  */
 function dx_privacy_script() {
 	wp_enqueue_script(
@@ -108,6 +110,8 @@ add_action( 'wp_enqueue_scripts', 'dx_privacy_script' );
 
 /**
  * Warn the site owner when there is no privacy policy page to link to.
+ *
+ * @return void
  */
 function dx_privacy_admin_notice() {
 	if ( ! current_user_can( 'manage_options' ) || '' !== get_privacy_policy_url() ) {
