@@ -84,15 +84,16 @@ final class Pages {
 		$repo    = $this->app->dashboard;
 
 		$overdue = $repo->requests_due( $manager, '1000-01-01', $day( -1 ) );
-		$cases   = $this->app->cases->active_for( 0 === $manager ? null : $manager );
+		$scope   = 0 === $manager ? null : $manager;
+		$cases   = $this->app->cases->active_for( $scope, 20 );
 
 		return array(
 			'all'        => 0 === $manager,
 			'today'      => $today,
 			'stale_days' => $stale,
-			'has_cases'  => array() !== $cases || $this->app->cases->any_for( 0 === $manager ? null : $manager ),
+			'has_cases'  => array() !== $cases || $this->app->cases->any_for( $scope ),
 			'cases'      => $cases,
-			'totals'     => self::totals( $cases, $overdue ),
+			'totals'     => $this->app->cases->active_totals( $scope ) + self::overdue_totals( $repo->requests_due_total( $manager, '1000-01-01', $day( -1 ) ) ),
 			'recent'     => $this->app->audit->recent( $manager, 8 ),
 			'overdue'    => $overdue,
 			'upcoming'   => $repo->requests_due( $manager, $today, $day( 7 ) ),
@@ -105,39 +106,16 @@ final class Pages {
 	}
 
 	/**
-	 * Totals across active cases, from their cached summaries; the overdue
-	 * figures come from the live list, since "overdue" changes with the date.
+	 * Overdue figures under the keys the dashboard reads.
 	 *
-	 * @param CaseRecord[]                     $cases   Active cases.
-	 * @param array<int, array<string, mixed>> $overdue Overdue requests.
-	 * @return array{cases:int, budget:int, cost:int, committed:int, open:int, open_count:int, overdue:int, overdue_count:int}
+	 * @param array{count:int, total:int} $overdue Count and sum of overdue requests.
+	 * @return array{overdue:int, overdue_count:int}
 	 */
-	public static function totals( array $cases, array $overdue ): array {
-		$totals = array(
-			'cases'         => count( $cases ),
-			'budget'        => 0,
-			'cost'          => 0,
-			'committed'     => 0,
-			'open'          => 0,
-			'open_count'    => 0,
-			'overdue'       => 0,
-			'overdue_count' => count( $overdue ),
+	private static function overdue_totals( array $overdue ): array {
+		return array(
+			'overdue'       => $overdue['total'],
+			'overdue_count' => $overdue['count'],
 		);
-
-		foreach ( $cases as $client_case ) {
-			$summary               = $client_case->summary ?? array();
-			$totals['budget']     += (int) ( $summary['budget'] ?? 0 );
-			$totals['cost']       += (int) ( $summary['cost_to_date'] ?? 0 );
-			$totals['committed']  += (int) ( $summary['committed'] ?? 0 );
-			$totals['open']       += (int) ( $summary['open_requests'] ?? 0 );
-			$totals['open_count'] += (int) ( $summary['open_request_count'] ?? 0 );
-		}
-
-		foreach ( $overdue as $row ) {
-			$totals['overdue'] += (int) $row['total'];
-		}
-
-		return $totals;
 	}
 
 	/**

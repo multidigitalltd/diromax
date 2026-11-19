@@ -59,6 +59,38 @@ final class DashboardRepository {
 	}
 
 	/**
+	 * Count and sum of the same requests as requests_due(), without the
+	 * display limit, for the dashboard totals.
+	 *
+	 * @param int    $manager Manager, 0 for all.
+	 * @param string $from    First due date, inclusive (Y-m-d).
+	 * @param string $to      Last due date, inclusive (Y-m-d).
+	 * @return array{count:int, total:int}
+	 */
+	public function requests_due_total( int $manager, string $from, string $to ): array {
+		$row = $this->db->get_row(
+			$this->db->prepare(
+				"SELECT COUNT(*) AS n, COALESCE(SUM(l.total), 0) AS total
+				   FROM %i l INNER JOIN %i c ON c.id = l.case_id
+				  WHERE l.type = 'request' AND l.status = 'open' AND l.voided_at IS NULL AND l.visible = 1
+				    AND l.due_date BETWEEN %s AND %s AND c.status = 'active' AND ( %d = 0 OR c.manager_id = %d )",
+				Schema::table( 'ledger' ),
+				Schema::table( 'cases' ),
+				$from,
+				$to,
+				$manager,
+				$manager
+			),
+			ARRAY_A
+		);
+
+		return array(
+			'count' => (int) ( $row['n'] ?? 0 ),
+			'total' => (int) ( $row['total'] ?? 0 ),
+		);
+	}
+
+	/**
 	 * Decisions still waiting for the client.
 	 *
 	 * @param int $manager Manager, 0 for all.

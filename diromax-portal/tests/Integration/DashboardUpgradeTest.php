@@ -66,6 +66,47 @@ final class DashboardUpgradeTest extends PortalTestCase {
 		$this->assertEqualsCanonicalizing( array( $open->id, $second->id ), array_map( static fn( CaseRecord $c ): int => $c->id, $view['cases'] ) );
 	}
 
+	/**
+	 * Regression (PR #6 review): the totals must not stop at the display limits.
+	 */
+	public function test_the_totals_are_not_cut_short_by_the_list_limits(): void {
+		$manager = $this->manager();
+		$late    = $this->case_for( $manager );
+
+		for ( $i = 0; $i < 51; $i++ ) {
+			$this->assertIsInt(
+				$this->app->ledger_service->add(
+					$late,
+					array(
+						'type'        => 'request',
+						'entry_date'  => '2026-11-01',
+						'due_date'    => '2026-11-10',
+						'amount'      => '100',
+						'description' => 'דרישה ' . $i,
+						'pay_to'      => 'diromax',
+						'visible'     => '1',
+					),
+					$manager
+				)
+			);
+		}
+
+		for ( $i = 0; $i < 20; $i++ ) {
+			$this->case_with_budget( $manager, '1000', '10' );
+		}
+
+		$view = ( new Pages( $this->app ) )->dashboard_data( $manager );
+
+		$this->assertCount( 50, $view['overdue'], 'The card lists the first 50.' );
+		$this->assertSame( 51, $view['totals']['overdue_count'] );
+		$this->assertSame( 510000, $view['totals']['overdue'] );
+		$this->assertSame( 51, $view['totals']['open_count'] );
+		$this->assertCount( 20, $view['cases'], 'The side list shows the 20 most recent.' );
+		$this->assertSame( 21, $view['totals']['cases'] );
+		$this->assertSame( 2000000, $view['totals']['budget'] );
+		$this->assertSame( 20000, $view['totals']['cost'] );
+	}
+
 	public function test_a_fresh_install_shows_the_welcome_panel(): void {
 		$view = ( new Pages( $this->app ) )->dashboard_data( $this->manager() );
 

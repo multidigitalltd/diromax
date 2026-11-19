@@ -209,6 +209,40 @@ final class CaseRepository {
 	}
 
 	/**
+	 * Totals across every active case in scope, from the cached summaries,
+	 * computed in the database so no list limit cuts them short.
+	 *
+	 * @param int|null $manager_id Manager, or null for all.
+	 * @return array{cases:int, budget:int, cost:int, committed:int, open:int, open_count:int}
+	 */
+	public function active_totals( ?int $manager_id ): array {
+		$row = $this->db->get_row(
+			$this->db->prepare(
+				"SELECT COUNT(*) AS cases,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.budget') AS SIGNED)), 0) AS budget,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.cost_to_date') AS SIGNED)), 0) AS cost,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.committed') AS SIGNED)), 0) AS committed,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.open_requests') AS SIGNED)), 0) AS open,
+				        COALESCE(SUM(CAST(JSON_EXTRACT(summary, '$.open_request_count') AS SIGNED)), 0) AS open_count
+				   FROM %i WHERE status = 'active' AND ( %d = 0 OR manager_id = %d )",
+				Schema::table( 'cases' ),
+				(int) $manager_id,
+				(int) $manager_id
+			),
+			ARRAY_A
+		);
+
+		return array(
+			'cases'      => (int) ( $row['cases'] ?? 0 ),
+			'budget'     => (int) ( $row['budget'] ?? 0 ),
+			'cost'       => (int) ( $row['cost'] ?? 0 ),
+			'committed'  => (int) ( $row['committed'] ?? 0 ),
+			'open'       => (int) ( $row['open'] ?? 0 ),
+			'open_count' => (int) ( $row['open_count'] ?? 0 ),
+		);
+	}
+
+	/**
 	 * Does the user see any case at all, in any status?
 	 *
 	 * @param int|null $manager_id Manager, or null for all.

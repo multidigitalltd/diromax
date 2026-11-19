@@ -133,7 +133,7 @@ $header    = array(
 	<?php if ( $attention > 0 ) : ?>
 	<div class="dxa-cards">
 		<section class="dxa-card dxa-card--hot<?php echo array() === $view['overdue'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-overdue">
-			<h2 id="dxa-dash-overdue"><?php esc_html_e( 'דרישות תשלום באיחור', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['overdue'] ) ); ?></span></h2>
+			<h2 id="dxa-dash-overdue"><?php esc_html_e( 'דרישות תשלום באיחור', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) $view['totals']['overdue_count'] ); ?></span></h2>
 			<?php if ( array() === $view['overdue'] ) : ?>
 				<p><?php esc_html_e( 'אין דרישות באיחור.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
@@ -327,7 +327,7 @@ $header    = array(
 
 	<aside class="dxa-dash-side" aria-label="<?php esc_attr_e( 'תיקים ופעילות', 'diromax-portal' ); ?>">
 		<section class="dxa-card dxa-card--plain" aria-labelledby="dxa-dash-cases">
-			<h2 id="dxa-dash-cases"><?php esc_html_e( 'התיקים הפעילים', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['cases'] ) ); ?></span></h2>
+			<h2 id="dxa-dash-cases"><?php esc_html_e( 'התיקים הפעילים', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) $view['totals']['cases'] ); ?></span></h2>
 			<?php if ( array() === $view['cases'] ) : ?>
 				<p><?php esc_html_e( 'אין תיקים פעילים.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
