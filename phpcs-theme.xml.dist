@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<ruleset name="Diromax theme">
+	<description>WordPress Coding Standards for the Diromax theme (standard section 16.1.3).</description>
+
+	<file>diromax-theme</file>
+
+	<exclude-pattern>*/assets/*</exclude-pattern>
+	<exclude-pattern>*/languages/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+	<arg value="sp"/>
+
+	<config name="testVersion" value="8.0-"/>
+	<config name="minimum_wp_version" value="6.8"/>
+
+	<rule ref="WordPress-Extra"/>
+	<rule ref="WordPress-Docs"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="diromax"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="dx"/>
+				<element value="DX"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- The lead post type's own capabilities (inc/leads-crm.php). -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="edit_dx_leads"/>
+				<element value="edit_others_dx_leads"/>
+				<element value="edit_published_dx_leads"/>
+				<element value="edit_private_dx_leads"/>
+				<element value="publish_dx_leads"/>
+				<element value="read_private_dx_leads"/>
+				<element value="delete_dx_leads"/>
+				<element value="delete_others_dx_leads"/>
+				<element value="delete_published_dx_leads"/>
+				<element value="delete_private_dx_leads"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- "dx" is the theme's established prefix; every global it adds starts with dx_ or DX_. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed">
+		<severity>0</severity>
+	</rule>
+</ruleset>

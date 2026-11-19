@@ -66,6 +66,8 @@ function dx_needs_lead_script() {
 
 /**
  * Front-end styles and scripts.
+ *
+ * @return void
  */
 function dx_enqueue_assets() {
 	// --- Stylesheet -------------------------------------------------------
@@ -138,11 +140,13 @@ add_action( 'wp_enqueue_scripts', 'dx_enqueue_assets' );
 /**
  * Preload the two fonts that paint above the fold, so the LCP heading does not
  * wait for the stylesheet to discover them.
+ *
+ * @return void
  */
 function dx_preload_fonts() {
 	$fonts = array(
-		DX_URI . '/assets/fonts/heebo-hebrew.woff2'      => 'font/woff2',
-		DX_URI . '/assets/fonts/anomalia-bold-aaa.woff'  => 'font/woff',
+		DX_URI . '/assets/fonts/heebo-hebrew.woff2'     => 'font/woff2',
+		DX_URI . '/assets/fonts/anomalia-bold-aaa.woff' => 'font/woff',
 	);
 
 	foreach ( $fonts as $url => $type ) {
@@ -160,6 +164,8 @@ add_action( 'wp_head', 'dx_preload_fonts', 1 );
  *
  * Each removal is a real request or a real payload the visitor would otherwise
  * download for nothing.
+ *
+ * @return void
  */
 function dx_dequeue_unused() {
 	if ( is_admin() ) {
@@ -204,6 +210,8 @@ add_action( 'wp_enqueue_scripts', 'dx_dequeue_unused', 100 );
 
 /**
  * Global styles are printed from their own hooks as well; drop those too.
+ *
+ * @return void
  */
 function dx_drop_global_styles() {
 	if ( is_admin() ) {
@@ -267,6 +275,8 @@ add_filter( 'wp_resource_hints', 'dx_clean_resource_hints', 10, 2 );
  *
  * The script refreshes its own nonce, so this only marks the response for cache
  * layers that honour the standard headers; it does not disable caching elsewhere.
+ *
+ * @return void
  */
 function dx_cache_headers() {
 	if ( is_singular() && dx_needs_lead_script() ) {

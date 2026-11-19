@@ -35,6 +35,8 @@ if ( is_admin() ) {
 
 /**
  * Theme support and registrations.
+ *
+ * @return void
  */
 function dx_setup() {
 	load_theme_textdomain( 'diromax', DX_DIR . '/languages' );
@@ -72,6 +74,8 @@ add_action( 'after_setup_theme', 'dx_setup' );
 
 /**
  * Content width matches the design's 1280px container.
+ *
+ * @return void
  */
 function dx_content_width() {
 	$GLOBALS['content_width'] = 1280;
@@ -81,8 +85,8 @@ add_action( 'after_setup_theme', 'dx_content_width', 0 );
 /**
  * Drop the derivatives core generates but this theme never renders.
  *
- * @param array $sizes Intermediate image sizes.
- * @return array
+ * @param array<string,array<string,mixed>> $sizes Intermediate image sizes, keyed by name.
+ * @return array<string,array<string,mixed>>
  */
 function dx_trim_image_sizes( $sizes ) {
 	unset( $sizes['medium_large'], $sizes['1536x1536'], $sizes['2048x2048'] );
@@ -107,6 +111,7 @@ add_filter( 'body_class', 'dx_body_class' );
  * Archive listings use the article card grid, 12 per page.
  *
  * @param WP_Query $query Query object.
+ * @return void
  */
 function dx_posts_per_page( $query ) {
 	if ( ! is_admin() && $query->is_main_query() && ( $query->is_home() || $query->is_archive() ) ) {

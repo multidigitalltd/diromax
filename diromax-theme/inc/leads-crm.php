@@ -70,6 +70,8 @@ function dx_lead_caps() {
  * Each role is recorded once it has its grant. A role that does not exist
  * yet (the portal plugin creates dx_manager when it is activated, possibly
  * after the theme) is granted on the first request after it appears.
+ *
+ * @return void
  */
 function dx_leads_grant_caps() {
 	$done = get_option( 'dx_lead_caps_granted', array() );
@@ -112,9 +114,9 @@ function dx_can_manage_leads( $user_id = 0 ) {
 	return $user_id > 0 && user_can( $user_id, 'edit_others_dx_leads' );
 }
 
-/* ---------------------------------------------------------------
+/*
  * Stored with the lead
- * ------------------------------------------------------------ */
+ */
 
 /**
  * Campaign source from the submitted form: "source / medium / campaign".
@@ -158,6 +160,7 @@ function dx_lead_consent_record() {
  *
  * @param int    $post_id Lead.
  * @param string $utm     Campaign source.
+ * @return void
  */
 function dx_lead_store_crm( $post_id, $utm ) {
 	update_post_meta( $post_id, 'dx_status', 'new' );
@@ -168,9 +171,9 @@ function dx_lead_store_crm( $post_id, $utm ) {
 	}
 }
 
-/* ---------------------------------------------------------------
+/*
  * Audit log (standard 15.2.3)
- * ------------------------------------------------------------ */
+ */
 
 /**
  * Record who did what with leads. Kept in one option, newest first.
@@ -178,6 +181,7 @@ function dx_lead_store_crm( $post_id, $utm ) {
  * @param string $action  view, status, notes, export, delete, retention.
  * @param int    $lead_id Lead, 0 for bulk actions.
  * @param string $details Short detail.
+ * @return void
  */
 function dx_lead_audit( $action, $lead_id = 0, $details = '' ) {
 	$log = get_option( 'dx_lead_audit', array() );
@@ -201,6 +205,7 @@ function dx_lead_audit( $action, $lead_id = 0, $details = '' ) {
  * Opening a lead counts as viewing it.
  *
  * @param WP_Screen $screen Current screen.
+ * @return void
  */
 function dx_lead_audit_view( $screen ) {
 	if ( 'post' !== $screen->base || 'dx_lead' !== $screen->post_type ) {
@@ -221,20 +226,23 @@ add_action( 'current_screen', 'dx_lead_audit_view' );
  *
  * @param int     $post_id Post.
  * @param WP_Post $post    Post object.
+ * @return void
  */
 function dx_lead_audit_delete( $post_id, $post ) {
-	if ( $post instanceof WP_Post && 'dx_lead' === $post->post_type && ! doing_action( 'dx_lead_cleanup' ) ) {
+	if ( 'dx_lead' === $post->post_type && ! doing_action( 'dx_lead_cleanup' ) ) {
 		dx_lead_audit( 'delete', (int) $post_id );
 	}
 }
 add_action( 'before_delete_post', 'dx_lead_audit_delete', 10, 2 );
 
-/* ---------------------------------------------------------------
+/*
  * Status and notes on the edit screen
- * ------------------------------------------------------------ */
+ */
 
 /**
  * The CRM box on a lead.
+ *
+ * @return void
  */
 function dx_lead_meta_boxes() {
 	add_meta_box( 'dx-lead-crm', __( 'טיפול בליד', 'diromax' ), 'dx_lead_crm_box', 'dx_lead', 'side', 'high' );
@@ -245,6 +253,7 @@ add_action( 'add_meta_boxes_dx_lead', 'dx_lead_meta_boxes' );
  * Render the CRM box. Every stored value is escaped (standard 15.2.9).
  *
  * @param WP_Post $post Lead.
+ * @return void
  */
 function dx_lead_crm_box( $post ) {
 	$status  = (string) get_post_meta( $post->ID, 'dx_status', true );
@@ -300,6 +309,7 @@ function dx_lead_crm_box( $post ) {
  * Save status and notes: nonce, capability, allowlist (standard 4.2, 16.3).
  *
  * @param int $post_id Lead.
+ * @return void
  */
 function dx_lead_save_crm( $post_id ) {
 	if ( ! isset( $_POST['dx_lead_crm_nonce'] ) || wp_is_post_revision( $post_id ) || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) ) {
@@ -344,6 +354,7 @@ add_filter( 'manage_dx_lead_posts_columns', 'dx_lead_status_column', 20 );
  *
  * @param string $column  Column.
  * @param int    $post_id Lead.
+ * @return void
  */
 function dx_lead_status_cell( $column, $post_id ) {
 	if ( 'dx_status' === $column ) {
@@ -353,9 +364,9 @@ function dx_lead_status_cell( $column, $post_id ) {
 }
 add_action( 'manage_dx_lead_posts_custom_column', 'dx_lead_status_cell', 10, 2 );
 
-/* ---------------------------------------------------------------
+/*
  * Export (standard 15.2.4)
- * ------------------------------------------------------------ */
+ */
 
 /**
  * Defuse a cell a spreadsheet would run as a formula (standard 4.2).
@@ -410,7 +421,7 @@ function dx_leads_csv() {
 				$handle,
 				array_map(
 					'dx_csv_cell',
-					array( get_the_date( 'Y-m-d H:i', $lead ), $meta( 'name' ), $meta( 'phone' ), $meta( 'address' ), $meta( 'type' ), $meta( 'subject' ), $meta( 'message' ), $meta( 'source' ), $meta( 'utm' ), $statuses[ '' === $status ? 'new' : $status ] ?? '', $meta( 'notes' ) )
+					array( dx_post_date( 'Y-m-d H:i', $lead ), $meta( 'name' ), $meta( 'phone' ), $meta( 'address' ), $meta( 'type' ), $meta( 'subject' ), $meta( 'message' ), $meta( 'source' ), $meta( 'utm' ), $statuses[ '' === $status ? 'new' : $status ] ?? '', $meta( 'notes' ) )
 				),
 				',',
 				'"',
@@ -432,6 +443,8 @@ function dx_leads_csv() {
 
 /**
  * Download every lead (admin-post.php?action=dx_leads_export).
+ *
+ * @return void
  */
 function dx_leads_export() {
 	check_admin_referer( 'dx_leads_export' );
@@ -456,6 +469,7 @@ add_action( 'admin_post_dx_leads_export', 'dx_leads_export' );
  * Export button above the leads list.
  *
  * @param string $which top or bottom.
+ * @return void
  */
 function dx_leads_export_button( $which ) {
 	if ( 'top' !== $which || 'dx_lead' !== get_current_screen()?->post_type || ! dx_can_manage_leads() ) {
@@ -472,6 +486,8 @@ add_action( 'manage_posts_extra_tablenav', 'dx_leads_export_button' );
 
 /**
  * The audit log, under the leads menu.
+ *
+ * @return void
  */
 function dx_leads_audit_menu() {
 	add_submenu_page( 'edit.php?post_type=dx_lead', __( 'יומן לידים', 'diromax' ), __( 'יומן', 'diromax' ), 'edit_others_dx_leads', 'dx-lead-audit', 'dx_leads_audit_page' );
@@ -480,6 +496,8 @@ add_action( 'admin_menu', 'dx_leads_audit_menu' );
 
 /**
  * Render the audit log.
+ *
+ * @return void
  */
 function dx_leads_audit_page() {
 	if ( ! dx_can_manage_leads() ) {
@@ -534,9 +552,9 @@ function dx_leads_audit_page() {
 	<?php
 }
 
-/* ---------------------------------------------------------------
+/*
  * Retention (standard 15.2.5, 5.x)
- * ------------------------------------------------------------ */
+ */
 
 /**
  * Months a lead is kept.
@@ -560,7 +578,7 @@ function dx_lead_cleanup() {
 			'post_type'      => 'dx_lead',
 			'post_status'    => 'any',
 			'fields'         => 'ids',
-			'posts_per_page' => 200,
+			'posts_per_page' => 100,
 			'no_found_rows'  => true,
 			'date_query'     => array(
 				array(
@@ -581,10 +599,17 @@ function dx_lead_cleanup() {
 
 	return count( $ids );
 }
-add_action( 'dx_lead_cleanup', 'dx_lead_cleanup' );
+add_action(
+	'dx_lead_cleanup',
+	static function (): void {
+		dx_lead_cleanup();
+	}
+);
 
 /**
  * Keep the daily job scheduled.
+ *
+ * @return void
  */
 function dx_lead_schedule() {
 	if ( ! wp_next_scheduled( 'dx_lead_cleanup' ) ) {
@@ -593,9 +618,9 @@ function dx_lead_schedule() {
 }
 add_action( 'init', 'dx_lead_schedule' );
 
-/* ---------------------------------------------------------------
+/*
  * Notification with retry (standard 15.2.6)
- * ------------------------------------------------------------ */
+ */
 
 /**
  * Tell the office about a lead. Only what is needed to call back is in the
@@ -640,4 +665,9 @@ function dx_lead_notify( $lead_id ) {
 
 	return false;
 }
-add_action( 'dx_lead_notify_retry', 'dx_lead_notify' );
+add_action(
+	'dx_lead_notify_retry',
+	static function ( $lead_id ): void {
+		dx_lead_notify( (int) $lead_id );
+	}
+);

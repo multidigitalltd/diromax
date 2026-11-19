@@ -114,6 +114,8 @@ function dx_a11y_url() {
 
 /**
  * Statement page moves or appears — drop the cached URL.
+ *
+ * @return void
  */
 function dx_flush_a11y_url() {
 	delete_transient( 'dx_a11y_url' );
@@ -124,6 +126,8 @@ add_action( 'deleted_post', 'dx_flush_a11y_url' );
 /**
  * Restore saved preferences before first paint, so nothing shifts under the
  * visitor. Small enough to stay inline; no request, no render-blocking file.
+ *
+ * @return void
  */
 function dx_a11y_boot_script() {
 	if ( ! dx_a11y_enabled() ) {
@@ -142,6 +146,8 @@ add_action( 'wp_head', 'dx_a11y_boot_script', 2 );
 
 /**
  * Render the toolbar. Called from footer.php.
+ *
+ * @return void
  */
 function dx_a11y_toolbar() {
 	if ( ! dx_a11y_enabled() ) {

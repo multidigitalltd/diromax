@@ -39,7 +39,8 @@ function dx_meta_description() {
 
 		if ( $post instanceof WP_Post ) {
 			$text = has_excerpt( $post ) ? get_the_excerpt( $post ) : wp_strip_all_tags( $post->post_content );
-			$text = trim( preg_replace( '/\s+/u', ' ', $text ) );
+			$text = preg_replace( '/\s+/u', ' ', $text );
+			$text = is_string( $text ) ? trim( $text ) : '';
 
 			if ( '' !== $text ) {
 				return wp_html_excerpt( $text, 155, '…' );
@@ -123,9 +124,10 @@ function dx_current_url() {
 	}
 
 	if ( is_category() || is_tag() || is_tax() ) {
-		$link = get_term_link( get_queried_object() );
+		$term = get_queried_object();
+		$link = $term instanceof WP_Term ? get_term_link( $term ) : '';
 
-		return is_wp_error( $link ) ? home_url( '/' ) : (string) $link;
+		return is_string( $link ) && '' !== $link ? $link : home_url( '/' );
 	}
 
 	return home_url( '/' );
@@ -133,6 +135,8 @@ function dx_current_url() {
 
 /**
  * Open Graph and Twitter meta.
+ *
+ * @return void
  */
 function dx_social_meta() {
 	if ( dx_seo_plugin_active() ) {
@@ -273,7 +277,7 @@ function dx_schema_article() {
 		'@type'            => 'Article',
 		'headline'         => get_the_title(),
 		'description'      => dx_meta_description(),
-		'datePublished'    => get_the_date( DATE_W3C ),
+		'datePublished'    => dx_post_date( DATE_W3C ),
 		'dateModified'     => get_the_modified_date( DATE_W3C ),
 		'mainEntityOfPage' => get_permalink(),
 		'inLanguage'       => get_bloginfo( 'language' ),
@@ -329,6 +333,8 @@ function dx_schema_faq() {
 
 /**
  * Print the JSON-LD graph for the current view.
+ *
+ * @return void
  */
 function dx_schema_output() {
 	$graph = array();

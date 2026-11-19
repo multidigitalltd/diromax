@@ -25,8 +25,8 @@ Level 3 obligations that live outside the code: an external penetration test bef
 
 ```bash
 composer install                      # dev tools
-composer lint                         # PHPCS — WordPress-Extra, WordPress-Docs, PHPCompatibilityWP
-composer analyse                      # PHPStan
+composer lint                         # PHPCS — WordPress-Extra, WordPress-Docs, PHPCompatibilityWP (plugin: phpcs.xml.dist, theme: phpcs-theme.xml.dist)
+composer analyse                      # PHPStan level 8 (plugin: phpstan.neon.dist, theme: phpstan-theme.neon.dist)
 composer test                         # PHPUnit: unit + WordPress integration (needs a MySQL test DB, see phpunit.xml.dist)
 bash diromax-portal/tests/e2e/setup.sh /tmp/dx-e2e   # throwaway WordPress for the browser tests (client, manager, phase2 scripts)
 php bin/build-assets.php              # minified CSS/JS for the theme and the plugin
@@ -37,7 +37,7 @@ bash bin/build-zip.sh                 # dist/diromax.zip (theme)
 
 - `diromax-theme/` — the site's look and copy. Business data never lives here, except the leads from the contact form (custom post type `dx_lead`).
   - Multi Digital web defaults (standard 15): leads have their own capability (administrators and project managers), status, internal notes, consent record, campaign source, retention with automatic deletion (default 24 months), an audited CSV export and a retried notification (`inc/leads-crm.php`); Turnstile on the lead form when `DX_TURNSTILE_*` are defined (`inc/turnstile.php`); first-visit privacy notice, legal footer links and the Multi Digital credit (`inc/privacy.php`).
-  - The theme is loaded in the PHPUnit integration suite (`ThemeWebDefaultsTest`) and covered by `tests/e2e/theme.e2e.js`. It is not yet under PHPCS/PHPStan in CI (its own conventions differ from the plugin's ruleset).
+  - The theme is loaded in the PHPUnit integration suite (`ThemeWebDefaultsTest`, `ThemeHelpersTest`) and covered by `tests/e2e/theme.e2e.js`. It has its own PHPCS ruleset (`phpcs-theme.xml.dist`: PHP 8.0+, text domain `diromax`, prefix `dx`) and PHPStan config (`phpstan-theme.neon.dist`, level 8), both run by `composer lint` / `composer analyse` and in CI.
 - `diromax-portal/` — the client portal plugin. Namespace `Diromax\Portal`, PSR-4 under `src/`.
   - `src/Domain` — pure PHP: money, VAT, ledger rules, the summary calculator. No WordPress calls; unit-tested to 100%.
   - `src/Security` — capabilities, the single access policy, rate limiting, document encryption, Turnstile.

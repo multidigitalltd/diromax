@@ -90,6 +90,8 @@ function dx_turnstile_verify( $token, $action ) {
 
 /**
  * The widget script, only on pages with a lead form, without blocking render (15.3.7).
+ *
+ * @return void
  */
 function dx_turnstile_script() {
 	if ( dx_turnstile_enabled() && dx_needs_lead_script() ) {

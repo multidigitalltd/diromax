@@ -143,6 +143,7 @@ function dx_view_url( $view ) {
  * Any page save can move a template assignment, so the map is rebuilt lazily.
  *
  * @param int $post_id Post ID.
+ * @return void
  */
 function dx_flush_view_urls( $post_id = 0 ) {
 	if ( $post_id && 'page' !== get_post_type( $post_id ) ) {
@@ -156,9 +157,9 @@ add_action( 'deleted_post', 'dx_flush_view_urls' );
 add_action( 'permalink_structure_changed', 'dx_flush_view_urls' );
 add_action( 'switch_theme', 'dx_flush_view_urls' );
 
-/* -------------------------------------------------------------------------
+/*
  * Customizer accessors — each falls back to the placeholder used in the design.
- * ---------------------------------------------------------------------- */
+ */
 
 /**
  * Read a theme mod, treating an empty string as "not set".
@@ -174,6 +175,8 @@ function dx_opt( $key, $fallback = '' ) {
 }
 
 /**
+ * Display phone number.
+ *
  * @return string Display phone number.
  */
 function dx_phone() {
@@ -181,13 +184,30 @@ function dx_phone() {
 }
 
 /**
- * @return string Phone number reduced to digits, for a tel: link.
+ * A phone number reduced to what a link may hold.
+ *
+ * @param string $phone Phone number as written.
+ * @param bool   $plus  Keep a plus sign (tel: links) or digits only.
+ * @return string The digits, or an empty string when nothing is left.
  */
-function dx_phone_tel() {
-	return preg_replace( '/[^0-9+]/', '', dx_opt( 'phone', '0540000000' ) );
+function dx_phone_digits( $phone, $plus = true ) {
+	$digits = preg_replace( $plus ? '/[^0-9+]/' : '/[^0-9]/', '', (string) $phone );
+
+	return is_string( $digits ) ? $digits : '';
 }
 
 /**
+ * Phone number reduced to digits, for a tel: link.
+ *
+ * @return string Phone number reduced to digits, for a tel: link.
+ */
+function dx_phone_tel() {
+	return dx_phone_digits( dx_opt( 'phone', '0540000000' ) );
+}
+
+/**
+ * WhatsApp number in international format.
+ *
  * @return string WhatsApp number in international format.
  */
 function dx_whatsapp() {
@@ -195,13 +215,17 @@ function dx_whatsapp() {
 }
 
 /**
+ * WhatsApp deep link.
+ *
  * @return string WhatsApp deep link.
  */
 function dx_wa_url() {
-	return 'https://wa.me/' . preg_replace( '/[^0-9]/', '', dx_whatsapp() );
+	return 'https://wa.me/' . dx_phone_digits( dx_whatsapp(), false );
 }
 
 /**
+ * Contact e-mail address.
+ *
  * @return string Contact e-mail address.
  */
 function dx_email() {
@@ -209,6 +233,8 @@ function dx_email() {
 }
 
 /**
+ * Service area.
+ *
  * @return string Service area.
  */
 function dx_area() {
@@ -216,6 +242,8 @@ function dx_area() {
 }
 
 /**
+ * Whether the fixed contact bar is shown.
+ *
  * @return bool Whether the fixed contact bar is shown.
  */
 function dx_show_sticky() {
@@ -223,6 +251,8 @@ function dx_show_sticky() {
 }
 
 /**
+ * Whether the before/after section is shown.
+ *
  * @return bool Whether the before/after section is shown.
  */
 function dx_show_projects() {
@@ -241,8 +271,8 @@ function dx_default_thumb_id() {
 /**
  * Render the featured image, or the configured default, or nothing.
  *
- * @param string $size  Image size.
- * @param array  $attrs Extra image attributes.
+ * @param string               $size  Image size.
+ * @param array<string,string> $attrs Extra image attributes.
  * @return bool True when an image was printed.
  */
 function dx_post_thumbnail( $size = 'dx-card', array $attrs = array() ) {
@@ -269,15 +299,17 @@ function dx_post_thumbnail( $size = 'dx-card', array $attrs = array() ) {
 }
 
 /**
+ * Whether the accessibility toolbar is shown.
+ *
  * @return bool Whether the accessibility toolbar is shown.
  */
 function dx_a11y_enabled() {
 	return (bool) get_theme_mod( 'dx_a11y_toolbar', true );
 }
 
-/* -------------------------------------------------------------------------
+/*
  * Navigation
- * ---------------------------------------------------------------------- */
+ */
 
 /**
  * The five built-in nav entries, in order.
@@ -342,15 +374,16 @@ function dx_nav_links( $location = 'primary' ) {
 	return (array) apply_filters( 'dx_nav_links', $links, $location );
 }
 
-/* -------------------------------------------------------------------------
+/*
  * Output helpers
- * ---------------------------------------------------------------------- */
+ */
 
 /**
  * Section eyebrow: numbered kicker used on the improvement page.
  *
  * @param string $num  Two-digit section number.
  * @param string $text Section label.
+ * @return void
  */
 function dx_kicker( $num, $text ) {
 	printf(
@@ -366,6 +399,7 @@ function dx_kicker( $num, $text ) {
  * @param string $text  Label.
  * @param string $dot   'orange' or 'teal'.
  * @param string $extra Extra class on the wrapper.
+ * @return void
  */
 function dx_eyebrow( $text, $dot = 'orange', $extra = '' ) {
 	printf(
@@ -382,6 +416,7 @@ function dx_eyebrow( $text, $dot = 'orange', $extra = '' ) {
  *
  * @param array<int,array{q:string,a:string}> $items Question/answer pairs.
  * @param bool                                $page  Page-level variant.
+ * @return void
  */
 function dx_accordion( $items, $page = false ) {
 	foreach ( $items as $item ) {
@@ -392,4 +427,43 @@ function dx_accordion( $items, $page = false ) {
 			esc_html( $item['a'] )
 		);
 	}
+}
+
+/**
+ * A post's date, or an empty string when the post has none.
+ *
+ * @param string           $format PHP date format; empty for the site's setting.
+ * @param int|WP_Post|null $post   Post; the current one when null.
+ * @return string
+ */
+function dx_post_date( $format = '', $post = null ) {
+	$date = get_the_date( $format, $post );
+
+	return is_string( $date ) ? $date : '';
+}
+
+/**
+ * The previous and next articles, for the links under a post.
+ *
+ * @return array<int, array{url:string, title:string, label:string}>
+ */
+function dx_adjacent_posts() {
+	$links = array();
+
+	foreach (
+		array(
+			'general.post_prev' => get_previous_post(),
+			'general.post_next' => get_next_post(),
+		) as $label => $post
+	) {
+		if ( $post instanceof WP_Post ) {
+			$links[] = array(
+				'url'   => get_permalink( $post ),
+				'title' => get_the_title( $post ),
+				'label' => $label,
+			);
+		}
+	}
+
+	return $links;
 }

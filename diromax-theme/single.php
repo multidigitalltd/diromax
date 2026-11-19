@@ -24,14 +24,22 @@ while ( have_posts() ) :
 				</div>
 				<h1 class="dx-h1--page dx-mb-18"><?php the_title(); ?></h1>
 				<p class="dx-meta">
-					<time datetime="<?php echo esc_attr( get_the_date( DATE_W3C ) ); ?>"><?php echo esc_html( get_the_date() ); ?></time>
+					<time datetime="<?php echo esc_attr( dx_post_date( DATE_W3C ) ); ?>"><?php echo esc_html( dx_post_date() ); ?></time>
 				</p>
 			</div>
 		</header>
 
 		<?php if ( has_post_thumbnail() || dx_default_thumb_id() ) : ?>
 			<div class="dx-section dx-hero-img">
-				<?php dx_post_thumbnail( 'full', array( 'loading' => 'eager', 'fetchpriority' => 'high' ) ); ?>
+				<?php
+				dx_post_thumbnail(
+					'full',
+					array(
+						'loading'       => 'eager',
+						'fetchpriority' => 'high',
+					)
+				);
+				?>
 			</div>
 		<?php endif; ?>
 
@@ -52,26 +60,19 @@ while ( have_posts() ) :
 	</section>
 
 	<?php
-	$dx_prev = get_previous_post();
-	$dx_next = get_next_post();
+	$dx_adjacent = dx_adjacent_posts();
 
-	if ( $dx_prev || $dx_next ) :
+	if ( $dx_adjacent ) :
 		?>
 		<nav class="dx-section" aria-label="<?php esc_attr_e( 'מאמרים סמוכים', 'diromax' ); ?>">
 			<div class="dx-wrap dx-wrap--narrow dx-pad-xs">
 				<div class="dx-postnav">
-					<?php if ( $dx_prev ) : ?>
-						<a class="dx-postnav__i" href="<?php echo esc_url( get_permalink( $dx_prev ) ); ?>">
-							<span class="dx-postnav__k"><?php dx_the_text( 'general.post_prev' ); ?></span>
-							<span class="dx-postnav__t"><?php echo esc_html( get_the_title( $dx_prev ) ); ?></span>
+					<?php foreach ( $dx_adjacent as $dx_link ) : ?>
+						<a class="dx-postnav__i" href="<?php echo esc_url( $dx_link['url'] ); ?>">
+							<span class="dx-postnav__k"><?php dx_the_text( $dx_link['label'] ); ?></span>
+							<span class="dx-postnav__t"><?php echo esc_html( $dx_link['title'] ); ?></span>
 						</a>
-					<?php endif; ?>
-					<?php if ( $dx_next ) : ?>
-						<a class="dx-postnav__i" href="<?php echo esc_url( get_permalink( $dx_next ) ); ?>">
-							<span class="dx-postnav__k"><?php dx_the_text( 'general.post_next' ); ?></span>
-							<span class="dx-postnav__t"><?php echo esc_html( get_the_title( $dx_next ) ); ?></span>
-						</a>
-					<?php endif; ?>
+					<?php endforeach; ?>
 				</div>
 			</div>
 		</nav>

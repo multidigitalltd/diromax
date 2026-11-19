@@ -28,6 +28,8 @@ const DX_LEAD_WINDOW = HOUR_IN_SECONDS;
 /**
  * The leads post type. Not public, not creatable by hand — it only ever
  * receives what the form writes.
+ *
+ * @return void
  */
 function dx_register_lead_cpt() {
 	register_post_type(
@@ -58,6 +60,8 @@ add_action( 'init', 'dx_register_lead_cpt' );
  *
  * Public by design: a nonce is not a secret, it is a same-origin marker. The
  * response is marked no-store so no cache layer can hold on to it.
+ *
+ * @return void
  */
 function dx_register_nonce_route() {
 	register_rest_route(
@@ -73,6 +77,8 @@ function dx_register_nonce_route() {
 add_action( 'rest_api_init', 'dx_register_nonce_route' );
 
 /**
+ * Rest nonce.
+ *
  * @return WP_REST_Response
  */
 function dx_rest_nonce() {
@@ -117,6 +123,8 @@ function dx_lead_rate_exceeded() {
 
 /**
  * Count one submission against the window.
+ *
+ * @return void
  */
 function dx_lead_rate_bump() {
 	$key   = dx_lead_rate_key();
@@ -179,7 +187,7 @@ function dx_process_lead() {
 		$name = mb_substr( $name, 0, 80 );
 	}
 
-	$digits = preg_replace( '/[^0-9]/', '', $phone );
+	$digits = dx_phone_digits( $phone, false );
 	if ( strlen( $digits ) < 9 || strlen( $digits ) > 15 ) {
 		return new WP_Error(
 			'dx_phone',
@@ -283,6 +291,8 @@ function dx_lead_source( $value ) {
 
 /**
  * AJAX endpoint used by the enhanced form.
+ *
+ * @return void
  */
 function dx_handle_lead_ajax() {
 	$result = dx_process_lead();
@@ -303,17 +313,19 @@ add_action( 'wp_ajax_nopriv_dx_lead', 'dx_handle_lead_ajax' );
 
 /**
  * No-JavaScript path: a normal POST that redirects back to the form.
+ *
+ * @return void
  */
 function dx_handle_lead_post() {
 	$result = dx_process_lead();
-	$back   = dx_lead_source( $_POST['dx_source'] ?? '' );
+	$back   = dx_lead_source( $_POST['dx_source'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- dx_process_lead() checked the nonce; this only picks the same-site page to return to.
 
 	if ( '' === $back ) {
 		$back = home_url( '/' );
 	}
 
 	if ( is_wp_error( $result ) ) {
-		$back = add_query_arg( 'dx_lead', rawurlencode( $result->get_error_code() ), $back );
+		$back = add_query_arg( 'dx_lead', rawurlencode( (string) $result->get_error_code() ), $back );
 	} else {
 		$back = add_query_arg( 'dx_lead', 'sent', $back );
 	}
@@ -379,8 +391,11 @@ function dx_lead_columns( $columns ) {
 add_filter( 'manage_dx_lead_posts_columns', 'dx_lead_columns' );
 
 /**
+ * Lead column content.
+ *
  * @param string $column  Column key.
  * @param int    $post_id Lead ID.
+ * @return void
  */
 function dx_lead_column_content( $column, $post_id ) {
 	// Column keys deliberately match the meta keys they render.

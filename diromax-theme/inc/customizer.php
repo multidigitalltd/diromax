@@ -13,12 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Register sections, settings and controls.
  *
  * @param WP_Customize_Manager $wp_customize Customizer manager.
+ * @return void
  */
 function dx_customize_register( $wp_customize ) {
-
-	/* ---------------------------------------------------------------
+	/*
 	 * Contact details
-	 * ------------------------------------------------------------ */
+	 */
 	$wp_customize->add_section(
 		'dx_contact',
 		array(
@@ -75,9 +75,9 @@ function dx_customize_register( $wp_customize ) {
 		);
 	}
 
-	/* ---------------------------------------------------------------
+	/*
 	 * Display
-	 * ------------------------------------------------------------ */
+	 */
 	$wp_customize->add_section(
 		'dx_layout',
 		array(
@@ -157,7 +157,7 @@ function dx_customize_register( $wp_customize ) {
 		$wp_customize->add_setting(
 			$id,
 			array(
-				'default'           => true,
+				'default'           => '1',
 				'sanitize_callback' => 'dx_sanitize_bool',
 			)
 		);
@@ -171,9 +171,9 @@ function dx_customize_register( $wp_customize ) {
 		);
 	}
 
-	/* ---------------------------------------------------------------
+	/*
 	 * Accessibility
-	 * ------------------------------------------------------------ */
+	 */
 	$wp_customize->add_section(
 		'dx_a11y',
 		array(
@@ -186,7 +186,7 @@ function dx_customize_register( $wp_customize ) {
 	$wp_customize->add_setting(
 		'dx_a11y_toolbar',
 		array(
-			'default'           => true,
+			'default'           => '1',
 			'sanitize_callback' => 'dx_sanitize_bool',
 		)
 	);
@@ -244,9 +244,9 @@ function dx_customize_register( $wp_customize ) {
 		);
 	}
 
-	/* ---------------------------------------------------------------
+	/*
 	 * Privacy, leads and credit (Multi Digital standard 15.2, 15.4, 15.6)
-	 * ------------------------------------------------------------ */
+	 */
 	$wp_customize->add_section(
 		'dx_privacy',
 		array(
@@ -259,7 +259,7 @@ function dx_customize_register( $wp_customize ) {
 	$wp_customize->add_setting(
 		'dx_terms_page',
 		array(
-			'default'           => 0,
+			'default'           => '0',
 			'sanitize_callback' => 'absint',
 		)
 	);
@@ -275,7 +275,7 @@ function dx_customize_register( $wp_customize ) {
 	$wp_customize->add_setting(
 		'dx_lead_retention',
 		array(
-			'default'           => 24,
+			'default'           => '24',
 			'sanitize_callback' => static fn( $value ) => max( 1, min( 120, absint( $value ) ) ),
 		)
 	);
@@ -296,7 +296,7 @@ function dx_customize_register( $wp_customize ) {
 	$wp_customize->add_setting(
 		'dx_credit',
 		array(
-			'default'           => true,
+			'default'           => '1',
 			'sanitize_callback' => 'dx_sanitize_bool',
 		)
 	);
