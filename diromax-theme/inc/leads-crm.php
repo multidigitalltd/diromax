@@ -14,8 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Version of the capability grant; bump it to re-run dx_leads_grant_caps(). */
+/** Version of the capability grant; bump it to grant again to every role. */
 const DX_LEAD_CAPS_VERSION = '1';
+
+/** Leads per query when exporting. */
+const DX_LEAD_EXPORT_BATCH = 500;
 
 /** Audit entries kept. */
 const DX_LEAD_AUDIT_MAX = 1000;
@@ -63,25 +66,37 @@ function dx_lead_caps() {
  * Administrators, and the portal's project managers (they open cases from
  * leads). Authors, editors and contributors no longer see personal data
  * from the contact form. Filter dx_lead_roles to change the list.
+ *
+ * Each role is recorded once it has its grant. A role that does not exist
+ * yet (the portal plugin creates dx_manager when it is activated, possibly
+ * after the theme) is granted on the first request after it appears.
  */
 function dx_leads_grant_caps() {
-	if ( DX_LEAD_CAPS_VERSION === get_option( 'dx_lead_caps_version' ) ) {
-		return;
-	}
+	$done = get_option( 'dx_lead_caps_granted', array() );
+	$done = is_array( $done ) && DX_LEAD_CAPS_VERSION === ( $done['version'] ?? '' ) ? $done : array( 'version' => DX_LEAD_CAPS_VERSION );
 
-	$roles = (array) apply_filters( 'dx_lead_roles', array( 'administrator', 'dx_manager' ) );
+	$roles   = (array) apply_filters( 'dx_lead_roles', array( 'administrator', 'dx_manager' ) );
+	$changed = false;
 
 	foreach ( $roles as $role_name ) {
-		$role = get_role( (string) $role_name );
+		$role_name = (string) $role_name;
+		$role      = get_role( $role_name );
 
-		if ( $role ) {
-			foreach ( dx_lead_caps() as $cap ) {
-				$role->add_cap( $cap );
-			}
+		if ( ! $role || ! empty( $done[ $role_name ] ) ) {
+			continue;
 		}
+
+		foreach ( dx_lead_caps() as $cap ) {
+			$role->add_cap( $cap );
+		}
+
+		$done[ $role_name ] = true;
+		$changed            = true;
 	}
 
-	update_option( 'dx_lead_caps_version', DX_LEAD_CAPS_VERSION, false );
+	if ( $changed ) {
+		update_option( 'dx_lead_caps_granted', $done, false );
+	}
 }
 add_action( 'init', 'dx_leads_grant_caps', 20 );
 
@@ -368,32 +383,44 @@ function dx_leads_csv() {
 
 	fputcsv( $handle, array( 'תאריך', 'שם', 'טלפון', 'כתובת הנכס', 'סוג הנכס', 'נושא', 'פרטים', 'מקור', 'קמפיין', 'סטטוס', 'הערות' ), ',', '"', '' );
 
-	$leads    = get_posts(
-		array(
-			'post_type'      => 'dx_lead',
-			'post_status'    => 'any',
-			'posts_per_page' => 5000,
-			'orderby'        => 'date',
-			'order'          => 'DESC',
-			'no_found_rows'  => true,
-		)
-	);
 	$statuses = dx_lead_statuses();
+	$batch    = max( 1, (int) apply_filters( 'dx_lead_export_batch', DX_LEAD_EXPORT_BATCH ) );
 
-	foreach ( $leads as $lead ) {
-		$meta   = static fn( $key ) => (string) get_post_meta( $lead->ID, 'dx_' . $key, true );
-		$status = $meta( 'status' );
-
-		fputcsv(
-			$handle,
-			array_map(
-				'dx_csv_cell',
-				array( get_the_date( 'Y-m-d H:i', $lead ), $meta( 'name' ), $meta( 'phone' ), $meta( 'address' ), $meta( 'type' ), $meta( 'subject' ), $meta( 'message' ), $meta( 'source' ), $meta( 'utm' ), $statuses[ '' === $status ? 'new' : $status ] ?? '', $meta( 'notes' ) )
-			),
-			',',
-			'"',
-			''
+	// Every lead, batch by batch: an export never stops at a limit.
+	for ( $page = 1; ; $page++ ) {
+		$leads = get_posts(
+			array(
+				'post_type'      => 'dx_lead',
+				'post_status'    => 'any',
+				'posts_per_page' => $batch,
+				'paged'          => $page,
+				'orderby'        => array(
+					'date' => 'DESC',
+					'ID'   => 'DESC',
+				),
+				'no_found_rows'  => true,
+			)
 		);
+
+		foreach ( $leads as $lead ) {
+			$meta   = static fn( $key ) => (string) get_post_meta( $lead->ID, 'dx_' . $key, true );
+			$status = $meta( 'status' );
+
+			fputcsv(
+				$handle,
+				array_map(
+					'dx_csv_cell',
+					array( get_the_date( 'Y-m-d H:i', $lead ), $meta( 'name' ), $meta( 'phone' ), $meta( 'address' ), $meta( 'type' ), $meta( 'subject' ), $meta( 'message' ), $meta( 'source' ), $meta( 'utm' ), $statuses[ '' === $status ? 'new' : $status ] ?? '', $meta( 'notes' ) )
+				),
+				',',
+				'"',
+				''
+			);
+		}
+
+		if ( count( $leads ) < $batch ) {
+			break;
+		}
 	}
 
 	rewind( $handle );

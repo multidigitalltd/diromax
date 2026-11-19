@@ -45,6 +45,25 @@ final class ThemeWebDefaultsTest extends PortalTestCase {
 		$this->assertFalse( user_can( $admin, get_post_type_object( 'dx_lead' )->cap->create_posts ), 'Leads come only from the form.' );
 	}
 
+	/**
+	 * Regression (PR review, and red on a fresh CI database): a role created
+	 * after the theme's first grant, as the portal's dx_manager is, still
+	 * gets lead access on the next request.
+	 */
+	public function test_a_role_created_later_still_gets_lead_access(): void {
+		$roles = static fn( array $role_names ): array => array_merge( $role_names, array( 'dx_late_role' ) );
+		add_filter( 'dx_lead_roles', $roles );
+
+		dx_leads_grant_caps();
+		add_role( 'dx_late_role', 'Late', array( 'read' => true ) );
+		dx_leads_grant_caps();
+
+		$this->assertTrue( get_role( 'dx_late_role' )->has_cap( 'edit_others_dx_leads' ) );
+
+		remove_filter( 'dx_lead_roles', $roles );
+		remove_role( 'dx_late_role' );
+	}
+
 	public function test_a_submitted_lead_gets_status_consent_campaign_and_a_lean_email(): void {
 		$_POST = array(
 			'nonce'      => wp_create_nonce( 'dx_lead' ),
@@ -138,6 +157,26 @@ final class ThemeWebDefaultsTest extends PortalTestCase {
 		set_theme_mod( 'dx_lead_retention', 1 );
 		$this->assertSame( 1, dx_lead_cleanup() );
 		remove_theme_mod( 'dx_lead_retention' );
+	}
+
+	/**
+	 * Regression (PR review): the export walks every batch instead of stopping at one.
+	 */
+	public function test_the_lead_export_includes_every_batch(): void {
+		$batch = static fn(): int => 2;
+		add_filter( 'dx_lead_export_batch', $batch );
+
+		foreach ( range( 1, 5 ) as $n ) {
+			update_post_meta( $this->lead(), 'dx_name', 'ליד ' . $n );
+		}
+
+		$csv = dx_leads_csv();
+		remove_filter( 'dx_lead_export_batch', $batch );
+
+		foreach ( range( 1, 5 ) as $n ) {
+			$this->assertStringContainsString( 'ליד ' . $n, $csv );
+		}
+		$this->assertSame( 6, substr_count( trim( $csv ), "\n" ) + 1, 'Header and five rows.' );
 	}
 
 	public function test_the_lead_export_defuses_formulas(): void {
