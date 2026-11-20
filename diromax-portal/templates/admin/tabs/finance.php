@@ -48,7 +48,27 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 <?php if ( array() === $view['rows'] ) : ?>
 	<p><?php esc_html_e( 'עדיין אין תנועות בתיק.', 'diromax-portal' ); ?></p>
 <?php else : ?>
-<table class="widefat dxa-table dxa-ledger">
+	<?php
+	/* translators: 1: rows shown, 2: all rows. Filled in by the browser. */
+	$filter_count = __( 'מוצגות %1$d מתוך %2$d תנועות', 'diromax-portal' );
+	?>
+<div class="dxa-filterbar" data-dxa-filter="dxa-ledger-table" data-dxa-count="<?php echo esc_attr( $filter_count ); ?>" hidden>
+	<p class="dxa-field">
+		<label for="dxa-filter-type"><?php esc_html_e( 'סוג', 'diromax-portal' ); ?></label>
+		<select id="dxa-filter-type" data-dxa-filter-type>
+			<option value=""><?php esc_html_e( 'הכל', 'diromax-portal' ); ?></option>
+			<?php foreach ( Labels::types() as $type_value => $type_label ) : ?>
+				<option value="<?php echo esc_attr( (string) $type_value ); ?>"><?php echo esc_html( (string) $type_label ); ?></option>
+			<?php endforeach; ?>
+		</select>
+	</p>
+	<p class="dxa-field">
+		<label for="dxa-filter-text"><?php esc_html_e( 'חיפוש בתנועות', 'diromax-portal' ); ?></label>
+		<input type="search" id="dxa-filter-text" data-dxa-filter-text placeholder="<?php esc_attr_e( 'תיאור, ספק, סכום…', 'diromax-portal' ); ?>">
+	</p>
+	<p class="dxa-muted dxa-filterbar__count" data-dxa-filter-count aria-live="polite"></p>
+</div>
+<table class="widefat dxa-table dxa-ledger" id="dxa-ledger-table">
 	<caption class="screen-reader-text"><?php esc_html_e( 'תנועות התיק', 'diromax-portal' ); ?></caption>
 	<thead><tr>
 		<th scope="col"><?php esc_html_e( 'תאריך', 'diromax-portal' ); ?></th>
@@ -67,7 +87,7 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 		$document = null === $entry->document_id ? null : ( $view['documents'][ $entry->document_id ] ?? null );
 		$editable = ! $entry->voided && ! ( EntryType::Request === $entry->type && EntryStatus::Open !== $entry->status );
 		?>
-		<tr class="<?php echo $entry->voided ? 'dxa-voided' : ''; ?>">
+		<tr class="<?php echo $entry->voided ? 'dxa-voided' : ''; ?>" data-dxa-row="<?php echo esc_attr( $entry->type->value ); ?>">
 			<td dir="ltr"><?php echo esc_html( Labels::date( $entry->entry_date ) ); ?></td>
 			<td><span class="dxa-badge dxa-badge--<?php echo esc_attr( $entry->type->value ); ?>"><?php echo esc_html( Labels::entry_tag( $entry ) ); ?></span></td>
 			<td>
@@ -145,7 +165,8 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 
 					<?php if ( EntryType::Request === $entry->type ) : ?>
 						<?php $settle = new Form( $flash, 'settle-' . $entry_id ); ?>
-						<details id="form-settle-<?php echo esc_attr( (string) $entry_id ); ?>"<?php echo 'settle-' . $entry_id === $open ? ' open' : ''; ?>>
+						<?php $settle_here = (int) ( $view['settle'] ?? 0 ) === $entry_id; ?>
+						<details id="form-settle-<?php echo esc_attr( (string) $entry_id ); ?>"<?php echo 'settle-' . $entry_id === $open || $settle_here ? ' open' : ''; ?><?php echo $settle_here ? ' data-dxa-focus' : ''; ?>>
 							<summary><?php esc_html_e( 'סימון כשולמה', 'diromax-portal' ); ?></summary>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 								<input type="hidden" name="action" value="dx_portal_settle_request">

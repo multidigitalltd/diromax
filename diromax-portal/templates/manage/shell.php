@@ -23,6 +23,14 @@ defined( 'ABSPATH' ) || exit;
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex, nofollow">
 	<title><?php echo esc_html( $document_title ); ?></title>
+	<link rel="manifest" href="<?php echo esc_url( \Diromax\Portal\Portal\Router::manage_url( 'manifest' ) ); ?>">
+	<meta name="theme-color" content="#15171c">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<meta name="apple-mobile-web-app-title" content="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+	<link rel="apple-touch-icon" href="<?php echo esc_url( \Diromax\Portal\Support\AssetFile::url( 'assets/img/app-icon-180.png' ) ); ?>">
+	<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( \Diromax\Portal\Support\AssetFile::url( 'assets/img/app-icon-192.png' ) ); ?>">
 	<?php wp_print_styles( array( 'dx-portal-admin', 'dx-portal-manage' ) ); ?>
 </head>
 <body class="dxa-screen dxa-front">

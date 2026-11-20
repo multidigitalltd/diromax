@@ -28,6 +28,41 @@ $tiles   = array(
 	array( __( 'דרישות פתוחות', 'diromax-portal' ), Money::format( $summary->open_requests ), $summary->overdue_count > 0 ? sprintf( __( '%d באיחור', 'diromax-portal' ), $summary->overdue_count ) : '' ),
 );
 ?>
+<?php
+$setup = $view['setup'];
+$done  = count( array_filter( array_column( $setup, 'done' ) ) );
+?>
+<?php if ( $done < count( $setup ) ) : ?>
+	<section class="dxa-next" aria-labelledby="dxa-next-title">
+		<h2 id="dxa-next-title">
+			<?php esc_html_e( 'הקמת התיק', 'diromax-portal' ); ?>
+			<span class="dxa-muted">
+				<?php
+				/* translators: 1: steps done, 2: all steps. */
+				echo esc_html( sprintf( __( '%1$d מתוך %2$d', 'diromax-portal' ), $done, count( $setup ) ) );
+				?>
+			</span>
+		</h2>
+		<div class="dxa-next__bar" style="--dxa-steps:<?php echo esc_attr( (string) count( $setup ) ); ?>" aria-hidden="true">
+			<?php foreach ( $setup as $step ) : ?>
+				<i class="<?php echo $step['done'] ? 'is-done' : ''; ?>"></i>
+			<?php endforeach; ?>
+		</div>
+		<ol class="dxa-checklist">
+			<?php foreach ( $setup as $index => $step ) : ?>
+				<li class="<?php echo $step['done'] ? 'is-done' : 'is-todo'; ?>">
+					<span class="dxa-checklist__mark" aria-hidden="true"><?php echo $step['done'] ? '✓' : esc_html( (string) ( $index + 1 ) ); ?></span>
+					<span class="dxa-checklist__t"><?php echo esc_html( $step['label'] ); ?></span>
+					<span class="screen-reader-text"><?php echo $step['done'] ? esc_html__( '(הושלם)', 'diromax-portal' ) : esc_html__( '(עוד לא)', 'diromax-portal' ); ?></span>
+					<?php if ( ! $step['done'] ) : ?>
+						<a class="dxa-checklist__go" href="<?php echo esc_url( $step['url'] ); ?>"><?php echo esc_html( $step['action'] ); ?></a>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ol>
+	</section>
+<?php endif; ?>
+
 <?php if ( $pending['count'] > 0 ) : ?>
 	<div class="dxa-pending" role="status">
 		<p>

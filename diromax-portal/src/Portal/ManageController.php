@@ -13,6 +13,7 @@ use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Admin\Flash;
 use Diromax\Portal\Admin\Pages;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Support\AssetFile;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -43,6 +44,12 @@ final class ManageController {
 		$user   = get_current_user_id();
 		$screen = (string) get_query_var( Router::SCREEN );
 		$screen = in_array( $screen, Router::SCREENS, true ) ? $screen : 'dashboard';
+
+		// The home-screen manifest is fetched without cookies and holds nothing private.
+		if ( 'manifest' === $screen ) {
+			self::manifest();
+			return;
+		}
 
 		if ( 0 === $user ) {
 			wp_safe_redirect( wp_login_url( self::requested_url( $screen ) ) );
@@ -128,6 +135,40 @@ final class ManageController {
 		$template_file   = DX_PORTAL_DIR . 'templates/' . $template . '.php';
 
 		include DX_PORTAL_DIR . 'templates/manage/shell.php';
+	}
+
+	/**
+	 * Web app manifest: the app can be added to a phone's home screen and
+	 * opens full screen, like an app.
+	 */
+	private static function manifest(): void {
+		$pretty = '' !== (string) get_option( 'permalink_structure' );
+		$icon   = static fn( int $size, string $purpose ): array => array(
+			'src'     => AssetFile::url( 'assets/img/app-icon-' . $size . '.png' ),
+			'sizes'   => $size . 'x' . $size,
+			'type'    => 'image/png',
+			'purpose' => $purpose,
+		);
+
+		status_header( 200 );
+		header( 'Content-Type: application/manifest+json; charset=utf-8' );
+
+		// JSON for the browser, not HTML: wp_json_encode() escapes it for its context.
+		echo wp_json_encode( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON document, encoded by wp_json_encode().
+			array(
+				'name'             => get_bloginfo( 'name' ) . ' · ' . __( 'ניהול תיקים', 'diromax-portal' ),
+				'short_name'       => get_bloginfo( 'name' ),
+				'lang'             => 'he',
+				'dir'              => 'rtl',
+				'start_url'        => Router::manage_url(),
+				'scope'            => $pretty ? Router::manage_url() : home_url( '/' ),
+				'display'          => 'standalone',
+				'background_color' => '#f4f4f2',
+				'theme_color'      => '#15171c',
+				'icons'            => array( $icon( 192, 'any' ), $icon( 512, 'any' ), $icon( 192, 'maskable' ), $icon( 512, 'maskable' ) ),
+			),
+			JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+		);
 	}
 
 	/**

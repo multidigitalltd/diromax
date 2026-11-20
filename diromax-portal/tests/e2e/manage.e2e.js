@@ -47,6 +47,31 @@ async function signIn(page, user, pass, redirect) {
   check('the app is Hebrew, right to left, without wp-admin around it', (await page.getAttribute('html', 'dir')) === 'rtl' && (await page.locator('#wpadminbar, #adminmenu').count()) === 0);
   check('dashboard: totals, attention and active cases', (await page.locator('.dxa-kpis li').count()) === 6 && (await page.textContent('h1')).includes('לוח בקרה') && (await page.locator('.dxa-cases__i').count()) >= 1);
   await axe(page, 'app dashboard');
+
+  // ---------- 1.4.0: cache-busting URLs, dashboard actions ----------
+  const css = await page.getAttribute('link[href*="admin.min.css"]', 'href');
+  check('stylesheet URL carries the version and a content hash', /[?&]ver=\d+\.\d+\.\d+-[a-f0-9]{8}/.test(css), css);
+  await page.locator('h1').click();
+  await page.keyboard.press('/');
+  check('no single-character shortcut takes the focus (standard 8.3.8, WCAG 2.1.4)', await page.evaluate(() => !document.activeElement || document.activeElement.id !== 'dxa-top-search'));
+
+  const settleLink = page.locator('.dxa-row-actions a:has-text("סימון כשולמה")').first();
+  check('payment requests on the dashboard have actions', (await page.locator('.dxa-row-actions').count()) > 0);
+  await settleLink.click();
+  await page.waitForLoadState('load');
+  const settleId = new URL(page.url()).searchParams.get('settle');
+  check('"mark as paid" opens that request\'s form in the case, ready to fill', page.url().includes('tab=finance') && (await page.locator('#form-settle-' + settleId).evaluate(e => e.open)) && await page.evaluate((id) => !!document.activeElement.closest('#form-settle-' + id), settleId), page.url());
+
+  await page.goto(BASE + '/portal/manage/');
+  const remind = page.locator('.dxa-row-actions button:has-text("תזכורת")').first();
+  if (await remind.count()) {
+    page.once('dialog', d => d.accept());
+    await remind.click();
+    await page.waitForLoadState('load');
+    check('a reminder sent from the dashboard comes back to the dashboard with a notice', page.url() === BASE + '/portal/manage/' && (await page.locator('.notice').count()) > 0, page.url());
+  } else {
+    check('every request on the dashboard was already reminded today (button hidden)', (await page.locator('.dxa-row-actions:has-text("תזכורת נשלחה היום")').count()) > 0);
+  }
   await page.screenshot({ path: out('50-app-dashboard.png'), fullPage: true });
 
   // ---------- Search and list ----------
@@ -84,6 +109,18 @@ async function signIn(page, user, pass, redirect) {
   await page.click('#form-entry button[type=submit]');
   await page.waitForLoadState('load');
   check('a failed save comes back to the app with the error and the values', page.url().startsWith(caseUrl) && (await page.getAttribute('#dxa-entry-amount', 'aria-invalid')) === 'true' && (await page.inputValue('#dxa-entry-description')) === 'סכום שגוי');
+  // ---------- Ledger filter ----------
+  await page.goto(caseUrl + '?tab=finance');
+  check('the ledger filter appears', await page.isVisible('.dxa-filterbar'));
+  const allRows = await page.locator('#dxa-ledger-table tbody > tr[data-dxa-row]').count();
+  await page.selectOption('#dxa-filter-type', 'payment');
+  const visibleTypes = await page.locator('#dxa-ledger-table tbody > tr[data-dxa-row]:not([hidden])').evaluateAll(rows => rows.map(r => r.getAttribute('data-dxa-row')));
+  check('filtering by type shows only that type, and says how many', visibleTypes.length > 0 && visibleTypes.length < allRows && visibleTypes.every(t => t === 'payment') && (await page.textContent('[data-dxa-filter-count]')).includes(String(visibleTypes.length)), visibleTypes.join(','));
+  await page.selectOption('#dxa-filter-type', '');
+  await page.fill('#dxa-filter-text', 'מדידה');
+  const textRows = await page.locator('#dxa-ledger-table tbody > tr[data-dxa-row]:not([hidden])').allTextContents();
+  check('free-text search narrows the rows', textRows.length >= 1 && textRows.length < allRows && textRows.every(t => t.includes('מדידה')));
+
   for (const tab of ['finance', 'budget', 'members', 'updates', 'decisions', 'documents', 'details', 'log']) {
     await page.goto(caseUrl + '?tab=' + tab);
     await axe(page, 'app case tab: ' + tab);
@@ -112,6 +149,8 @@ async function signIn(page, user, pass, redirect) {
   await axe(admin, 'app settings');
   await admin.goto(otherCase);
   check('that case is the administrator\'s, not the project manager\'s', !(await admin.textContent('.dxa-head__meta')).includes('דניאל'));
+  check('a new case shows its setup checklist, 0 of 5, each step with a link', (await admin.textContent('.dxa-next h2')).includes('0 מתוך 5') && (await admin.locator('.dxa-checklist .is-todo a').count()) === 5);
+  await axe(admin, 'case setup checklist');
   r = await page.goto(otherCase);
   check('a project manager cannot open another manager\'s case (404)', r.status() === 404 && !(await page.textContent('body')).includes('רח׳ האלון'));
 
@@ -130,6 +169,16 @@ async function signIn(page, user, pass, redirect) {
   check('a client is sent back to the portal', !client.url().includes('/manage/') && client.url().includes('/portal/'), client.url());
   r = await client.request.post(BASE + '/wp-admin/admin-post.php', { form: { action: 'dx_portal_demo_case', _wpnonce: 'x' } });
   check('a client cannot use the staff actions', r.status() >= 400);
+
+  // ---------- Home screen ----------
+  const anon = await browser.newContext();
+  const manifestRes = await anon.request.get(BASE + '/portal/manage/manifest.webmanifest');
+  const manifest = manifestRes.ok() ? await manifestRes.json() : {};
+  check('the web app manifest is public JSON with the app\'s start page', manifestRes.status() === 200 && /manifest\+json/.test(manifestRes.headers()['content-type']) && manifest.start_url === BASE + '/portal/manage/' && manifest.display === 'standalone' && manifest.dir === 'rtl', JSON.stringify(manifest).slice(0, 160));
+  const icon = await anon.request.get(manifest.icons ? manifest.icons[1].src : BASE + '/none');
+  check('its 512px icon is served as PNG', icon.status() === 200 && icon.headers()['content-type'] === 'image/png');
+  check('the app page links the manifest and an iPhone icon', (await page.locator('link[rel="manifest"]').count()) === 1 && (await page.locator('link[rel="apple-touch-icon"]').count()) === 1);
+  await anon.close();
 
   // ---------- Phones ----------
   const m = await browser.newContext({ ...devices['iPhone 13'] });
