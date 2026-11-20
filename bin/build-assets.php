@@ -109,12 +109,15 @@ $jobs = array(
 	),
 );
 
-foreach ( array( 'portal', 'admin' ) as $dx_name ) {
+foreach ( array( 'portal', 'admin', 'manage' ) as $dx_name ) {
 	$jobs[] = array(
 		'src'  => $portal . '/assets/css/' . $dx_name . '.css',
 		'dst'  => $portal . '/assets/css/' . $dx_name . '.min.css',
 		'func' => 'dx_minify_css',
 	);
+}
+
+foreach ( array( 'portal', 'admin' ) as $dx_name ) {
 	$jobs[] = array(
 		'src'  => $portal . '/assets/js/' . $dx_name . '.js',
 		'dst'  => $portal . '/assets/js/' . $dx_name . '.min.js',

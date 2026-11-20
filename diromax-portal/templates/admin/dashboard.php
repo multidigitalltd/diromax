@@ -38,12 +38,12 @@ $header    = array(
 	'actions' => array(
 		array(
 			'label'   => __( '+ תיק חדש', 'diromax-portal' ),
-			'url'     => add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ),
+			'url'     => Admin::page_url( Admin::PAGE_NEW ),
 			'primary' => true,
 		),
 		array(
 			'label' => __( 'כל התיקים', 'diromax-portal' ),
-			'url'   => add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ),
+			'url'   => Admin::page_url( Admin::PAGE_CASES ),
 		),
 	),
 );
@@ -63,7 +63,7 @@ $header    = array(
 				<li><strong><?php esc_html_e( 'מזינים תנועות ועדכונים', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'והלקוח רואה הכל מיד.', 'diromax-portal' ); ?></li>
 			</ol>
 			<div class="dxa-welcome__actions">
-				<a class="dxa-btn dxa-btn--primary" href="<?php echo esc_url( add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'פתיחת תיק ראשון', 'diromax-portal' ); ?></a>
+				<a class="dxa-btn dxa-btn--primary" href="<?php echo esc_url( Admin::page_url( Admin::PAGE_NEW ) ); ?>"><?php esc_html_e( 'פתיחת תיק ראשון', 'diromax-portal' ); ?></a>
 				<?php require __DIR__ . '/parts/demo-button.php'; ?>
 			</div>
 			<p class="dxa-muted"><?php esc_html_e( 'התיק לדוגמה מגיע מלא: תקציב, תנועות, דרישת תשלום באיחור, עדכונים והחלטה שממתינה ללקוח. אין בו לקוחות, ולכן לא יוצא ממנו שום מייל.', 'diromax-portal' ); ?></p>
@@ -362,7 +362,7 @@ $header    = array(
 						</li>
 					<?php endforeach; ?>
 				</ul>
-				<p class="dxa-card__more"><a href="<?php echo esc_url( add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'לכל התיקים', 'diromax-portal' ); ?></a></p>
+				<p class="dxa-card__more"><a href="<?php echo esc_url( Admin::page_url( Admin::PAGE_CASES ) ); ?>"><?php esc_html_e( 'לכל התיקים', 'diromax-portal' ); ?></a></p>
 			<?php endif; ?>
 		</section>
 

@@ -43,6 +43,15 @@ final class DocumentRepository {
 	}
 
 	/**
+	 * Is any document stored at all?
+	 *
+	 * @return bool
+	 */
+	public function any(): bool {
+		return null !== $this->db->get_var( $this->db->prepare( 'SELECT id FROM %i LIMIT 1', Schema::table( 'documents' ) ) );
+	}
+
+	/**
 	 * Document by ID.
 	 *
 	 * @param int $id ID.

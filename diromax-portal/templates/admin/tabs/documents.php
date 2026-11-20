@@ -20,7 +20,7 @@ $form = new Form( $view['flash'], 'document' );
 <?php if ( ! $view['key_ready'] ) : ?>
 	<div class="notice notice-error inline"><p><?php esc_html_e( 'העלאת מסמכים חסומה עד שיוגדר מפתח ההצפנה DX_PORTAL_KEY.', 'diromax-portal' ); ?></p></div>
 <?php else : ?>
-<details class="dxa-box dxa-box--add" id="form-document"<?php echo array() === $view['documents'] || $form->failed() ? ' open' : ''; ?>>
+<details class="dxa-box dxa-box--add" id="form-document"<?php echo array() === $view['documents'] || $form->failed() || ! empty( $view['adding'] ) ? ' open' : ''; ?><?php echo ! empty( $view['adding'] ) ? ' data-dxa-focus' : ''; ?>>
 	<summary><h2><?php esc_html_e( 'העלאת מסמך', 'diromax-portal' ); ?></h2></summary>
 	<p class="description"><?php esc_html_e( 'הקובץ נשמר מוצפן בשרת ונפתח רק דרך האזור האישי. ההסכם החתום מועלה כאן בסוג "הסכם", ותנאיו נכתבים בלשונית פרטי התיק.', 'diromax-portal' ); ?></p>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">

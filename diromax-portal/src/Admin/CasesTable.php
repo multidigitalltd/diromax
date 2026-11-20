@@ -10,10 +10,8 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
-use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Service\Labels;
-use Diromax\Portal\Service\Stages;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -150,17 +148,7 @@ final class CasesTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_stage( $item ): string {
-		$segments = '';
-
-		for ( $step = 1; $step <= 7; $step++ ) {
-			$segments .= '<i class="' . esc_attr( $step < $item->stage ? 'is-done' : ( $step === $item->stage ? 'is-now' : '' ) ) . '"></i>';
-		}
-
-		return sprintf(
-			'<span class="dxa-cell-stack"><span>%1$s</span><span class="dxa-mini" aria-hidden="true">%2$s</span></span>',
-			esc_html( str_pad( (string) $item->stage, 2, '0', STR_PAD_LEFT ) . ' · ' . Stages::name( $item->stage ) ),
-			$segments
-		);
+		return CaseCells::stage( $item );
 	}
 
 	/**
@@ -170,21 +158,7 @@ final class CasesTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_budget( $item ): string {
-		$budget = (int) ( $item->summary['budget'] ?? 0 );
-		$cost   = (int) ( $item->summary['cost_to_date'] ?? 0 );
-
-		if ( $budget <= 0 ) {
-			return '<span class="dxa-muted">' . esc_html__( 'אין תקציב', 'diromax-portal' ) . '</span>';
-		}
-
-		$share = Money::share_bps( $cost, $budget );
-
-		return sprintf(
-			'<span class="dxa-cell-stack"><span><strong>%2$s</strong> <span class="dxa-muted">· %3$s</span></span><span class="dxa-bar" aria-hidden="true"><i style="width:%1$s%%"></i></span></span>',
-			esc_attr( (string) min( 100, intdiv( $share, 100 ) ) ),
-			esc_html( Money::percent( $share ) ),
-			esc_html( Money::format( $cost ) )
-		);
+		return CaseCells::budget( $item );
 	}
 
 	/**
@@ -194,19 +168,7 @@ final class CasesTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_requests( $item ): string {
-		$open    = (int) ( $item->summary['open_requests'] ?? 0 );
-		$overdue = (int) ( $item->summary['overdue_count'] ?? 0 );
-
-		if ( 0 === $open ) {
-			return '—';
-		}
-
-		$late = $overdue > 0
-			/* translators: %d: overdue requests. */
-			? ' <span class="dxa-badge dxa-badge--late">' . esc_html( sprintf( _n( '%d באיחור', '%d באיחור', $overdue, 'diromax-portal' ), $overdue ) ) . '</span>'
-			: '';
-
-		return esc_html( Money::format( $open ) ) . $late;
+		return CaseCells::requests( $item );
 	}
 
 	/**
@@ -226,10 +188,6 @@ final class CasesTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_status( $item ): string {
-		return sprintf(
-			'<span class="dxa-chip dxa-chip--%1$s">%2$s</span>',
-			esc_attr( $item->status->value ),
-			esc_html( Labels::case_statuses()[ $item->status->value ] ?? '' )
-		);
+		return CaseCells::status( $item );
 	}
 }

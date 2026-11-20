@@ -149,6 +149,9 @@ jobs:
       - name: Theme web defaults (privacy notice, footer, leads CRM)
         working-directory: diromax-portal/tests/e2e
         run: node theme.e2e.js "$RUNNER_TEMP/e2e"
+      - name: Management app on the site (/portal/manage/)
+        working-directory: diromax-portal/tests/e2e
+        run: node manage.e2e.js "$RUNNER_TEMP/e2e"
 
       - name: No PHP warnings or notices
         run: |

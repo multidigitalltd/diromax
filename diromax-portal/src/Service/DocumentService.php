@@ -47,6 +47,35 @@ final class DocumentService {
 	public function __construct( private readonly Plugin $app ) {}
 
 	/**
+	 * State of the encryption key: missing, changed (not the key the stored
+	 * documents were encrypted with, so they cannot be opened), or ok.
+	 *
+	 * With no documents stored, a new key is simply adopted.
+	 *
+	 * @return string
+	 */
+	public function key_status(): string {
+		$current = $this->app->store->fingerprint();
+
+		if ( null === $current ) {
+			return 'missing';
+		}
+
+		$known = $this->app->store->known_fingerprint();
+
+		if ( '' === $known || hash_equals( $known, $current ) ) {
+			return 'ok';
+		}
+
+		if ( ! $this->app->documents->any() ) {
+			$this->app->store->remember_key();
+			return 'ok';
+		}
+
+		return 'changed';
+	}
+
+	/**
 	 * Validate, encrypt and record an uploaded file.
 	 *
 	 * @param CaseRecord           $client_case      Case.
@@ -66,6 +95,10 @@ final class DocumentService {
 
 		if ( ! $this->app->store->is_configured() ) {
 			return new WP_Error( 'dx_no_key', __( 'העלאת מסמכים חסומה: לא הוגדר מפתח הצפנה (DX_PORTAL_KEY).', 'diromax-portal' ), array( 'status' => 503 ) );
+		}
+
+		if ( 'changed' === $this->key_status() ) {
+			return new WP_Error( 'dx_key_changed', __( 'העלאת מסמכים חסומה: מפתח ההצפנה השתנה מאז שהועלו המסמכים הקיימים. יש להחזיר את המפתח הקודם ל-wp-config.php.', 'diromax-portal' ), array( 'status' => 503 ) );
 		}
 
 		$checked = $this->check_upload( $file );
@@ -286,6 +319,10 @@ final class DocumentService {
 			if ( $file['temporary'] ) {
 				wp_delete_file( $file['path'] );
 			}
+		}
+
+		if ( '' === $this->app->store->known_fingerprint() ) {
+			$this->app->store->remember_key();
 		}
 
 		$title = mb_substr( Text::line( $title ), 0, 200 );

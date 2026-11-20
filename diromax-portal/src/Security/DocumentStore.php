@@ -49,6 +49,43 @@ final class DocumentStore {
 		return null !== $this->master_key();
 	}
 
+	/** Option holding the fingerprint of the key documents are stored with. */
+	public const FINGERPRINT_OPTION = 'dx_portal_key_fp';
+
+	/**
+	 * A short fingerprint of the current key, safe to show: an HMAC made with
+	 * the key, so it identifies the key without revealing it.
+	 *
+	 * @return string|null 12 hex digits, or null without a key.
+	 */
+	public function fingerprint(): ?string {
+		$key = $this->master_key();
+
+		return null === $key ? null : substr( hash_hmac( 'sha256', 'dx-portal-fingerprint', $key ), 0, 12 );
+	}
+
+	/**
+	 * The fingerprint of the key the stored documents were encrypted with.
+	 *
+	 * @return string '' before the first upload.
+	 */
+	public function known_fingerprint(): string {
+		$known = get_option( self::FINGERPRINT_OPTION, '' );
+
+		return is_string( $known ) ? $known : '';
+	}
+
+	/**
+	 * Remember the current key as the one documents are stored with.
+	 */
+	public function remember_key(): void {
+		$current = $this->fingerprint();
+
+		if ( null !== $current ) {
+			update_option( self::FINGERPRINT_OPTION, $current, false );
+		}
+	}
+
 	/**
 	 * New random stored name.
 	 *

@@ -43,7 +43,7 @@
       "phpcbf --standard=phpcs-theme.xml.dist"
     ],
     "analyse": [
-      "phpstan analyse --memory-limit=1G --no-progress",
+      "phpstan analyse --memory-limit=2G --no-progress",
       "phpstan analyse -c phpstan-theme.neon.dist --memory-limit=2G --no-progress"
     ],
     "test": "phpunit",

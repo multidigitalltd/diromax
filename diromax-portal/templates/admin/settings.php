@@ -118,7 +118,22 @@ $header   = array(
 			</tr>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'מפתח הצפנת מסמכים', 'diromax-portal' ); ?></th>
-				<td><?php echo $view['key_ready'] ? esc_html__( 'מוגדר.', 'diromax-portal' ) : '<strong>' . esc_html__( 'לא מוגדר: העלאת מסמכים חסומה. ההוראות ב-README של התוסף.', 'diromax-portal' ) . '</strong>'; ?></td>
+				<td>
+					<?php if ( ! $view['key_ready'] ) : ?>
+						<strong><?php esc_html_e( 'לא מוגדר: העלאת מסמכים חסומה. ההוראות ב-README של התוסף.', 'diromax-portal' ); ?></strong>
+					<?php elseif ( 'changed' === $view['key_status'] ) : ?>
+						<strong><?php esc_html_e( 'המפתח השתנה מאז שהועלו המסמכים הקיימים, והם לא ייפתחו עד שהמפתח הקודם יחזור. העלאה חסומה עד אז.', 'diromax-portal' ); ?></strong>
+					<?php else : ?>
+						<?php esc_html_e( 'מוגדר.', 'diromax-portal' ); ?>
+					<?php endif; ?>
+					<?php if ( null !== $view['fingerprint'] ) : ?>
+						<p class="description">
+							<?php esc_html_e( 'טביעת האצבע של המפתח הנוכחי:', 'diromax-portal' ); ?>
+							<code dir="ltr"><?php echo esc_html( implode( '-', str_split( (string) $view['fingerprint'], 4 ) ) ); ?></code>.
+							<?php esc_html_e( 'אותה טביעה בעותק השמור אצלכם = העותק נכון. איך בודקים: ב-README של התוסף, "גיבוי המפתח".', 'diromax-portal' ); ?>
+						</p>
+					<?php endif; ?>
+				</td>
 			</tr>
 		</table>
 

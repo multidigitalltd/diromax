@@ -54,7 +54,19 @@ final class ClientGuard {
 		add_filter(
 			'login_redirect',
 			static function ( string $redirect, string $requested, $user ) use ( $app ): string {
-				return $user instanceof \WP_User && $app->policy->is_client_only( $user->ID ) ? Router::portal_url() : $redirect;
+				if ( ! $user instanceof \WP_User ) {
+					return $redirect;
+				}
+
+				if ( $app->policy->is_client_only( $user->ID ) ) {
+					return Router::portal_url();
+				}
+
+				// Project managers land in the management app unless a page was asked
+				// for. The sign-in form sends admin_url() when nothing was asked for.
+				$asked = ! in_array( $requested, array( '', 'wp-admin/', admin_url() ), true );
+
+				return ! $asked && $app->policy->can_use_admin( $user->ID ) && ! user_can( $user, 'manage_options' ) ? Router::manage_url() : $redirect;
 			},
 			10,
 			3
