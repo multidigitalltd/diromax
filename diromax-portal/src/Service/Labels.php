@@ -18,6 +18,7 @@ use Diromax\Portal\Domain\DecisionStatus;
 use Diromax\Portal\Domain\MemberRole;
 use Diromax\Portal\Domain\NotifyMode;
 use Diromax\Portal\Domain\PayTo;
+use Diromax\Portal\Domain\StageStatus;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -107,6 +108,41 @@ final class Labels {
 			CaseStatus::OnHold->value => __( 'מושהה', 'diromax-portal' ),
 			CaseStatus::Closed->value => __( 'סגור', 'diromax-portal' ),
 		);
+	}
+
+	/**
+	 * Stage statuses, in the order the editor offers them.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function stage_statuses(): array {
+		return array(
+			StageStatus::Pending->value => __( 'טרם התחיל', 'diromax-portal' ),
+			StageStatus::Active->value  => __( 'בתהליך', 'diromax-portal' ),
+			StageStatus::Done->value    => __( 'הושלם', 'diromax-portal' ),
+			StageStatus::Skipped->value => __( 'לא רלוונטי', 'diromax-portal' ),
+		);
+	}
+
+	/**
+	 * When a stage started or finished, e.g. "מאז 12.11.2026"; empty when
+	 * it has no date for its status.
+	 *
+	 * @param array{status:string, started:string|null, done:string|null} $state One stage.
+	 * @return string
+	 */
+	public static function stage_when( array $state ): string {
+		if ( StageStatus::Active->value === $state['status'] && null !== $state['started'] ) {
+			/* translators: %s: date. */
+			return sprintf( __( 'מאז %s', 'diromax-portal' ), self::date( $state['started'] ) );
+		}
+
+		if ( StageStatus::Done->value === $state['status'] && null !== $state['done'] ) {
+			/* translators: %s: date. */
+			return sprintf( __( 'הושלם %s', 'diromax-portal' ), self::date( $state['done'] ) );
+		}
+
+		return '';
 	}
 
 	/**

@@ -121,6 +121,40 @@ async function signIn(page, user, pass, redirect) {
   const textRows = await page.locator('#dxa-ledger-table tbody > tr[data-dxa-row]:not([hidden])').allTextContents();
   check('free-text search narrows the rows', textRows.length >= 1 && textRows.length < allRows && textRows.every(t => t.includes('מדידה')));
 
+  // ---------- Several stages in progress ----------
+  await page.goto(caseUrl + '?tab=details');
+  check('each stage has its own four-way status', (await page.locator('#dxa-stages fieldset').count()) === 7 && (await page.locator('#dxa-stages input[type=radio]').count()) === 28);
+  const firstActive = await page.locator('#dxa-stages .dxa-seg__in--active:checked').evaluateAll(els => els.map(e => e.name));
+  await page.locator('label[for="dxa-stage-3-active"]').click();
+  await page.locator('label[for="dxa-stage-4-active"]').click();
+  await page.locator('#dxa-stage-6-skipped').focus();
+  await page.keyboard.press('ArrowLeft');
+  const keyChoice = await page.evaluate(() => document.activeElement && document.activeElement.id);
+  await page.keyboard.press('ArrowRight');
+  await page.locator('label[for="dxa-stage-6-skipped"]').click();
+  await page.locator('label[for="dxa-stage-2-done"]').click();
+  await page.click('#form-details input[type=submit], #form-details button[type=submit]');
+  await page.waitForLoadState('load');
+  const nowActive = await page.locator('.dxa-step--active .dxa-step__n').allTextContents();
+  check('two stages saved as in progress, back in the app', page.url().startsWith(caseUrl) && nowActive.join(',').includes('03') && nowActive.join(',').includes('04') && (await page.textContent('.notice-success')).includes('פרטי התיק נשמרו'), nowActive.join(',') + ' (before: ' + firstActive.join(',') + ')');
+  check('the status choice works with the arrow keys', keyChoice !== null && keyChoice.startsWith('dxa-stage-6-') && keyChoice !== 'dxa-stage-6-skipped', String(keyChoice));
+  check('the stepper dates the stages in progress', (await page.textContent('.dxa-step--active .dxa-step__d')).includes('מאז'));
+  check('a not-relevant stage is struck through', (await page.locator('.dxa-step--skipped').count()) >= 1);
+  await page.goto(BASE + '/portal/manage/cases/');
+  check('the cases list says several stages are in progress', (await page.textContent('#the-list, .dxa-table, table')).includes('בתהליך'));
+  await page.goto(caseUrl + '?tab=details');
+  await page.screenshot({ path: out('52-app-stages.png'), fullPage: false });
+
+  // ---------- Stage board ----------
+  await page.click('.dxa-top__nav a:has-text("לוח שלבים")');
+  await page.waitForLoadState('load');
+  const col3 = await page.textContent('section[aria-labelledby="dxa-board-3"]');
+  const col4 = await page.textContent('section[aria-labelledby="dxa-board-4"]');
+  check('stage board: seven columns, and the case under both stages it is in', page.url() === BASE + '/portal/manage/board/' && (await page.locator('.dxa-board__col').count()) === 7 && col3.includes('במקביל גם בשלב 04') && col4.includes('במקביל גם בשלב 03'), page.url());
+  check('stage board: the nav marks where we are', (await page.getAttribute('.dxa-top__nav a:has-text("לוח שלבים")', 'aria-current')) === 'page');
+  await axe(page, 'app stage board');
+  await page.screenshot({ path: out('53-app-board.png'), fullPage: true });
+
   for (const tab of ['finance', 'budget', 'members', 'updates', 'decisions', 'documents', 'details', 'log']) {
     await page.goto(caseUrl + '?tab=' + tab);
     await axe(page, 'app case tab: ' + tab);

@@ -12,6 +12,7 @@
 declare( strict_types = 1 );
 
 use Diromax\Portal\Admin\Admin;
+use Diromax\Portal\Admin\CaseCells;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\ReminderPolicy;
 use Diromax\Portal\Service\Labels;
@@ -365,15 +366,11 @@ $header    = array(
 							<a class="dxa-cases__t" href="<?php echo esc_url( Admin::case_url( $active->id ) ); ?>"><?php echo esc_html( $active->title ); ?></a>
 							<span class="dxa-cases__m">
 								<?php
-								/* translators: 1: case number, 2: stage number, 3: stage name. */
-								echo esc_html( sprintf( __( '%1$s · שלב %2$s · %3$s', 'diromax-portal' ), $active->number, str_pad( (string) $active->stage, 2, '0', STR_PAD_LEFT ), Stages::name( $active->stage ) ) );
+								/* translators: 1: case number, 2: where the case stands, e.g. "03 · stage name". */
+								echo esc_html( sprintf( __( '%1$s · %2$s', 'diromax-portal' ), $active->number, Stages::summary( $active->stages ) ) );
 								?>
 							</span>
-							<span class="dxa-mini" aria-hidden="true">
-								<?php for ( $step = 1; $step <= 7; $step++ ) : ?>
-									<i class="<?php echo esc_attr( $step < $active->stage ? 'is-done' : ( $step === $active->stage ? 'is-now' : '' ) ); ?>"></i>
-								<?php endfor; ?>
-							</span>
+							<?php echo CaseCells::strip( $active ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in CaseCells. ?>
 							<?php if ( $budget > 0 ) : ?>
 								<span class="dxa-cases__b">
 									<span class="dxa-bar" aria-hidden="true"><i style="width:<?php echo esc_attr( (string) min( 100, intdiv( $share, 100 ) ) ); ?>%"></i></span>

@@ -16,6 +16,7 @@ use Diromax\Portal\Data\MemberRecord;
 use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\MonthlyActivity;
+use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Settings;
 
@@ -195,14 +196,14 @@ final class DigestService {
 			new MailCard(
 				tone: 'teal',
 				badge: __( 'החודש בתיק', 'diromax-portal' ),
-				/* translators: %s: stage name. */
-				title: sprintf( __( 'השלב הנוכחי: %s', 'diromax-portal' ), Stages::name( $client_case->stage ) ),
+				title: self::stage_title( $client_case ),
 				rows: array_values( $rows ),
 				amount: null,
 				note: array() === $rows ? __( 'החודש לא היו תנועות או עדכונים חדשים בתיק.', 'diromax-portal' ) : '',
 				stage: $client_case->stage,
 				link: null,
 				subject: '',
+				progress: Stages::statuses( $client_case->stages ),
 			),
 		);
 
@@ -272,5 +273,21 @@ final class DigestService {
 	 */
 	private function summary( CaseRecord $client_case, bool $hide ): ?CaseSummary {
 		return $hide ? null : $this->app->case_service->summary( $client_case, true );
+	}
+
+	/**
+	 * Title of the monthly card: the stage in progress, or a summary when
+	 * several are, or none.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return string
+	 */
+	private static function stage_title( CaseRecord $client_case ): string {
+		$active = StageProgress::active( $client_case->stages );
+
+		return 1 === count( $active )
+			/* translators: %s: stage name. */
+			? sprintf( __( 'השלב הנוכחי: %s', 'diromax-portal' ), Stages::name( $active[0] ) )
+			: Stages::summary( $client_case->stages );
 	}
 }

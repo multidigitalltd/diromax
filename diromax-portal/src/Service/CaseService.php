@@ -16,6 +16,7 @@ use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\MemberRole;
 use Diromax\Portal\Domain\NotifyMode;
 use Diromax\Portal\Domain\Money;
+use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Domain\SummaryCalculator;
 use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
@@ -106,9 +107,12 @@ final class CaseService {
 	/**
 	 * Change a case's details, manager and stages.
 	 *
-	 * @param CaseRecord            $client_case  Case.
-	 * @param array<string, string> $input Details; manager_id; stage; skipped[] as comma list.
-	 * @param int                   $actor Acting user.
+	 * Each stage gets its own status, so several can be in progress at once;
+	 * the case's lead stage follows from them.
+	 *
+	 * @param CaseRecord            $client_case Case.
+	 * @param array<string, string> $input       Details; manager_id; stage_status as "1:done,2:active,…" (stages left out keep their status).
+	 * @param int                   $actor       Acting user.
 	 * @return CaseRecord|WP_Error
 	 */
 	public function update_details( CaseRecord $client_case, array $input, int $actor ): CaseRecord|WP_Error {
@@ -116,12 +120,12 @@ final class CaseService {
 			return Errors::forbidden();
 		}
 
-		$checked = CaseFieldsValidator::validate( $input );
-		$fields  = $checked['fields'];
-		$stage   = (int) ( $input['stage'] ?? $client_case->stage );
+		$checked  = CaseFieldsValidator::validate( $input );
+		$fields   = $checked['fields'];
+		$statuses = StageProgress::parse( $input['stage_status'] ?? '' );
 
-		if ( $stage < 1 || $stage > Stages::COUNT ) {
-			$checked['errors']['stage'] = 'invalid';
+		if ( null === $statuses ) {
+			$checked['errors']['stages'] = 'invalid';
 		}
 
 		if ( $this->app->policy->can_manage_all( $actor ) && isset( $input['manager_id'] ) ) {
@@ -134,26 +138,28 @@ final class CaseService {
 			}
 		}
 
-		if ( $checked['errors'] ) {
+		if ( $checked['errors'] || null === $statuses ) {
 			return Errors::invalid( $checked['errors'] );
 		}
 
-		$skipped          = array_map( 'intval', array_filter( explode( ',', $input['skipped'] ?? '' ) ) );
-		$fields['stage']  = $stage;
-		$fields['stages'] = (string) wp_json_encode( CaseFieldsValidator::apply_skipped( $client_case->stages, $skipped, $stage, $this->app->clock->today() ) );
+		$stages           = StageProgress::set( $client_case->stages, $statuses, $this->app->clock->today() );
+		$fields['stage']  = StageProgress::lead( $stages );
+		$fields['stages'] = (string) wp_json_encode( $stages );
 
 		return $this->save( $client_case, $fields, $actor, 'case.updated' );
 	}
 
 	/**
-	 * Move the case to a stage (from a progress update).
+	 * Change the stages from a progress update: move on to a stage (the
+	 * earlier ones are done), or start it alongside those in progress.
 	 *
-	 * @param CaseRecord $client_case  Case.
-	 * @param int        $stage Stage, 1–7.
-	 * @param int        $actor Acting user.
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $stage       Stage, 1–7.
+	 * @param bool       $parallel    Start it alongside the others.
+	 * @param int        $actor       Acting user.
 	 * @return CaseRecord|WP_Error
 	 */
-	public function move_to_stage( CaseRecord $client_case, int $stage, int $actor ): CaseRecord|WP_Error {
+	public function move_to_stage( CaseRecord $client_case, int $stage, bool $parallel, int $actor ): CaseRecord|WP_Error {
 		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
 			return Errors::forbidden();
 		}
@@ -162,12 +168,21 @@ final class CaseService {
 			return Errors::invalid( array( 'stage' => 'invalid' ) );
 		}
 
-		$stages = CaseFieldsValidator::move_to_stage( $client_case->stages, $stage, $this->app->clock->today() );
+		// Work from the stored stages: the caller's record may be older than another change.
+		$client_case = $this->app->cases->find( $client_case->id ) ?? $client_case;
+		$today       = $this->app->clock->today();
+		$stages      = $parallel
+			? StageProgress::start( $client_case->stages, $stage, $today )
+			: StageProgress::advance( $client_case->stages, $stage, $today );
+
+		if ( $stages === $client_case->stages ) {
+			return $client_case;
+		}
 
 		return $this->save(
 			$client_case,
 			array(
-				'stage'  => $stage,
+				'stage'  => StageProgress::lead( $stages ),
 				'stages' => (string) wp_json_encode( $stages ),
 			),
 			$actor,

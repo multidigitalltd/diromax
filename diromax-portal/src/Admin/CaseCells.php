@@ -11,6 +11,7 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\Money;
+use Diromax\Portal\Domain\StageStatus;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\Stages;
 
@@ -23,23 +24,39 @@ defined( 'ABSPATH' ) || exit;
 final class CaseCells {
 
 	/**
-	 * Stage number and name, with a seven-step strip.
+	 * Where the case stands, with a seven-step strip.
 	 *
 	 * @param CaseRecord $item Case.
 	 * @return string
 	 */
 	public static function stage( CaseRecord $item ): string {
+		return sprintf(
+			'<span class="dxa-cell-stack"><span>%1$s</span>%2$s</span>',
+			esc_html( Stages::summary( $item->stages ) ),
+			self::strip( $item )
+		);
+	}
+
+	/**
+	 * Seven segments, one per stage, coloured by status. Decorative: the
+	 * text next to it says the same.
+	 *
+	 * @param CaseRecord $item Case.
+	 * @return string
+	 */
+	public static function strip( CaseRecord $item ): string {
+		$classes  = array(
+			StageStatus::Done->value    => 'is-done',
+			StageStatus::Active->value  => 'is-now',
+			StageStatus::Skipped->value => 'is-skip',
+		);
 		$segments = '';
 
-		for ( $step = 1; $step <= 7; $step++ ) {
-			$segments .= '<i class="' . esc_attr( $step < $item->stage ? 'is-done' : ( $step === $item->stage ? 'is-now' : '' ) ) . '"></i>';
+		for ( $step = 1; $step <= Stages::COUNT; $step++ ) {
+			$segments .= '<i class="' . esc_attr( $classes[ $item->stages[ $step ]['status'] ?? '' ] ?? '' ) . '"></i>';
 		}
 
-		return sprintf(
-			'<span class="dxa-cell-stack"><span>%1$s</span><span class="dxa-mini" aria-hidden="true">%2$s</span></span>',
-			esc_html( str_pad( (string) $item->stage, 2, '0', STR_PAD_LEFT ) . ' · ' . Stages::name( $item->stage ) ),
-			$segments
-		);
+		return '<span class="dxa-mini" aria-hidden="true">' . $segments . '</span>';
 	}
 
 	/**

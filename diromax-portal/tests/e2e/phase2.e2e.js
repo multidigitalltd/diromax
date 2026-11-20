@@ -221,7 +221,8 @@ async function dismissPrivacy(page) {
   await admin.click('form:has(input[value="dx_portal_demo_case"]) button[type=submit]');
   await admin.waitForLoadState('networkidle');
   check('sample case opens on its overview with a notice', (await admin.textContent('h1')).includes('תיק לדוגמה') && (await admin.textContent('.notice-success')).includes('נוצר תיק לדוגמה'));
-  check('sample case: stage 05 is the current step', (await admin.textContent('.dxa-step--active')).includes('05'));
+  const demoActive = await admin.locator('.dxa-step--active .dxa-step__n').allTextContents();
+  check('sample case: stages 05 and 06 in progress together, neither claimed as the one current step', demoActive.join(',') === '05,06' && (await admin.locator('.dxa-step[aria-current]').count()) === 0, demoActive.join(','));
   await axe(admin, 'case header, stages and tabs', '.dxa');
   await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
   const demoDash = await admin.textContent('.dxa-dash');

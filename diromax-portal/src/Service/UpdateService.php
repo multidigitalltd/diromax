@@ -36,7 +36,7 @@ final class UpdateService {
 	 * Publish an update.
 	 *
 	 * @param CaseRecord                       $client_case  Case.
-	 * @param array<string, string>            $input title, body, stage ('' for none), visible, notify.
+	 * @param array<string, string>            $input title, body, stage ('' for none), stage_mode ('parallel' to start the stage alongside those in progress), visible, notify.
 	 * @param array<int, array<string, mixed>> $files Uploaded files.
 	 * @param int                              $actor Acting user.
 	 * @return int|WP_Error Update ID.
@@ -73,8 +73,9 @@ final class UpdateService {
 
 		$this->app->audit->record( 'update.published', $client_case->id, 'update', $id, array( 'stage' => $stage ), $now );
 
-		if ( null !== $stage && $stage !== $client_case->stage ) {
-			$this->app->case_service->move_to_stage( $client_case, $stage, $actor );
+		if ( null !== $stage ) {
+			$parallel = 'parallel' === ( $input['stage_mode'] ?? '' );
+			$this->app->case_service->move_to_stage( $client_case, $stage, $parallel, $actor );
 		}
 
 		foreach ( $files as $file ) {

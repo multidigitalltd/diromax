@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Service;
 
+use Diromax\Portal\Domain\StageProgress;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -20,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 final class Stages {
 
 	/** Number of stages. */
-	public const COUNT = 7;
+	public const COUNT = StageProgress::COUNT;
 
 	/**
 	 * Stage names keyed 1–7.
@@ -53,6 +55,64 @@ final class Stages {
 	 */
 	public static function name( int $number ): string {
 		return self::names()[ $number ] ?? '';
+	}
+
+	/**
+	 * Stage number as shown: 01–07.
+	 *
+	 * @param int $number Stage.
+	 * @return string
+	 */
+	public static function number( int $number ): string {
+		return str_pad( (string) $number, 2, '0', STR_PAD_LEFT );
+	}
+
+	/**
+	 * "03 · name".
+	 *
+	 * @param int $number Stage.
+	 * @return string
+	 */
+	public static function label( int $number ): string {
+		return self::number( $number ) . ' · ' . self::name( $number );
+	}
+
+	/**
+	 * Status of each stage, keyed 1–7.
+	 *
+	 * @param array<int, array{status:string, started:string|null, done:string|null}> $stages Stage states.
+	 * @return array<int, string>
+	 */
+	public static function statuses( array $stages ): array {
+		return array_map( static fn( array $state ): string => $state['status'], $stages );
+	}
+
+	/**
+	 * Where a case stands, in a few words: the stage in progress, the
+	 * stages in progress when there are several, the next stage when none
+	 * is, or that all are done.
+	 *
+	 * @param array<int, array{status:string, started:string|null, done:string|null}> $stages Stage states.
+	 * @return string
+	 */
+	public static function summary( array $stages ): string {
+		$active = StageProgress::active( $stages );
+
+		if ( 1 === count( $active ) ) {
+			return self::label( $active[0] );
+		}
+
+		if ( count( $active ) > 1 ) {
+			/* translators: %s: stage numbers, e.g. "03, 04". */
+			return sprintf( __( 'שלבים %s בתהליך', 'diromax-portal' ), implode( ', ', array_map( array( self::class, 'number' ), $active ) ) );
+		}
+
+		if ( StageProgress::finished( $stages ) ) {
+			return __( 'כל השלבים הושלמו', 'diromax-portal' );
+		}
+
+		/* translators: %s: stage number and name. */
+		return sprintf( __( 'הבא: %s', 'diromax-portal' ), self::label( StageProgress::lead( $stages ) ) );
 	}
 
 	/**

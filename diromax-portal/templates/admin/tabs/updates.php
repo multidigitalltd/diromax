@@ -34,12 +34,19 @@ $form = new Form( $view['flash'], 'update' );
 			<?php $form->print_error( 'body' ); ?>
 		</p>
 		<p class="dxa-field">
-			<label for="<?php echo esc_attr( $form->id( 'stage' ) ); ?>"><?php esc_html_e( 'מעבר שלב', 'diromax-portal' ); ?></label>
+			<label for="<?php echo esc_attr( $form->id( 'stage' ) ); ?>"><?php esc_html_e( 'שלב שמתחיל', 'diromax-portal' ); ?></label>
 			<select <?php echo $form->attrs( 'stage' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
 				<option value=""><?php esc_html_e( 'בלי שינוי שלב', 'diromax-portal' ); ?></option>
 				<?php foreach ( $view['stages'] as $number => $name ) : ?>
 					<option value="<?php echo esc_attr( (string) $number ); ?>"><?php echo esc_html( str_pad( (string) $number, 2, '0', STR_PAD_LEFT ) . ' · ' . $name ); ?></option>
 				<?php endforeach; ?>
+			</select>
+		</p>
+		<p class="dxa-field">
+			<label for="<?php echo esc_attr( $form->id( 'stage_mode' ) ); ?>"><?php esc_html_e( 'השלבים האחרים', 'diromax-portal' ); ?></label>
+			<select <?php echo $form->attrs( 'stage_mode' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
+				<option value=""><?php esc_html_e( 'השלבים שלפניו הושלמו', 'diromax-portal' ); ?></option>
+				<option value="parallel"><?php esc_html_e( 'במקביל: השלבים שבתהליך נשארים בתהליך', 'diromax-portal' ); ?></option>
 			</select>
 		</p>
 		<p class="dxa-field dxa-field--wide">

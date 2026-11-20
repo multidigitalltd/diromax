@@ -11,6 +11,8 @@
 declare( strict_types = 1 );
 
 use Diromax\Portal\Admin\Form;
+use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\Stages;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -31,19 +33,36 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 	<?php require __DIR__ . '/../parts/case-fields.php'; ?>
 
 	<h2><?php esc_html_e( 'שלבי התהליך', 'diromax-portal' ); ?></h2>
-	<fieldset class="dxa-stages" id="dxa-stages">
-		<legend><?php esc_html_e( 'השלב הנוכחי. השלבים שלפניו מסומנים כהושלמו.', 'diromax-portal' ); ?></legend>
+	<p class="description"><?php esc_html_e( 'לכל שלב סטטוס משלו, ואפשר לסמן כמה שלבים "בתהליך" באותו זמן. תאריכי ההתחלה והסיום נרשמים ביום השמירה.', 'diromax-portal' ); ?></p>
+	<div class="dxa-stages" id="dxa-stages">
 		<?php foreach ( $view['stages'] as $number => $name ) : ?>
-			<p>
-				<input type="radio" id="dxa-stage-<?php echo esc_attr( (string) $number ); ?>" name="stage" value="<?php echo esc_attr( (string) $number ); ?>"<?php checked( $case->stage, $number ); ?>>
-				<label for="dxa-stage-<?php echo esc_attr( (string) $number ); ?>"><?php echo esc_html( str_pad( (string) $number, 2, '0', STR_PAD_LEFT ) . ' · ' . $name ); ?></label>
-				<span class="dxa-skip">
-					<input type="checkbox" id="dxa-skip-<?php echo esc_attr( (string) $number ); ?>" name="skipped[]" value="<?php echo esc_attr( (string) $number ); ?>"<?php checked( 'skipped', $case->stages[ $number ]['status'] ?? '' ); ?>>
-					<label for="dxa-skip-<?php echo esc_attr( (string) $number ); ?>"><?php esc_html_e( 'לא רלוונטי לתיק', 'diromax-portal' ); ?></label>
+			<?php
+			$dxa_state = $case->stages[ $number ] ?? array(
+				'status'  => 'pending',
+				'started' => null,
+				'done'    => null,
+			);
+			$dxa_when  = Labels::stage_when( $dxa_state );
+			?>
+			<fieldset class="dxa-stage-row dxa-stage-row--<?php echo esc_attr( $dxa_state['status'] ); ?>">
+				<legend>
+					<span class="dxa-stage-row__n"><?php echo esc_html( Stages::number( (int) $number ) ); ?></span>
+					<?php echo esc_html( (string) $name ); ?>
+					<?php if ( '' !== $dxa_when ) : ?>
+						<span class="dxa-stage-row__when"><?php echo esc_html( $dxa_when ); ?></span>
+					<?php endif; ?>
+				</legend>
+				<span class="dxa-seg">
+					<?php foreach ( $view['stage_statuses'] as $dxa_value => $dxa_label ) : ?>
+						<?php $dxa_id = 'dxa-stage-' . $number . '-' . $dxa_value; ?>
+						<input type="radio" class="dxa-seg__in dxa-seg__in--<?php echo esc_attr( (string) $dxa_value ); ?>" id="<?php echo esc_attr( $dxa_id ); ?>" name="stage_status[<?php echo esc_attr( (string) $number ); ?>]" value="<?php echo esc_attr( (string) $dxa_value ); ?>"<?php checked( $dxa_state['status'], $dxa_value ); ?>>
+						<label for="<?php echo esc_attr( $dxa_id ); ?>"><?php echo esc_html( (string) $dxa_label ); ?></label>
+					<?php endforeach; ?>
 				</span>
-			</p>
+			</fieldset>
 		<?php endforeach; ?>
-	</fieldset>
+	</div>
+	<?php $form->print_error( 'stages' ); ?>
 	<?php submit_button( __( 'שמירת פרטי התיק', 'diromax-portal' ) ); ?>
 </form>
 

@@ -78,27 +78,54 @@ final class CaseServiceTest extends PortalTestCase {
 		$updated = $this->app->case_service->update_details(
 			$case,
 			array(
-				'title'     => 'רח׳ הזית 14, קריית אונו',
-				'track'     => 'מימון מתוך הפרויקט',
-				'fee_terms' => '10% מהתקציב',
-				'signed_on' => '2026-07-03',
-				'stage'     => '5',
-				'skipped'   => '4',
+				'title'        => 'רח׳ הזית 14, קריית אונו',
+				'track'        => 'מימון מתוך הפרויקט',
+				'fee_terms'    => '10% מהתקציב',
+				'signed_on'    => '2026-07-03',
+				'stage_status' => '1:done,2:done,3:active,4:skipped,5:active',
 			),
 			$manager
 		);
 
 		$this->assertInstanceOf( CaseRecord::class, $updated );
-		$this->assertSame( 5, $updated->stage );
-		$this->assertSame( 'done', $updated->stages[3]['status'] );
+		$this->assertSame( 5, $updated->stage, 'The furthest stage in progress leads.' );
+		$this->assertSame( 'done', $updated->stages[2]['status'] );
+		$this->assertSame( 'active', $updated->stages[3]['status'], 'Two stages in progress at once.' );
 		$this->assertSame( 'skipped', $updated->stages[4]['status'] );
 		$this->assertSame( 'active', $updated->stages[5]['status'] );
-		$this->assertSame( 'pending', $updated->stages[6]['status'] );
+		$this->assertSame( 'pending', $updated->stages[6]['status'], 'Stages left out keep their status.' );
+		$this->assertSame( $this->clock->today(), $updated->stages[5]['started'] );
 		$this->assertSame( '2026-07-03', $updated->signed_on );
 
 		$log = $this->app->audit->for_case( $case->id );
 		$this->assertSame( 'case.updated', $log[0]['action'] );
 		$this->assertSame( array( 1, 5 ), $log[0]['details']['stage'] );
+	}
+
+	public function test_a_progress_update_moves_on_or_starts_a_stage_alongside(): void {
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager );
+		$moved   = $this->app->case_service->move_to_stage( $case, 3, false, $manager );
+
+		$this->assertInstanceOf( CaseRecord::class, $moved );
+		$this->assertSame( array( 'done', 'done', 'active', 'pending' ), array_slice( array_column( $moved->stages, 'status' ), 0, 4 ) );
+
+		$parallel = $this->app->case_service->move_to_stage( $moved, 4, true, $manager );
+
+		$this->assertInstanceOf( CaseRecord::class, $parallel );
+		$this->assertSame( array( 'done', 'done', 'active', 'active' ), array_slice( array_column( $parallel->stages, 'status' ), 0, 4 ), 'Stage 3 stays in progress.' );
+		$this->assertSame( 4, $parallel->stage );
+
+		$count = count( $this->app->audit->for_case( $case->id ) );
+		$this->assertEquals( $parallel, $this->app->case_service->move_to_stage( $parallel, 4, true, $manager ), 'Nothing changes, nothing is saved.' );
+
+		$this->assertCount( $count, $this->app->audit->for_case( $case->id ) );
+
+		$stale = $this->app->case_service->move_to_stage( $moved, 5, true, $manager );
+		$this->assertInstanceOf( CaseRecord::class, $stale );
+		$this->assertSame( array( 'active', 'active', 'active' ), array_slice( array_column( $stale->stages, 'status' ), 2, 3 ), 'Regression: an older record of the case did not undo stage 4.' );
+
+		$this->assertSame( 'dx_forbidden', $this->app->case_service->move_to_stage( $parallel, 6, true, $this->client() )->get_error_code() );
 	}
 
 	public function test_invalid_details_are_reported(): void {
@@ -107,9 +134,9 @@ final class CaseServiceTest extends PortalTestCase {
 		$result  = $this->app->case_service->update_details(
 			$case,
 			array(
-				'title'     => '',
-				'signed_on' => '31/12/2026',
-				'stage'     => '9',
+				'title'        => '',
+				'signed_on'    => '31/12/2026',
+				'stage_status' => '9:active',
 			),
 			$manager
 		);
@@ -118,7 +145,7 @@ final class CaseServiceTest extends PortalTestCase {
 			array(
 				'title'     => 'required',
 				'signed_on' => 'invalid',
-				'stage'     => 'invalid',
+				'stages'    => 'invalid',
 			),
 			$result->get_error_data()['fields']
 		);

@@ -170,6 +170,7 @@ final class MailItems {
 			stage: $update['stage'],
 			link: null,
 			subject: $subject,
+			progress: null === $update['stage'] ? array() : Stages::statuses( $client_case->stages ),
 		);
 	}
 

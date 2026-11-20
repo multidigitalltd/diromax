@@ -220,7 +220,8 @@ final class DemoCase {
 	}
 
 	/**
-	 * Progress updates, oldest first; the last two move the stage.
+	 * Progress updates, oldest first. They move the case to stage 5 and then
+	 * start stage 6 alongside it, so the sample shows two stages in progress.
 	 *
 	 * @return array<int, array<string, string>>
 	 */
@@ -234,18 +235,19 @@ final class DemoCase {
 				'notify'  => '',
 			),
 			array(
-				'title'   => __( 'נחתם הסכם עם הקבלן', 'diromax-portal' ),
-				'body'    => __( 'השווינו שלוש הצעות על אותו כתב כמויות. ההצעה שנבחרה זולה ב-11% מהיקרה, והמחיר נעול ל-12 חודשים.', 'diromax-portal' ),
-				'stage'   => '',
-				'visible' => '1',
-				'notify'  => '',
-			),
-			array(
 				'title'   => __( 'הבקשה להיתר הוגשה לוועדה המקומית', 'diromax-portal' ),
 				'body'    => __( 'הוועדה צפויה לדון בבקשה בתוך 45 עד 60 יום. עד אז נעדכן על כל דרישה או השלמה שתגיע. אין צורך בשום פעולה כרגע.', 'diromax-portal' ),
 				'stage'   => '5',
 				'visible' => '1',
 				'notify'  => '',
+			),
+			array(
+				'title'      => __( 'נחתם הסכם עם הקבלן', 'diromax-portal' ),
+				'body'       => __( 'במקביל להיתר התחלנו בהכנות לביצוע: השווינו שלוש הצעות על אותו כתב כמויות. ההצעה שנבחרה זולה ב-11% מהיקרה, והמחיר נעול ל-12 חודשים.', 'diromax-portal' ),
+				'stage'      => '6',
+				'stage_mode' => 'parallel',
+				'visible'    => '1',
+				'notify'     => '',
 			),
 		);
 	}

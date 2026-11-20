@@ -75,10 +75,13 @@ if ( array() === $view['decisions'] ) {
 
 		<ol class="dxp-stages" aria-label="<?php esc_attr_e( 'שלבי התהליך', 'diromax-portal' ); ?>">
 			<?php foreach ( $view['stages'] as $stage ) : ?>
-				<li class="dxp-stage dxp-stage--<?php echo esc_attr( (string) $stage['status'] ); ?>"<?php echo 'active' === $stage['status'] ? ' aria-current="step"' : ''; ?>>
+				<li class="dxp-stage dxp-stage--<?php echo esc_attr( (string) $stage['status'] ); ?>"<?php echo ! empty( $stage['current'] ) ? ' aria-current="step"' : ''; ?>>
 					<span class="dxp-stage__n"><?php echo esc_html( (string) $stage['number'] ); ?><?php echo 'done' === $stage['status'] ? ' <span aria-hidden="true">✓</span>' : ''; ?></span>
 					<span class="dxp-stage__t"><?php echo esc_html( (string) $stage['name'] ); ?></span>
 					<span class="dxp-stage__s"><?php echo esc_html( (string) $stage['label'] ); ?></span>
+					<?php if ( '' !== (string) ( $stage['when'] ?? '' ) ) : ?>
+						<span class="dxp-stage__d"><?php echo esc_html( (string) $stage['when'] ); ?></span>
+					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
 		</ol>

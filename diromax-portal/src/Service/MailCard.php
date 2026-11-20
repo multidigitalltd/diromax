@@ -28,6 +28,7 @@ final readonly class MailCard {
 	 * @param int|null                              $stage   Stage the case moved to.
 	 * @param array{label:string, url:string}|null  $link    Link into the portal.
 	 * @param string                                $subject Subject when this card is alone.
+	 * @param array<int, string>                    $progress Status of each stage, keyed 1–7, for the stage strip; empty to colour it from $stage alone.
 	 */
 	public function __construct(
 		public string $tone,
@@ -39,5 +40,6 @@ final readonly class MailCard {
 		public ?int $stage,
 		public ?array $link,
 		public string $subject,
+		public array $progress = array(),
 	) {}
 }
