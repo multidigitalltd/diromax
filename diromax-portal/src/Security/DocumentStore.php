@@ -190,6 +190,34 @@ final class DocumentStore {
 	}
 
 	/**
+	 * Does the key open this stored file? Decrypts the first chunk only.
+	 *
+	 * @param string $stored_name Stored file name.
+	 * @param int    $key_version Key version it was stored with.
+	 * @return bool|null Null when the file is not on disk or there is no key.
+	 */
+	public function can_open( string $stored_name, int $key_version ): ?bool {
+		$path = $this->path( $stored_name );
+		$in   = is_readable( $path ) ? fopen( $path, 'rb' ) : false;
+
+		if ( false === $in || null === $this->master_key( $key_version ) ) {
+			return null;
+		}
+
+		try {
+			$header = (string) fread( $in, SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_HEADERBYTES );
+			$state  = sodium_crypto_secretstream_xchacha20poly1305_init_pull( $header, $this->file_key( $stored_name, $key_version ) );
+			$cipher = (string) fread( $in, self::CHUNK + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES );
+
+			return false !== sodium_crypto_secretstream_xchacha20poly1305_pull( $state, $cipher );
+		} catch ( \SodiumException ) {
+			return false;
+		} finally {
+			fclose( $in );
+		}
+	}
+
+	/**
 	 * Delete a stored file.
 	 *
 	 * @param string $stored_name Stored name.

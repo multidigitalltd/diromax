@@ -13,6 +13,7 @@ use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Data\DocumentRecord;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Security\DocumentStore;
+use Diromax\Portal\Service\UpdateService;
 use WP_Error;
 
 final class ManageAppTest extends PortalTestCase {
@@ -128,6 +129,98 @@ final class ManageAppTest extends PortalTestCase {
 		$this->assertSame( $this->app->store->fingerprint(), $this->app->store->known_fingerprint() );
 		$manager = $this->manager();
 		$this->assertInstanceOf( DocumentRecord::class, $this->add_document( $this->case_for( $manager ), $manager ) );
+	}
+
+	/**
+	 * Regression (PR #7 review): a site that stored documents before the
+	 * fingerprint existed must not adopt a key that cannot open them.
+	 */
+	public function test_an_upgraded_site_adopts_the_key_only_if_it_opens_the_stored_files(): void {
+		$manager  = $this->manager();
+		$case     = $this->case_for( $manager );
+		$document = $this->add_document( $case, $manager );
+
+		delete_option( DocumentStore::FINGERPRINT_OPTION );
+		$this->assertSame( 'ok', $this->app->document_service->key_status(), 'The key opens the stored file.' );
+		$this->assertSame( $this->app->store->fingerprint(), $this->app->store->known_fingerprint() );
+
+		// Same as a different key: the stored file no longer authenticates.
+		delete_option( DocumentStore::FINGERPRINT_OPTION );
+		$path = $this->app->store->directory() . '/' . $document->stored_name;
+		file_put_contents( $path, random_bytes( (int) filesize( $path ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+
+		$this->assertSame( 'changed', $this->app->document_service->key_status() );
+		$this->assertSame( '', $this->app->store->known_fingerprint(), 'A key that cannot open the files is not adopted.' );
+		$this->assertSame( 'dx_key_changed', $this->app->document_service->storage_error()?->get_error_code() );
+	}
+
+	/**
+	 * Regression (PR #7 review): an update was published while its
+	 * attachments were refused one by one and silently dropped.
+	 */
+	public function test_an_update_is_not_published_when_its_attachments_cannot_be_stored(): void {
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager );
+		$this->add_document( $case, $manager );
+		update_option( DocumentStore::FINGERPRINT_OPTION, '000000000000' );
+		$before = count( $this->app->updates->for_case( $case->id, false ) );
+
+		$result = ( new UpdateService( $this->app ) )->publish( $case, self::update(), array( $this->pdf_upload( 'plan.pdf', "%PDF-1.4\n%%EOF\n" ) ), $manager );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( array( 'files' => 'storage' ), \Diromax\Portal\Service\Errors::fields( $result ) );
+		$this->assertCount( $before, $this->app->updates->for_case( $case->id, false ), 'Nothing was published.' );
+	}
+
+	public function test_an_update_with_a_file_of_the_wrong_type_is_not_published(): void {
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager );
+
+		$result = ( new UpdateService( $this->app ) )->publish( $case, self::update(), array( $this->pdf_upload( 'tool.exe', 'MZ' . str_repeat( 'x', 64 ) ) ), $manager );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( array( 'files' => 'type' ), \Diromax\Portal\Service\Errors::fields( $result ) );
+		$this->assertSame( array(), $this->app->updates->for_case( $case->id, false ) );
+
+		$ok = ( new UpdateService( $this->app ) )->publish( $case, self::update(), array( $this->pdf_upload( 'plan.pdf', "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n" ) ), $manager );
+		$this->assertIsInt( $ok, 'A good file still goes through.' );
+		$this->assertCount( 1, $this->app->documents->for_case( $case->id, false ) );
+	}
+
+	/**
+	 * Update input.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function update(): array {
+		return array(
+			'title'   => 'הבקשה הוגשה',
+			'body'    => 'פרטים',
+			'stage'   => '',
+			'visible' => '1',
+			'notify'  => '',
+		);
+	}
+
+	/**
+	 * A fake uploaded file.
+	 *
+	 * @param string $name    File name.
+	 * @param string $content Content.
+	 * @return array<string, mixed>
+	 */
+	private function pdf_upload( string $name, string $content ): array {
+		add_filter( 'dx_portal_is_uploaded_file', '__return_true' );
+		$path = (string) tempnam( sys_get_temp_dir(), 'dxt' );
+		file_put_contents( $path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+
+		return array(
+			'name'     => $name,
+			'type'     => 'application/octet-stream',
+			'tmp_name' => $path,
+			'error'    => UPLOAD_ERR_OK,
+			'size'     => strlen( $content ),
+		);
 	}
 
 	public function test_clients_get_no_staff_notices(): void {

@@ -43,6 +43,27 @@ final class DocumentRepository {
 	}
 
 	/**
+	 * Stored names of the latest documents of a key version.
+	 *
+	 * @param int $key_version Key version.
+	 * @param int $limit       How many, 1–10.
+	 * @return string[]
+	 */
+	public function latest_stored( int $key_version, int $limit ): array {
+		return array_map(
+			'strval',
+			(array) $this->db->get_col(
+				$this->db->prepare(
+					'SELECT stored_name FROM %i WHERE key_version = %d ORDER BY id DESC LIMIT %d',
+					Schema::table( 'documents' ),
+					$key_version,
+					max( 1, min( 10, $limit ) )
+				)
+			)
+		);
+	}
+
+	/**
 	 * Is any document stored at all?
 	 *
 	 * @return bool
