@@ -114,4 +114,35 @@ final class StageBoardTest extends PortalTestCase {
 		$this->assertSame( Router::manage_url( 'board' ), Admin::page_url( Admin::PAGE_BOARD ) );
 		$this->assertStringContainsString( 'dx_manage=board', Router::manage_url( 'board' ), 'Not the dashboard: board is a known screen.' );
 	}
+
+	/**
+	 * Regression: after a failed update (say, a bad attachment) the form
+	 * came back with "no stage" and the earlier-stages-done mode, so a
+	 * retry could close stages that were meant to stay in progress.
+	 */
+	public function test_a_failed_update_keeps_its_stage_and_mode(): void {
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager );
+		wp_set_current_user( $manager );
+
+		\Diromax\Portal\Admin\Flash::set(
+			'error',
+			'x',
+			array( 'files' => 'type' ),
+			array(
+				'title'      => 'הוגשו תוכניות',
+				'stage'      => '4',
+				'stage_mode' => 'parallel',
+			),
+			'update'
+		);
+
+		$view = ( new Pages( $this->app ) )->case_data( $case, $manager, 'updates' );
+		ob_start();
+		include DX_PORTAL_DIR . 'templates/admin/tabs/updates.php';
+		$html = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/<option value="4" selected=\'selected\'>/', $html );
+		$this->assertMatchesRegularExpression( '/<option value="parallel" selected=\'selected\'>/', $html );
+	}
 }
