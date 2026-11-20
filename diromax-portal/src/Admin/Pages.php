@@ -11,6 +11,7 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\Money;
+use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\CaseView;
 use Diromax\Portal\Portal\Router;
@@ -28,6 +29,9 @@ final class Pages {
 
 	/** Cases per page in the management app's list. */
 	private const PER_PAGE = 25;
+
+	/** Most active cases the stage board shows. */
+	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
 	public const TABS = array( 'overview', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'documents', 'log' );
@@ -118,6 +122,73 @@ final class Pages {
 		return array(
 			'overdue'       => $overdue['total'],
 			'overdue_count' => $overdue['count'],
+		);
+	}
+
+	/**
+	 * Stage board: the active cases under each stage they are in.
+	 */
+	public function board(): void {
+		$user = get_current_user_id();
+
+		if ( ! $this->app->policy->can_use_admin( $user ) ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		$view = $this->board_data( $user );
+
+		include DX_PORTAL_DIR . 'templates/admin/board.php';
+	}
+
+	/**
+	 * One column per stage with the active cases in progress there, longest
+	 * in the stage first. A case in several stages is in each of their
+	 * columns; a case with no stage in progress is listed apart.
+	 *
+	 * @param int $user User: every case for an administrator, own cases for a manager.
+	 * @return array{columns: array<int, array{number:string, name:string, cards: array<int, array{case:CaseRecord, days:int|null, also:string}>}>, waiting: CaseRecord[], total:int, capped:bool}
+	 */
+	public function board_data( int $user ): array {
+		$cases   = $this->app->cases->active_for( $this->app->policy->can_manage_all( $user ) ? null : $user, self::BOARD_LIMIT );
+		$today   = $this->app->clock->today();
+		$columns = array();
+		$waiting = array();
+
+		$cards = array();
+
+		foreach ( $cases as $client_case ) {
+			$active = StageProgress::active( $client_case->stages );
+
+			if ( array() === $active ) {
+				$waiting[] = $client_case;
+				continue;
+			}
+
+			foreach ( $active as $number ) {
+				$cards[ $number ][] = array(
+					'case' => $client_case,
+					'days' => StageProgress::days_in( $client_case->stages[ $number ], $today ),
+					'also' => implode( ', ', array_map( array( Stages::class, 'number' ), array_diff( $active, array( $number ) ) ) ),
+				);
+			}
+		}
+
+		foreach ( Stages::names() as $number => $name ) {
+			$column = $cards[ $number ] ?? array();
+			usort( $column, static fn( array $a, array $b ): int => ( $b['days'] ?? -1 ) <=> ( $a['days'] ?? -1 ) );
+
+			$columns[ $number ] = array(
+				'number' => Stages::number( $number ),
+				'name'   => $name,
+				'cards'  => $column,
+			);
+		}
+
+		return array(
+			'columns' => $columns,
+			'waiting' => $waiting,
+			'total'   => count( $cases ),
+			'capped'  => count( $cases ) >= self::BOARD_LIMIT,
 		);
 	}
 
@@ -288,8 +359,9 @@ final class Pages {
 				'setup'   => $this->setup_steps( $client_case ),
 			),
 			'details'   => array(
-				'stages'   => Stages::names(),
-				'managers' => $this->app->case_service->managers(),
+				'stages'         => Stages::names(),
+				'stage_statuses' => Labels::stage_statuses(),
+				'managers'       => $this->app->case_service->managers(),
 			),
 			'members'   => array(
 				'members' => $this->app->members->for_case( $client_case->id ),

@@ -15,6 +15,8 @@ use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
 use Diromax\Portal\Domain\Money;
+use Diromax\Portal\Domain\StageProgress;
+use Diromax\Portal\Domain\StageStatus;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Service\AgreementService;
 use Diromax\Portal\Service\Contact;
@@ -45,15 +47,13 @@ final class CaseView {
 	 * @return array{cases: array<int, array{title:string, number:string, scope:string, stage:string, status:string, url:string}>}
 	 */
 	public static function list( array $cases ): array {
-		$names = Stages::names();
-
 		return array(
 			'cases' => array_map(
 				static fn( CaseRecord $client_case ): array => array(
 					'title'  => $client_case->title,
 					'number' => $client_case->number,
 					'scope'  => $client_case->scope,
-					'stage'  => str_pad( (string) $client_case->stage, 2, '0', STR_PAD_LEFT ) . ' · ' . ( $names[ $client_case->stage ] ?? '' ),
+					'stage'  => Stages::summary( $client_case->stages ),
 					'status' => Labels::case_statuses()[ $client_case->status->value ] ?? '',
 					'url'    => Router::case_url( $client_case ),
 				),
@@ -120,27 +120,27 @@ final class CaseView {
 	}
 
 	/**
-	 * Stage tracker.
+	 * Stage tracker. Several stages can be in progress; only a single one
+	 * is marked as the current step for assistive technology.
 	 *
 	 * @param CaseRecord $client_case Case.
-	 * @return array<int, array{number:string, name:string, status:string, label:string}>
+	 * @return array<int, array{number:string, name:string, status:string, label:string, when:string, current:bool}>
 	 */
 	public static function stages( CaseRecord $client_case ): array {
-		$labels = array(
-			'done'    => __( 'הושלם', 'diromax-portal' ),
-			'active'  => __( 'בתהליך', 'diromax-portal' ),
-			'pending' => __( 'טרם התחיל', 'diromax-portal' ),
-			'skipped' => __( 'לא רלוונטי', 'diromax-portal' ),
-		);
+		$labels = Labels::stage_statuses();
+		$single = 1 === count( StageProgress::active( $client_case->stages ) );
 		$list   = array();
 
 		foreach ( Stages::names() as $number => $name ) {
-			$status = $client_case->stages[ $number ]['status'] ?? 'pending';
+			$state  = $client_case->stages[ $number ] ?? null;
+			$status = null !== $state && isset( $labels[ $state['status'] ] ) ? $state['status'] : StageStatus::Pending->value;
 			$list[] = array(
-				'number' => str_pad( (string) $number, 2, '0', STR_PAD_LEFT ),
-				'name'   => $name,
-				'status' => isset( $labels[ $status ] ) ? $status : 'pending',
-				'label'  => $labels[ $status ] ?? $labels['pending'],
+				'number'  => Stages::number( $number ),
+				'name'    => $name,
+				'status'  => $status,
+				'label'   => $labels[ $status ],
+				'when'    => null === $state ? '' : Labels::stage_when( $state ),
+				'current' => $single && StageStatus::Active->value === $status,
 			);
 		}
 

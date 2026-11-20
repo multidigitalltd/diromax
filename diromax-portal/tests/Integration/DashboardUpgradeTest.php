@@ -25,7 +25,8 @@ final class DashboardUpgradeTest extends PortalTestCase {
 		$this->assertInstanceOf( CaseRecord::class, $case );
 		$this->assertTrue( DemoCase::is_demo( $case ) );
 		$this->assertSame( $manager, $case->manager_id );
-		$this->assertSame( 5, $case->stage, 'The last update moved the case to stage 5.' );
+		$this->assertSame( 6, $case->stage, 'The last update started stage 6 alongside stage 5.' );
+		$this->assertSame( array( 'done', 'active', 'active' ), array( $case->stages[4]['status'], $case->stages[5]['status'], $case->stages[6]['status'] ) );
 		$this->assertCount( 8, $this->app->ledger->for_case( $case->id, false ) );
 		$this->assertSame( 48000000, array_sum( $this->app->budget->planned( $case->id ) ) );
 		$this->assertCount( 3, $this->app->updates->for_case( $case->id, false ) );

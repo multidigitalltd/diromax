@@ -35,7 +35,7 @@ final class Actions {
 	/** Action => [single-line fields, multi-line fields]. */
 	private const ACTIONS = array(
 		'create_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'lead_id' ), array() ),
-		'update_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'stage' ), array() ),
+		'update_case'         => array( array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id' ), array() ),
 		'case_status'         => array( array( 'status' ), array() ),
 		'add_member'          => array( array( 'email', 'name', 'role', 'notify', 'invite' ), array() ),
 		'remove_member'       => array( array( 'user_id' ), array() ),
@@ -47,7 +47,7 @@ final class Actions {
 		'void_entry'          => array( array( 'entry_id', 'reason', 'notify' ), array() ),
 		'settle_request'      => array( array( 'entry_id', 'entry_date', 'category', 'method', 'reference', 'notify' ), array() ),
 		'send_reminder'       => array( array( 'entry_id' ), array() ),
-		'add_update'          => array( array( 'title', 'stage', 'visible', 'notify' ), array( 'body' ) ),
+		'add_update'          => array( array( 'title', 'stage', 'stage_mode', 'visible', 'notify' ), array( 'body' ) ),
 		'upload_document'     => array( array( 'kind', 'title', 'visible', 'notify' ), array() ),
 		'add_decision'        => array( array( 'title', 'amount', 'document_id', 'due_date', 'notify' ), array( 'body' ) ),
 		'withdraw_decision'   => array( array( 'decision_id', 'reason' ), array() ),
@@ -184,10 +184,26 @@ final class Actions {
 	 * @param int                   $actor Actor.
 	 */
 	private function update_case( CaseRecord $client_case, array $input, int $actor ): void {
-		$skipped = isset( $_POST['skipped'] ) && is_array( $_POST['skipped'] ) ? array_map( 'absint', wp_unslash( $_POST['skipped'] ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in handle().
-
-		$input['skipped'] = implode( ',', $skipped );
+		$input['stage_status'] = self::stage_statuses();
 		$this->finish( $client_case, 'details', $this->app->case_service->update_details( $client_case, $input, $actor ), __( 'פרטי התיק נשמרו.', 'diromax-portal' ), 'details', $input );
+	}
+
+	/**
+	 * The stage status radios (stage_status[N] = status) as "N:status,…"
+	 * for the service, which checks every stage number and status.
+	 *
+	 * @return string
+	 */
+	private static function stage_statuses(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in handle().
+		$raw   = isset( $_POST['stage_status'] ) && is_array( $_POST['stage_status'] ) ? wp_unslash( $_POST['stage_status'] ) : array();
+		$pairs = array();
+
+		foreach ( (array) $raw as $number => $status ) {
+			$pairs[] = absint( $number ) . ':' . sanitize_key( is_string( $status ) ? $status : '' );
+		}
+
+		return implode( ',', $pairs );
 	}
 
 	/**

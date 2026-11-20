@@ -70,6 +70,15 @@ async function dismissPrivacy(page) {
   await admin.waitForLoadState('networkidle');
   check('request saved', (await admin.textContent('.notice-success')).includes('התנועה נשמרה'));
 
+  // Send what is already waiting (the new request, earlier changes) so the reminder goes out on its own.
+  // Otherwise the background batch races the reminder, and an immediate reminder carries whatever is pending.
+  await admin.goto(tab('overview'));
+  if (await admin.locator('.dxa-pending button.button-primary').count()) {
+    await admin.click('.dxa-pending button.button-primary');
+    await admin.waitForLoadState('networkidle');
+  }
+  await admin.goto(tab('finance'));
+
   let before = mailFiles().length;
   const row = admin.locator('tr', { hasText: 'מקדמה לקבלן הגג' });
   await row.locator('button:has-text("שליחת תזכורת עכשיו")').click();
@@ -221,7 +230,8 @@ async function dismissPrivacy(page) {
   await admin.click('form:has(input[value="dx_portal_demo_case"]) button[type=submit]');
   await admin.waitForLoadState('networkidle');
   check('sample case opens on its overview with a notice', (await admin.textContent('h1')).includes('תיק לדוגמה') && (await admin.textContent('.notice-success')).includes('נוצר תיק לדוגמה'));
-  check('sample case: stage 05 is the current step', (await admin.textContent('.dxa-step--active')).includes('05'));
+  const demoActive = await admin.locator('.dxa-step--active .dxa-step__n').allTextContents();
+  check('sample case: stages 05 and 06 in progress together, neither claimed as the one current step', demoActive.join(',') === '05,06' && (await admin.locator('.dxa-step[aria-current]').count()) === 0, demoActive.join(','));
   await axe(admin, 'case header, stages and tabs', '.dxa');
   await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
   const demoDash = await admin.textContent('.dxa-dash');

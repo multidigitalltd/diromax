@@ -69,6 +69,7 @@ final class ManageController {
 
 		match ( $screen ) {
 			'cases'    => $this->render( 'manage/cases', $pages->cases_data( $user ), __( 'כל התיקים', 'diromax-portal' ) ),
+			'board'    => $this->render( 'admin/board', $pages->board_data( $user ), __( 'לוח שלבים', 'diromax-portal' ) ),
 			'new'      => $this->render( 'admin/case-new', $pages->new_case_data( $user ), __( 'תיק חדש', 'diromax-portal' ) ),
 			'settings' => $this->settings( $pages, $user ),
 			'case'     => $this->case_screen( $pages, $user ),

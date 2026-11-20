@@ -138,6 +138,7 @@
 .dxa-step__n { font-family: var(--a-font-num); font-size: 18px; font-weight: 800; color: var(--a-muted); }
 .dxa-step__t { font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--a-ink); }
 .dxa-step__s { font-size: 12px; color: var(--a-muted); }
+.dxa-step__d { font-size: 11.5px; color: var(--a-muted); }
 .dxa-step--done { border-top-color: var(--a-blue); }
 .dxa-step--done .dxa-step__n { color: var(--a-blue); }
 .dxa-step--active { border-top-color: var(--a-orange); background: var(--a-orange-tint); }
@@ -198,6 +199,7 @@
 .dxa-mini i { height: 5px; background: var(--a-line-soft); }
 .dxa-mini i.is-done { background: var(--a-blue); }
 .dxa-mini i.is-now { background: var(--a-orange); }
+.dxa-mini i.is-skip { background: repeating-linear-gradient(135deg, var(--a-line-soft) 0 3px, var(--a-white) 3px 5px); }
 .dxa-feed li { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px 0; border-top: 1px solid var(--a-line-soft); }
 .dxa-feed strong { color: var(--a-ink); }
 .dxa-feed a { font-size: 13px; }
@@ -283,10 +285,26 @@
 .dxa-list li strong { display: block; color: var(--a-ink); }
 .dxa-updates p { margin: 6px 0 0; }
 
-.dxa-stages { border: 0; padding: 0; }
-.dxa-stages legend { margin-bottom: 8px; font-weight: 700; color: var(--a-ink); }
-.dxa-stages p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 4px 0; }
-.dxa-skip { margin-inline-start: auto; color: var(--a-muted); }
+/* Stage editor: one row per stage, a segmented choice of four statuses. */
+.dxa-stages { margin: 8px 0 0; background: var(--a-white); border: 1px solid var(--a-line); }
+.dxa-stage-row { margin: 0; padding: 12px 16px; border: 0; border-inline-start: 4px solid var(--a-line-soft); }
+.dxa-stage-row + .dxa-stage-row { border-top: 1px solid var(--a-line-soft); }
+.dxa-stage-row--active { border-inline-start-color: var(--a-orange); background: var(--a-orange-tint); }
+.dxa-stage-row--done { border-inline-start-color: var(--a-blue); }
+.dxa-stage-row legend { float: inline-start; width: 100%; margin: 0 0 8px; padding: 0; font-weight: 700; color: var(--a-ink); }
+.dxa-stage-row legend + * { clear: both; }
+.dxa-stage-row__n { margin-inline-end: 6px; font-family: var(--a-font-num); font-weight: 800; color: var(--a-muted); }
+.dxa-stage-row__when { margin-inline-start: 8px; font-size: 12px; font-weight: 400; color: var(--a-muted); }
+.dxa-seg { position: relative; display: inline-flex; flex-wrap: wrap; border: 1px solid var(--a-line); background: var(--a-white); }
+.dxa-seg__in { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+.dxa-seg label { display: inline-block; min-width: 88px; padding: 7px 12px; text-align: center; font-size: 13px; font-weight: 600; color: var(--a-body); cursor: pointer; }
+.dxa-seg label + .dxa-seg__in + label { border-inline-start: 1px solid var(--a-line); }
+.dxa-seg label:hover { background: var(--a-blue-tint); }
+.dxa-seg__in:focus-visible + label { outline: 2px solid var(--a-blue); outline-offset: -2px; }
+.dxa-seg__in--pending:checked + label { background: var(--a-ink); color: var(--a-white); }
+.dxa-seg__in--active:checked + label { background: var(--a-orange); color: var(--a-on-orange); font-weight: 800; }
+.dxa-seg__in--done:checked + label { background: var(--a-blue); color: var(--a-white); }
+.dxa-seg__in--skipped:checked + label { background: var(--a-muted); color: var(--a-white); }
 .dxa-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .dxa-danger { margin-top: 32px; padding: 4px 20px 16px; background: var(--a-white); border: 2px solid var(--a-red); }
 
@@ -296,6 +314,25 @@
 .dxa-decisions > li { padding-inline-start: 12px; border-inline-start: 4px solid var(--a-line); }
 .dxa-decision--pending { border-inline-start-color: var(--a-orange) !important; }
 .dxa-answer { padding: 8px 10px; background: var(--a-bg); }
+
+/* ---------- Stage board ---------- */
+.dxa-board__intro { max-width: 760px; margin: 0 0 16px; color: var(--a-muted); }
+.dxa-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-items: start; }
+.dxa-board__col { min-width: 0; background: var(--a-white); border: 1px solid var(--a-line); border-top: 4px solid var(--a-line-soft); }
+.dxa-board__col.has-cases { border-top-color: var(--a-orange); }
+.dxa-screen .wrap.dxa .dxa-board__h { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; padding: 12px 14px; font-family: var(--a-font); font-size: 14px; line-height: 1.35; border-bottom: 1px solid var(--a-line-soft); }
+.dxa-board__n { grid-row: span 2; font-family: var(--a-font-num); font-size: 20px; font-weight: 800; color: var(--a-orange-text); }
+.dxa-board__col:not(.has-cases) .dxa-board__n { color: var(--a-muted); }
+.dxa-board__t { font-weight: 700; color: var(--a-ink); }
+.dxa-board__count { font-size: 12px; font-weight: 600; color: var(--a-muted); }
+.dxa-board__empty { margin: 0; padding: 12px 14px; color: var(--a-muted); }
+.dxa-board__list { margin: 0; padding: 0; list-style: none; }
+.dxa-board__card { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px 14px; border-top: 1px solid var(--a-line-soft); }
+.dxa-board__card:first-child { border-top: 0; }
+.dxa-board__card a { font-weight: 700; }
+.dxa-board__meta { font-size: 12.5px; color: var(--a-muted); }
+.dxa-board__also { align-self: flex-start; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--a-orange-text); background: var(--a-orange-tint); border: 1px solid var(--a-orange); }
+.dxa-board__waiting { margin-top: 28px; }
 
 /* ---------- Small screens and motion ---------- */
 @media (max-width: 1180px) {
@@ -308,6 +345,9 @@
 @media (max-width: 600px) {
   .dxa-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dxa-step:nth-child(odd) { border-inline-start: 0; }
+  .dxa-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; width: 100%; background: var(--a-line); }
+  .dxa-seg label { min-width: 0; padding: 11px 8px; background: var(--a-white); }
+  .dxa-seg label + .dxa-seg__in + label { border-inline-start: 0; }
   .dxa-top__app { display: none; }
   .dxa-screen .wrap.dxa .dxa-top__nav a { min-height: 44px; padding: 0 10px; }
 }

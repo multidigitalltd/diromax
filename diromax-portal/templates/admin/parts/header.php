@@ -7,7 +7,7 @@
  *
  * Expects $header: title, and optionally eyebrow, meta (strings), back
  * (label, url), actions (label, url, primary, new_tab) and current
- * (dashboard, cases, new, settings).
+ * (dashboard, cases, board, new, settings).
  *
  * @package Diromax\Portal
  *
@@ -27,6 +27,7 @@ $dxa_front = Admin::is_front();
 $dxa_items = array(
 	'dashboard' => array( __( 'לוח בקרה', 'diromax-portal' ), Admin::page_url( Admin::PAGE_DASHBOARD ) ),
 	'cases'     => array( __( 'תיקים', 'diromax-portal' ), Admin::page_url( Admin::PAGE_CASES ) ),
+	'board'     => array( __( 'לוח שלבים', 'diromax-portal' ), Admin::page_url( Admin::PAGE_BOARD ) ),
 	'new'       => array( __( 'תיק חדש', 'diromax-portal' ), Admin::page_url( Admin::PAGE_NEW ) ),
 );
 

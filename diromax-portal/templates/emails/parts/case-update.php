@@ -67,7 +67,8 @@ foreach ( $items as $index => $item ) :
 			<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"><tr>
 				<?php for ( $n = 1; $n <= 7; $n++ ) : ?>
 					<?php
-					$color = $n < $current ? '#1d3a8f' : ( $n === $current ? '#ee7c1a' : '#cfcdc8' );
+					$step_status = $item->progress[ $n ] ?? ( $n < $current ? 'done' : ( $n === $current ? 'active' : 'pending' ) );
+					$color       = 'done' === $step_status ? '#1d3a8f' : ( 'active' === $step_status ? '#ee7c1a' : '#cfcdc8' );
 					?>
 					<td width="13%" height="6" bgcolor="<?php echo esc_attr( $color ); ?>" style="height:6px;background:<?php echo esc_attr( $color ); ?>;font-size:0;line-height:0;">&nbsp;</td>
 					<?php if ( $n < 7 ) : ?>

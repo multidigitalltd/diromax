@@ -27,6 +27,7 @@ final class Admin {
 	public const PAGE_DASHBOARD = 'dx-dashboard';
 
 	public const PAGE_CASES    = 'dx-cases';
+	public const PAGE_BOARD    = 'dx-board';
 	public const PAGE_NEW      = 'dx-case-new';
 	public const PAGE_SETTINGS = 'dx-portal-settings';
 
@@ -49,6 +50,7 @@ final class Admin {
 				add_menu_page( __( 'תיקי לקוחות', 'diromax-portal' ), __( 'תיקי לקוחות', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_DASHBOARD, array( $pages, 'dashboard' ), 'dashicons-portfolio', 26 );
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'לוח בקרה', 'diromax-portal' ), __( 'לוח בקרה', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_DASHBOARD, array( $pages, 'dashboard' ) );
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'כל התיקים', 'diromax-portal' ), __( 'כל התיקים', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_CASES, array( $pages, 'cases' ) );
+				add_submenu_page( self::PAGE_DASHBOARD, __( 'לוח שלבים', 'diromax-portal' ), __( 'לוח שלבים', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_BOARD, array( $pages, 'board' ) );
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'תיק חדש', 'diromax-portal' ), __( 'תיק חדש', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_NEW, array( $pages, 'new_case' ) );
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'הגדרות האזור האישי', 'diromax-portal' ), __( 'הגדרות', 'diromax-portal' ), Capabilities::MANAGE_SETTINGS, self::PAGE_SETTINGS, array( $pages, 'settings' ) );
 			}
@@ -105,6 +107,7 @@ final class Admin {
 			return Router::manage_url(
 				match ( $page ) {
 					self::PAGE_CASES    => 'cases',
+					self::PAGE_BOARD    => 'board',
 					self::PAGE_NEW      => 'new',
 					self::PAGE_SETTINGS => 'settings',
 					default             => 'dashboard',
@@ -357,7 +360,13 @@ final class Admin {
 	 * @return bool
 	 */
 	private static function is_plugin_screen( string $id ): bool {
-		return str_contains( $id, self::PAGE_DASHBOARD ) || str_contains( $id, self::PAGE_CASES ) || str_contains( $id, self::PAGE_NEW ) || str_contains( $id, self::PAGE_SETTINGS );
+		foreach ( array( self::PAGE_DASHBOARD, self::PAGE_CASES, self::PAGE_BOARD, self::PAGE_NEW, self::PAGE_SETTINGS ) as $page ) {
+			if ( str_contains( $id, $page ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
