@@ -30,11 +30,28 @@ foreach ( array( $case->property_type, $case->scope ) as $detail ) {
 
 $header     = array(
 	'current' => 'cases',
-	'back'    => array( __( 'כל התיקים', 'diromax-portal' ), add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) ),
+	'back'    => array( __( 'כל התיקים', 'diromax-portal' ), Admin::page_url( Admin::PAGE_CASES ) ),
 	'eyebrow' => $case->number . ' · ' . ( $view['statuses'][ $case->status->value ] ?? '' ),
 	'title'   => $case->title,
 	'meta'    => $meta,
 	'actions' => array(
+		array(
+			'label'   => __( '+ תנועה', 'diromax-portal' ),
+			'url'     => add_query_arg( 'add', '1', Admin::case_url( $case->id, 'finance' ) ),
+			'primary' => true,
+		),
+		array(
+			'label' => __( '+ עדכון', 'diromax-portal' ),
+			'url'   => add_query_arg( 'add', '1', Admin::case_url( $case->id, 'updates' ) ),
+		),
+		array(
+			'label' => __( '+ מסמך', 'diromax-portal' ),
+			'url'   => add_query_arg( 'add', '1', Admin::case_url( $case->id, 'documents' ) ),
+		),
+		array(
+			'label' => __( '+ החלטה', 'diromax-portal' ),
+			'url'   => add_query_arg( 'add', '1', Admin::case_url( $case->id, 'decisions' ) ),
+		),
 		array(
 			'label'   => __( 'צפייה כלקוח', 'diromax-portal' ),
 			'url'     => (string) $view['portal'],

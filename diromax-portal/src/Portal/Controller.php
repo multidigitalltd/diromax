@@ -58,6 +58,7 @@ final class Controller {
 			'home'   => $this->home(),
 			'case'   => $this->case_page(),
 			'doc'    => $this->document(),
+			'manage' => ( new ManageController( $this->app ) )->dispatch(),
 			default  => $this->not_found(),
 		};
 
@@ -211,7 +212,7 @@ final class Controller {
 		$user = $this->require_login();
 
 		if ( $this->app->policy->can_use_admin( $user ) ) {
-			$this->redirect( admin_url( 'profile.php' ) );
+			$this->redirect( Router::manage_url() );
 			return;
 		}
 
@@ -331,7 +332,7 @@ final class Controller {
 		$user = $this->require_login();
 
 		if ( $this->app->policy->can_use_admin( $user ) ) {
-			$this->redirect( admin_url( 'admin.php?page=dx-dashboard' ) );
+			$this->redirect( Router::manage_url() );
 			return;
 		}
 

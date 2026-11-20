@@ -25,6 +25,34 @@
 		}
 	} );
 
+	// A quick-add button opened this form: start typing in its first field.
+	( function () {
+		var box   = document.querySelector( 'details[data-dxa-focus][open]' );
+		var field = box ? box.querySelector( 'input:not([type="hidden"]), select, textarea' ) : null;
+
+		if ( field ) {
+			field.focus();
+		}
+	}() );
+
+	// Wide tables scroll sideways on a small screen instead of widening the page.
+	Array.prototype.forEach.call( document.querySelectorAll( '.dxa table.widefat' ), function ( table ) {
+		var box;
+
+		if ( table.parentNode.classList.contains( 'dxa-scroll' ) ) {
+			return;
+		}
+
+		box           = document.createElement( 'div' );
+		box.className = 'dxa-scroll';
+		table.parentNode.insertBefore( box, table );
+		box.appendChild( table );
+
+		if ( box.scrollWidth > box.clientWidth ) {
+			box.tabIndex = 0;
+		}
+	} );
+
 	Array.prototype.forEach.call( document.querySelectorAll( '[data-dxa-confirm]' ), function ( button ) {
 		button.addEventListener( 'click', function ( event ) {
 			if ( ! window.confirm( button.getAttribute( 'data-dxa-confirm' ) ) ) {

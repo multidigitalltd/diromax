@@ -22,7 +22,7 @@ $header = array(
 	'actions' => array(
 		array(
 			'label'   => __( '+ תיק חדש', 'diromax-portal' ),
-			'url'     => add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ),
+			'url'     => Admin::page_url( Admin::PAGE_NEW ),
 			'primary' => true,
 		),
 	),

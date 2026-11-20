@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Service\Contact;
 use Diromax\Portal\Service\LeadLink;
@@ -66,13 +67,65 @@ final class Admin {
 	}
 
 	/**
-	 * Admin URL of a case screen.
+	 * Render and redirect within the management app on the site instead of
+	 * wp-admin. Set by the app's controller, and by the form handlers when
+	 * the form was posted from the app.
+	 *
+	 * @var bool
+	 */
+	private static bool $front = false;
+
+	/**
+	 * Point the plugin's URLs at the management app (true) or wp-admin.
+	 *
+	 * @param bool $front App or wp-admin.
+	 */
+	public static function use_front( bool $front ): void {
+		self::$front = $front;
+	}
+
+	/**
+	 * Are the plugin's URLs pointing at the management app?
+	 *
+	 * @return bool
+	 */
+	public static function is_front(): bool {
+		return self::$front;
+	}
+
+	/**
+	 * URL of a plugin screen, in whichever interface the user is working in.
+	 *
+	 * @param string $page One of the PAGE_* slugs.
+	 * @return string
+	 */
+	public static function page_url( string $page ): string {
+		if ( self::$front ) {
+			return Router::manage_url(
+				match ( $page ) {
+					self::PAGE_CASES    => 'cases',
+					self::PAGE_NEW      => 'new',
+					self::PAGE_SETTINGS => 'settings',
+					default             => 'dashboard',
+				}
+			);
+		}
+
+		return add_query_arg( 'page', $page, admin_url( 'admin.php' ) );
+	}
+
+	/**
+	 * URL of a case screen, in whichever interface the user is working in.
 	 *
 	 * @param int    $case_id Case.
 	 * @param string $tab     Tab.
 	 * @return string
 	 */
 	public static function case_url( int $case_id, string $tab = '' ): string {
+		if ( self::$front ) {
+			return Router::manage_url( 'case', $case_id, $tab );
+		}
+
 		$args = array(
 			'page' => self::PAGE_CASES,
 			'case' => $case_id,
@@ -95,15 +148,25 @@ final class Admin {
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		$css    = file_exists( DX_PORTAL_DIR . 'assets/css/admin' . $suffix . '.css' ) ? 'assets/css/admin' . $suffix . '.css' : 'assets/css/admin.css';
-		$js     = file_exists( DX_PORTAL_DIR . 'assets/js/admin' . $suffix . '.js' ) ? 'assets/js/admin' . $suffix . '.js' : 'assets/js/admin.js';
+		self::register_assets();
+		wp_enqueue_style( 'dx-portal-admin' );
+		wp_enqueue_script( 'dx-portal-admin' );
+	}
 
-		wp_enqueue_style( 'dx-portal-admin', DX_PORTAL_URL . $css, array(), DX_PORTAL_VERSION );
+	/**
+	 * Register the screens' stylesheet (with the site's fonts) and script,
+	 * for wp-admin and for the management app on the site.
+	 */
+	public static function register_assets(): void {
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		$file   = static fn( string $name, string $ext ): string => file_exists( DX_PORTAL_DIR . 'assets/' . $ext . '/' . $name . $suffix . '.' . $ext ) ? 'assets/' . $ext . '/' . $name . $suffix . '.' . $ext : 'assets/' . $ext . '/' . $name . '.' . $ext;
+
+		wp_register_style( 'dx-portal-admin', DX_PORTAL_URL . $file( 'admin', 'css' ), array(), DX_PORTAL_VERSION );
 		wp_add_inline_style( 'dx-portal-admin', self::font_faces() );
-		wp_enqueue_script(
+		wp_register_style( 'dx-portal-manage', DX_PORTAL_URL . $file( 'manage', 'css' ), array( 'dx-portal-admin' ), DX_PORTAL_VERSION );
+		wp_register_script(
 			'dx-portal-admin',
-			DX_PORTAL_URL . $js,
+			DX_PORTAL_URL . $file( 'admin', 'js' ),
 			array(),
 			DX_PORTAL_VERSION,
 			array(
@@ -161,37 +224,60 @@ final class Admin {
 	}
 
 	/**
-	 * Configuration problems that block a secure setup.
+	 * Configuration problems that block a secure setup, on the plugin's
+	 * wp-admin screens.
 	 */
 	public function notices(): void {
 		$screen = get_current_screen();
-		$user   = get_current_user_id();
 
-		if ( null === $screen || ! self::is_plugin_screen( $screen->id ) || ! $this->app->policy->can_use_admin( $user ) ) {
+		if ( null === $screen || ! self::is_plugin_screen( $screen->id ) ) {
 			return;
 		}
 
-		if ( ! $this->app->store->is_configured() ) {
-			self::notice( 'error', __( 'העלאת מסמכים חסומה: חסר מפתח ההצפנה DX_PORTAL_KEY ב-wp-config.php. ההוראות ב-README של התוסף.', 'diromax-portal' ) );
+		foreach ( $this->config_notices( get_current_user_id() ) as [ $type, $message ] ) {
+			self::notice( $type, $message );
+		}
+	}
+
+	/**
+	 * The configuration notices for a staff user, as [type, message] pairs.
+	 *
+	 * @param int $user User.
+	 * @return array<int, array{0:string, 1:string}>
+	 */
+	public function config_notices( int $user ): array {
+		if ( ! $this->app->policy->can_use_admin( $user ) ) {
+			return array();
+		}
+
+		$notices = array();
+		$key     = $this->app->document_service->key_status();
+
+		if ( 'missing' === $key ) {
+			$notices[] = array( 'error', __( 'העלאת מסמכים חסומה: חסר מפתח ההצפנה DX_PORTAL_KEY ב-wp-config.php. ההוראות ב-README של התוסף.', 'diromax-portal' ) );
+		} elseif ( 'changed' === $key ) {
+			$notices[] = array( 'error', __( 'מפתח ההצפנה ב-wp-config.php השתנה, ומסמכים שהועלו עם המפתח הקודם לא ייפתחו. החזירו את המפתח הקודם מהעותק השמור. העלאת מסמכים חסומה עד אז, כדי שלא יתערבבו שני מפתחות.', 'diromax-portal' ) );
 		}
 
 		if ( ! class_exists( 'Two_Factor_Core' ) ) {
-			self::notice( 'warning', __( 'תקן Multi Digital מחייב אימות דו-שלבי לכל מנהל. יש להתקין ולהפעיל את התוסף Two Factor.', 'diromax-portal' ) );
+			$notices[] = array( 'warning', __( 'תקן Multi Digital מחייב אימות דו-שלבי לכל מנהל. יש להתקין ולהפעיל את התוסף Two Factor.', 'diromax-portal' ) );
 		} elseif ( ! \Two_Factor_Core::is_user_using_two_factor( $user ) ) {
-			self::notice( 'warning', __( 'החשבון שלך עדיין בלי אימות דו-שלבי. אפשר להפעיל אותו בעמוד הפרופיל.', 'diromax-portal' ) );
+			$notices[] = array( 'warning', __( 'החשבון שלך עדיין בלי אימות דו-שלבי. אפשר להפעיל אותו בעמוד הפרופיל.', 'diromax-portal' ) );
 		}
 
 		$failed = $this->app->events->failed_count();
 
 		if ( $failed > 0 ) {
-			self::notice(
+			$notices[] = array(
 				'warning',
 				1 === $failed
 					? __( 'עדכון אחד ללקוח לא נשלח אחרי שלושה ניסיונות. כדאי לבדוק את הגדרות המייל של האתר.', 'diromax-portal' )
 					/* translators: %d: number of notifications. */
-					: sprintf( __( '%d עדכונים ללקוחות לא נשלחו אחרי שלושה ניסיונות. כדאי לבדוק את הגדרות המייל של האתר.', 'diromax-portal' ), $failed )
+					: sprintf( __( '%d עדכונים ללקוחות לא נשלחו אחרי שלושה ניסיונות. כדאי לבדוק את הגדרות המייל של האתר.', 'diromax-portal' ), $failed ),
 			);
 		}
+
+		return $notices;
 	}
 
 	/**

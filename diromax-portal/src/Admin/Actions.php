@@ -11,6 +11,7 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\DemoCase;
@@ -89,6 +90,7 @@ final class Actions {
 
 		$case_id = isset( $_POST['case_id'] ) ? absint( $_POST['case_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified on the next line, bound to this case.
 		check_admin_referer( 'dx_portal_' . $action . '_' . $case_id );
+		self::return_to_sender();
 
 		$actor = get_current_user_id();
 		$input = self::input( $lines, $blocks );
@@ -135,12 +137,13 @@ final class Actions {
 	 */
 	public function demo_case(): void {
 		check_admin_referer( 'dx_portal_demo_case' );
+		self::return_to_sender();
 
 		$result = ( new DemoCase( $this->app ) )->create( get_current_user_id() );
 
 		if ( $result instanceof WP_Error ) {
 			Flash::set( 'error', $result->get_error_message() );
-			self::redirect( add_query_arg( 'page', Admin::PAGE_DASHBOARD, admin_url( 'admin.php' ) ) );
+			self::redirect( Admin::page_url( Admin::PAGE_DASHBOARD ) );
 		}
 
 		Flash::set( 'success', __( 'נוצר תיק לדוגמה עם תקציב, תנועות, דרישות תשלום, עדכונים והחלטה. אין בו לקוחות, ולכן לא נשלח שום מייל. כדי למחוק אותו: סוגרים את התיק בלשונית "פרטי התיק", ומנהל מערכת מוחק אותו שם.', 'diromax-portal' ) );
@@ -158,7 +161,7 @@ final class Actions {
 
 		if ( $result instanceof WP_Error ) {
 			Flash::set( 'error', $result->get_error_message(), Errors::fields( $result ), $input, 'case' );
-			self::redirect( add_query_arg( 'page', Admin::PAGE_NEW, admin_url( 'admin.php' ) ) );
+			self::redirect( Admin::page_url( Admin::PAGE_NEW ) );
 		}
 
 		Flash::set( 'success', __( 'התיק נפתח. עכשיו אפשר להוסיף את הלקוחות ואת התקציב.', 'diromax-portal' ) );
@@ -411,7 +414,7 @@ final class Actions {
 		}
 
 		Flash::set( 'success', __( 'התיק נמחק לצמיתות, כולל המסמכים.', 'diromax-portal' ) );
-		self::redirect( add_query_arg( 'page', Admin::PAGE_CASES, admin_url( 'admin.php' ) ) );
+		self::redirect( Admin::page_url( Admin::PAGE_CASES ) );
 	}
 
 	/**
@@ -419,6 +422,7 @@ final class Actions {
 	 */
 	public function save_settings(): void {
 		check_admin_referer( 'dx_portal_save_settings' );
+		self::return_to_sender();
 
 		if ( ! $this->app->policy->can_manage_settings( get_current_user_id() ) ) {
 			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
@@ -445,7 +449,7 @@ final class Actions {
 
 		$this->app->audit->record( 'settings.updated', null, 'settings', null, array_diff_assoc( array_map( 'wp_json_encode', $after ), array_map( 'wp_json_encode', $before ) ), $this->app->clock->mysql() );
 		Flash::set( 'success', __( 'ההגדרות נשמרו.', 'diromax-portal' ) );
-		self::redirect( add_query_arg( 'page', Admin::PAGE_SETTINGS, admin_url( 'admin.php' ) ) );
+		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) );
 	}
 
 	/**
@@ -526,6 +530,14 @@ final class Actions {
 		}
 
 		self::redirect( Admin::case_url( $client_case->id, $tab ) . ( '' !== $form && $result instanceof WP_Error ? '#form-' . $form : '' ) );
+	}
+
+	/**
+	 * Send the user back to the interface the form came from: the management
+	 * app on the site, or wp-admin. The form's own referer field says which.
+	 */
+	private static function return_to_sender(): void {
+		Admin::use_front( Router::is_manage_url( (string) wp_get_referer() ) );
 	}
 
 	/**

@@ -37,6 +37,10 @@ final class Messages {
 			'entry:voided'          => __( 'התנועה בוטלה, ואי אפשר לשנות אותה.', 'diromax-portal' ),
 			'entry:settled'         => __( 'דרישת התשלום כבר שולמה. כדי לתקן, מבטלים את התנועה שסגרה אותה.', 'diromax-portal' ),
 			'files:too_many'        => __( 'אפשר לצרף עד 10 קבצים לעדכון.', 'diromax-portal' ),
+			'files:storage'         => __( 'אי אפשר לשמור קבצים כרגע: מפתח ההצפנה חסר או השתנה (פרטים בהתראה האדומה). העדכון לא פורסם. אפשר לפרסם אותו בלי הקבצים.', 'diromax-portal' ),
+			'files:missing'         => __( 'אחד הקבצים לא הגיע. העדכון לא פורסם; אפשר לבחור את הקבצים שוב.', 'diromax-portal' ),
+			'files:too_large'       => __( 'אחד הקבצים גדול מ-20MB. העדכון לא פורסם.', 'diromax-portal' ),
+			'files:type'            => __( 'אחד הקבצים מסוג שלא נתמך (אפשר PDF, JPG, PNG, WEBP, DOCX או XLSX). העדכון לא פורסם.', 'diromax-portal' ),
 		);
 
 		if ( isset( $specific[ $field . ':' . $code ] ) ) {

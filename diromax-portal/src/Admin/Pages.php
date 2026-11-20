@@ -26,6 +26,9 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Pages {
 
+	/** Cases per page in the management app's list. */
+	private const PER_PAGE = 25;
+
 	/** Case screen tabs. */
 	public const TABS = array( 'overview', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'documents', 'log' );
 
@@ -128,17 +131,28 @@ final class Pages {
 			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
 		}
 
+		$view = $this->new_case_data( $user );
+
+		include DX_PORTAL_DIR . 'templates/admin/case-new.php';
+	}
+
+	/**
+	 * View model of the new case form.
+	 *
+	 * @param int $user Staff user.
+	 * @return array<string, mixed>
+	 */
+	public function new_case_data( int $user ): array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only prefill; the lead is checked again on save.
 		$lead = isset( $_GET['lead'] ) ? ( new LeadLink( $this->app ) )->prefill( absint( $_GET['lead'] ), $user ) : null;
-		$view = array(
+
+		return array(
 			'flash'    => Flash::take(),
 			'managers' => $this->app->policy->can_manage_all( $user ) ? $this->app->case_service->managers() : array(),
 			'user'     => $user,
 			'lead'     => $lead,
 			'prefill'  => $lead ?? array(),
 		);
-
-		include DX_PORTAL_DIR . 'templates/admin/case-new.php';
 	}
 
 	/**
@@ -149,11 +163,24 @@ final class Pages {
 			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
 		}
 
-		$view = array(
-			'flash'      => Flash::take(),
-			'settings'   => Settings::all(),
-			'key_ready'  => $this->app->store->is_configured(),
-			'categories' => implode(
+		$view = $this->settings_data();
+
+		include DX_PORTAL_DIR . 'templates/admin/settings.php';
+	}
+
+	/**
+	 * View model of the settings screen.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function settings_data(): array {
+		return array(
+			'flash'       => Flash::take(),
+			'settings'    => Settings::all(),
+			'key_ready'   => $this->app->store->is_configured(),
+			'fingerprint' => $this->app->store->fingerprint(),
+			'key_status'  => $this->app->document_service->key_status(),
+			'categories'  => implode(
 				"\n",
 				array_map(
 					static fn( string $key, string $label ): string => $key . '=' . $label,
@@ -162,8 +189,6 @@ final class Pages {
 				)
 			),
 		);
-
-		include DX_PORTAL_DIR . 'templates/admin/settings.php';
 	}
 
 	/**
@@ -180,10 +205,24 @@ final class Pages {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
+		$tab  = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
+		$view = $this->case_data( $client_case, $user, $tab );
+
+		include DX_PORTAL_DIR . 'templates/admin/case.php';
+	}
+
+	/**
+	 * View model of a case screen. The caller has checked access.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $user        Staff user.
+	 * @param string     $tab         Requested tab.
+	 * @return array<string, mixed>
+	 */
+	public function case_data( CaseRecord $client_case, int $user, string $tab ): array {
 		$tab = in_array( $tab, self::TABS, true ) ? $tab : 'overview';
 
-		$view = array_merge(
+		return array_merge(
 			array(
 				'case'      => $client_case,
 				'tab'       => $tab,
@@ -196,11 +235,40 @@ final class Pages {
 				'can_purge' => $this->app->policy->can_delete_case( $user, $client_case ),
 				'steps'     => CaseView::stages( $client_case ),
 				'counts'    => $this->tab_counts( $client_case ),
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only: opens the add form.
+				'adding'    => isset( $_GET['add'] ),
 			),
 			$this->tab_data( $client_case, $tab )
 		);
+	}
 
-		include DX_PORTAL_DIR . 'templates/admin/case.php';
+	/**
+	 * View model of the cases list in the management app: the same search,
+	 * status filter and paging as the wp-admin list.
+	 *
+	 * @param int $user Staff user.
+	 * @return array<string, mixed>
+	 */
+	public function cases_data( int $user ): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only filters.
+		$status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
+		$search = isset( $_GET['s'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_GET['s'] ) ), 0, 100 ) : '';
+		$page   = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		// phpcs:enable
+
+		$result = $this->app->cases->search( $this->app->policy->can_manage_all( $user ) ? null : $user, $status, $search, $page, self::PER_PAGE );
+
+		return array(
+			'flash'    => Flash::take(),
+			'items'    => $result['items'],
+			'total'    => $result['total'],
+			'page'     => $page,
+			'pages'    => max( 1, (int) ceil( $result['total'] / self::PER_PAGE ) ),
+			'status'   => $status,
+			'search'   => $search,
+			'statuses' => Labels::case_statuses(),
+			'managers' => $this->app->case_service->managers(),
+		);
 	}
 
 	/**

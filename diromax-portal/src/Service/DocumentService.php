@@ -47,6 +47,107 @@ final class DocumentService {
 	public function __construct( private readonly Plugin $app ) {}
 
 	/**
+	 * Why documents cannot be stored right now, or null when they can.
+	 *
+	 * @return WP_Error|null
+	 */
+	public function storage_error(): ?WP_Error {
+		return match ( $this->key_status() ) {
+			'missing' => new WP_Error( 'dx_no_key', __( 'העלאת מסמכים חסומה: לא הוגדר מפתח הצפנה (DX_PORTAL_KEY).', 'diromax-portal' ), array( 'status' => 503 ) ),
+			'changed' => new WP_Error( 'dx_key_changed', __( 'העלאת מסמכים חסומה: מפתח ההצפנה השתנה מאז שהועלו המסמכים הקיימים. יש להחזיר את המפתח הקודם ל-wp-config.php.', 'diromax-portal' ), array( 'status' => 503 ) ),
+			default   => null,
+		};
+	}
+
+	/**
+	 * State of the encryption key: missing, changed (not the key the stored
+	 * documents were encrypted with, so they cannot be opened), or ok.
+	 *
+	 * The key is remembered by its fingerprint. With no documents stored, a
+	 * new key is simply adopted. On a site that stored documents before the
+	 * fingerprint existed, the key is first tried on the latest stored files,
+	 * and adopted only if it opens them.
+	 *
+	 * @return string
+	 */
+	public function key_status(): string {
+		$current = $this->app->store->fingerprint();
+
+		if ( null === $current ) {
+			return 'missing';
+		}
+
+		$known = $this->app->store->known_fingerprint();
+
+		if ( '' !== $known && hash_equals( $known, $current ) ) {
+			return 'ok';
+		}
+
+		if ( ! $this->app->documents->any() ) {
+			$this->app->store->remember_key();
+			return 'ok';
+		}
+
+		return '' === $known ? $this->adopt_if_it_opens() : 'changed';
+	}
+
+	/**
+	 * First check on a site with documents and no remembered key: adopt the
+	 * key if it opens the latest stored file it can find.
+	 *
+	 * @return string ok or changed.
+	 */
+	private function adopt_if_it_opens(): string {
+		foreach ( $this->app->documents->latest_stored( DocumentStore::KEY_VERSION, 3 ) as $stored_name ) {
+			$opens = $this->app->store->can_open( $stored_name, DocumentStore::KEY_VERSION );
+
+			if ( true === $opens ) {
+				$this->app->store->remember_key();
+				return 'ok';
+			}
+
+			if ( false === $opens ) {
+				Logger::error( 'document.key_mismatch' );
+				return 'changed';
+			}
+		}
+
+		// None of the files is on disk to check against: nothing to protect.
+		return 'ok';
+	}
+
+	/**
+	 * The checks an upload can pass or fail without touching the file: it
+	 * arrived, its size, and that its content matches an allowed type. For
+	 * forms that must refuse a bad file before saving anything else.
+	 *
+	 * @param array<string, mixed> $file One $_FILES item.
+	 * @return WP_Error|null
+	 */
+	public function precheck( array $file ): ?WP_Error {
+		$path = is_string( $file['tmp_name'] ?? null ) ? $file['tmp_name'] : '';
+		$name = is_string( $file['name'] ?? null ) ? sanitize_file_name( $file['name'] ) : '';
+		$size = is_int( $file['size'] ?? null ) ? $file['size'] : 0;
+
+		if ( UPLOAD_ERR_OK !== ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) || '' === $path || ! apply_filters( 'dx_portal_is_uploaded_file', is_uploaded_file( $path ), $path ) ) {
+			return Errors::invalid( array( 'file' => 'missing' ) );
+		}
+
+		if ( $size <= 0 || $size > DocumentStore::MAX_BYTES ) {
+			return Errors::invalid( array( 'file' => 'too_large' ) );
+		}
+
+		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		$mime = self::TYPES[ $ext ] ?? null;
+
+		if ( null === $mime || ! $this->content_matches( $path, $name, $ext, $mime ) ) {
+			return Errors::invalid( array( 'file' => 'type' ) );
+		}
+
+		return null;
+	}
+
+	/**
 	 * Validate, encrypt and record an uploaded file.
 	 *
 	 * @param CaseRecord           $client_case      Case.
@@ -64,8 +165,10 @@ final class DocumentService {
 			return Errors::forbidden();
 		}
 
-		if ( ! $this->app->store->is_configured() ) {
-			return new WP_Error( 'dx_no_key', __( 'העלאת מסמכים חסומה: לא הוגדר מפתח הצפנה (DX_PORTAL_KEY).', 'diromax-portal' ), array( 'status' => 503 ) );
+		$blocked = $this->storage_error();
+
+		if ( null !== $blocked ) {
+			return $blocked;
 		}
 
 		$checked = $this->check_upload( $file );
@@ -168,25 +271,16 @@ final class DocumentService {
 	 * @return array{path:string, name:string, ext:string, mime:string, temporary:bool}|WP_Error
 	 */
 	private function check_upload( array $file ): array|WP_Error {
-		$path = is_string( $file['tmp_name'] ?? null ) ? $file['tmp_name'] : '';
-		$name = is_string( $file['name'] ?? null ) ? sanitize_file_name( $file['name'] ) : '';
-		$size = is_int( $file['size'] ?? null ) ? $file['size'] : 0;
+		$problem = $this->precheck( $file );
 
-		if ( UPLOAD_ERR_OK !== ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) || '' === $path || ! apply_filters( 'dx_portal_is_uploaded_file', is_uploaded_file( $path ), $path ) ) {
-			return Errors::invalid( array( 'file' => 'missing' ) );
+		if ( null !== $problem ) {
+			return $problem;
 		}
 
-		if ( $size <= 0 || $size > DocumentStore::MAX_BYTES ) {
-			return Errors::invalid( array( 'file' => 'too_large' ) );
-		}
-
-		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
-		$mime = self::TYPES[ $ext ] ?? null;
-
-		if ( null === $mime || ! $this->content_matches( $path, $name, $ext, $mime ) ) {
-			return Errors::invalid( array( 'file' => 'type' ) );
-		}
-
+		$path      = (string) $file['tmp_name'];
+		$name      = sanitize_file_name( (string) $file['name'] );
+		$ext       = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		$mime      = self::TYPES[ $ext ];
 		$file_info = array(
 			'path'      => $path,
 			'name'      => $name,
@@ -286,6 +380,10 @@ final class DocumentService {
 			if ( $file['temporary'] ) {
 				wp_delete_file( $file['path'] );
 			}
+		}
+
+		if ( '' === $this->app->store->known_fingerprint() ) {
+			$this->app->store->remember_key();
 		}
 
 		$title = mb_substr( Text::line( $title ), 0, 200 );

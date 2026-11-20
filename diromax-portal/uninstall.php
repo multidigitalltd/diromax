@@ -19,12 +19,14 @@ require_once __DIR__ . '/src/Security/Capabilities.php';
 wp_clear_scheduled_hook( 'dx_portal_notify' );
 wp_clear_scheduled_hook( 'dx_portal_cleanup' );
 delete_transient( 'dx_portal_notify_lock' );
+delete_option( 'dx_portal_rules' );
 
 Diromax\Portal\Security\Capabilities::uninstall();
 
 if ( defined( 'DX_PORTAL_PURGE_ON_UNINSTALL' ) && true === DX_PORTAL_PURGE_ON_UNINSTALL ) {
 	Diromax\Portal\Data\Schema::drop_all();
 	delete_option( 'dx_portal_settings' );
+	delete_option( 'dx_portal_key_fp' );
 
 	$dx_portal_dir = defined( 'DX_PORTAL_PRIVATE_DIR' ) ? (string) DX_PORTAL_PRIVATE_DIR : wp_upload_dir( null, false )['basedir'] . '/dx-private';
 

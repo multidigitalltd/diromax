@@ -119,7 +119,7 @@ final class PortalTest extends PortalTestCase {
 		wp_set_current_user( $manager );
 		$this->assertTrue( apply_filters( 'show_admin_bar', true ) );
 		$this->assertSame( 2 * DAY_IN_SECONDS, apply_filters( 'auth_cookie_expiration', 2 * DAY_IN_SECONDS, $manager, false ) );
-		$this->assertSame( admin_url(), apply_filters( 'login_redirect', admin_url(), '', get_userdata( $manager ) ) );
+		$this->assertSame( Router::manage_url(), apply_filters( 'login_redirect', admin_url(), '', get_userdata( $manager ) ), 'Project managers land in the management app.' );
 	}
 
 	/**

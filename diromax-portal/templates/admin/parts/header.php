@@ -2,27 +2,32 @@
 /**
  * Admin part: the brand bar, the plugin's navigation, and the page head.
  *
- * Expects $header: title, and optionally eyebrow, meta (strings), actions
- * (label, url, primary, new_tab) and current (dashboard, cases, new,
- * settings).
+ * Shared by the wp-admin screens and the management app on the site
+ * (Admin::is_front()); every link goes to the interface the user is in.
+ *
+ * Expects $header: title, and optionally eyebrow, meta (strings), back
+ * (label, url), actions (label, url, primary, new_tab) and current
+ * (dashboard, cases, new, settings).
  *
  * @package Diromax\Portal
  *
  * @var array<string, mixed> $header
+ * @var array<string, mixed> $view
  */
 
 declare( strict_types = 1 );
 
 use Diromax\Portal\Admin\Admin;
+use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Security\Capabilities;
 
 defined( 'ABSPATH' ) || exit;
 
-$dxa_page  = static fn( string $page ): string => add_query_arg( 'page', $page, admin_url( 'admin.php' ) );
+$dxa_front = Admin::is_front();
 $dxa_items = array(
-	'dashboard' => array( __( 'לוח בקרה', 'diromax-portal' ), $dxa_page( Admin::PAGE_DASHBOARD ) ),
-	'cases'     => array( __( 'כל התיקים', 'diromax-portal' ), $dxa_page( Admin::PAGE_CASES ) ),
-	'new'       => array( __( 'תיק חדש', 'diromax-portal' ), $dxa_page( Admin::PAGE_NEW ) ),
+	'dashboard' => array( __( 'לוח בקרה', 'diromax-portal' ), Admin::page_url( Admin::PAGE_DASHBOARD ) ),
+	'cases'     => array( __( 'תיקים', 'diromax-portal' ), Admin::page_url( Admin::PAGE_CASES ) ),
+	'new'       => array( __( 'תיק חדש', 'diromax-portal' ), Admin::page_url( Admin::PAGE_NEW ) ),
 );
 
 $dxa_leads = get_post_type_object( 'dx_lead' );
@@ -32,13 +37,20 @@ if ( null !== $dxa_leads && current_user_can( $dxa_leads->cap->edit_posts ) ) {
 }
 
 if ( current_user_can( Capabilities::MANAGE_SETTINGS ) ) {
-	$dxa_items['settings'] = array( __( 'הגדרות', 'diromax-portal' ), $dxa_page( Admin::PAGE_SETTINGS ) );
+	$dxa_items['settings'] = array( __( 'הגדרות', 'diromax-portal' ), Admin::page_url( Admin::PAGE_SETTINGS ) );
 }
 
 $dxa_current = (string) ( $header['current'] ?? '' );
+$dxa_search  = Admin::page_url( Admin::PAGE_CASES );
+$dxa_hidden  = array();
+parse_str( (string) wp_parse_url( $dxa_search, PHP_URL_QUERY ), $dxa_hidden );
+$dxa_hidden = array_filter( $dxa_hidden, 'is_string' );
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only search term, echoed escaped.
+$dxa_term = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+$dxa_user = wp_get_current_user();
 ?>
 <div class="dxa-top">
-	<a class="dxa-top__brand" href="<?php echo esc_url( $dxa_page( Admin::PAGE_DASHBOARD ) ); ?>">
+	<a class="dxa-top__brand" href="<?php echo esc_url( Admin::page_url( Admin::PAGE_DASHBOARD ) ); ?>">
 		<span class="dxa-top__logo">DIROMAX</span>
 		<span class="dxa-top__app"><?php esc_html_e( 'תיקי לקוחות', 'diromax-portal' ); ?></span>
 	</a>
@@ -49,6 +61,27 @@ $dxa_current = (string) ( $header['current'] ?? '' );
 			<?php endforeach; ?>
 		</ul>
 	</nav>
+	<div class="dxa-top__tools">
+		<form class="dxa-top__search" role="search" method="get" action="<?php echo esc_url( explode( '?', $dxa_search )[0] ); ?>">
+			<?php foreach ( $dxa_hidden as $dxa_name => $dxa_value ) : ?>
+				<input type="hidden" name="<?php echo esc_attr( (string) $dxa_name ); ?>" value="<?php echo esc_attr( $dxa_value ); ?>">
+			<?php endforeach; ?>
+			<label class="screen-reader-text" for="dxa-top-search"><?php esc_html_e( 'חיפוש תיק לפי כתובת או מספר', 'diromax-portal' ); ?></label>
+			<input type="search" id="dxa-top-search" name="s" value="<?php echo esc_attr( $dxa_term ); ?>" placeholder="<?php esc_attr_e( 'חיפוש תיק…', 'diromax-portal' ); ?>" maxlength="100">
+		</form>
+		<?php if ( $dxa_front ) : ?>
+			<?php if ( current_user_can( 'manage_options' ) ) : ?>
+				<a class="dxa-top__link" href="<?php echo esc_url( admin_url() ); ?>"><?php esc_html_e( 'לוח וורדפרס', 'diromax-portal' ); ?></a>
+			<?php endif; ?>
+			<form class="dxa-top__user" method="post" action="<?php echo esc_url( Router::logout_url() ); ?>">
+				<span><?php echo esc_html( $dxa_user->display_name ); ?></span>
+				<?php wp_nonce_field( 'dx_portal_logout', '_dx_nonce', false ); ?>
+				<button type="submit" class="dxa-top__link"><?php esc_html_e( 'יציאה', 'diromax-portal' ); ?></button>
+			</form>
+		<?php else : ?>
+			<a class="dxa-top__link" href="<?php echo esc_url( Router::manage_url() ); ?>"><?php esc_html_e( 'מסך מלא באתר', 'diromax-portal' ); ?></a>
+		<?php endif; ?>
+	</div>
 </div>
 
 <div class="dxa-head">
@@ -82,3 +115,8 @@ $dxa_current = (string) ( $header['current'] ?? '' );
 	<?php endif; ?>
 </div>
 <hr class="wp-header-end">
+<?php if ( $dxa_front ) : ?>
+	<?php foreach ( (array) ( $view['notices'] ?? array() ) as [ $dxa_type, $dxa_message ] ) : ?>
+		<div class="notice notice-<?php echo esc_attr( (string) $dxa_type ); ?>"><p><?php echo esc_html( (string) $dxa_message ); ?></p></div>
+	<?php endforeach; ?>
+<?php endif; ?>

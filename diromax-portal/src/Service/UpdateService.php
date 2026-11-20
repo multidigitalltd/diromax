@@ -56,6 +56,14 @@ final class UpdateService {
 			return Errors::invalid( $errors );
 		}
 
+		// Attachments are stored after the update is saved: refuse now what
+		// would be refused then, so an update is never published without them.
+		$attachments = $this->check_files( $files );
+
+		if ( null !== $attachments ) {
+			return $attachments;
+		}
+
 		$now = $this->app->clock->mysql();
 		$id  = $this->app->updates->insert( $client_case->id, $title, $body, $stage, $visible, $actor, $now );
 
@@ -79,6 +87,33 @@ final class UpdateService {
 		}
 
 		return $id;
+	}
+
+	/**
+	 * Can every attachment be stored? The key must be usable and each file
+	 * must pass the upload checks.
+	 *
+	 * @param array<int, array<string, mixed>> $files Uploaded files.
+	 * @return WP_Error|null
+	 */
+	private function check_files( array $files ): ?WP_Error {
+		if ( array() === $files ) {
+			return null;
+		}
+
+		if ( null !== $this->app->document_service->storage_error() ) {
+			return Errors::invalid( array( 'files' => 'storage' ) );
+		}
+
+		foreach ( $files as $file ) {
+			$problem = $this->app->document_service->precheck( $file );
+
+			if ( null !== $problem ) {
+				return Errors::invalid( array( 'files' => (string) ( Errors::fields( $problem )['file'] ?? 'missing' ) ) );
+			}
+		}
+
+		return null;
 	}
 
 	/**

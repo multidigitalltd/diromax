@@ -1,0 +1,50 @@
+/*
+ * Diromax client cases — the management app on the site (/portal/manage/).
+ * The base that wp-admin's own stylesheets give the admin screens; the
+ * design itself comes from admin.css, shared with wp-admin.
+ */
+html { background: #f4f4f2; }
+body.dxa-front { margin: 0; min-height: 100vh; font-family: var(--a-font); font-size: 14px; line-height: 1.55; color: var(--a-body); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.dxa-front *, .dxa-front *::before, .dxa-front *::after { box-sizing: border-box; }
+.dxa-front h1, .dxa-front h2, .dxa-front h3 { margin: 1em 0 .5em; line-height: 1.25; }
+.dxa-front p { margin: 0 0 1em; }
+.dxa-front code { padding: 2px 6px; background: var(--a-bg); font-size: 13px; }
+.dxa-front fieldset { margin: 0; padding: 0; border: 0; }
+.dxa-front label { cursor: pointer; }
+.dxa-front button, .dxa-front input, .dxa-front select, .dxa-front textarea { font: inherit; }
+.dxa-front .hidden, .dxa-front .wp-header-end { display: none; }
+
+.dxa-front .screen-reader-text { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); clip-path: inset(50%); border: 0; white-space: nowrap; }
+.dxa-front .dxa-skip:focus { z-index: 100; inset-block-start: 8px; inset-inline-start: 8px; width: auto; height: auto; margin: 0; padding: 12px 16px; clip: auto; clip-path: none; background: var(--a-white); color: var(--a-ink); outline: 3px solid var(--a-orange); position: fixed !important; }
+
+.dxa-front .wrap.dxa { margin: 0 auto; }
+.dxa-front .dxa-top { position: sticky; inset-block-start: 0; z-index: 20; }
+
+.dxa-front table.widefat { width: 100%; border-collapse: collapse; border-spacing: 0; }
+.dxa-front .widefat th, .dxa-front .widefat td { text-align: start; vertical-align: top; }
+.dxa-front .widefat tbody th { font-weight: 400; }
+.dxa-front .form-table { width: 100%; border-collapse: collapse; }
+.dxa-front .form-table th { width: 240px; text-align: start; vertical-align: top; font-weight: 700; }
+.dxa-front .regular-text { width: 25em; max-width: 100%; }
+.dxa-front .small-text { width: 7em; }
+.dxa-front .large-text { width: 100%; }
+.dxa-front .description { margin: 6px 0 0; font-size: 13px; }
+
+.dxa-front .notice { margin: 0 0 16px; padding: 2px 16px; background: var(--a-white); border: 1px solid var(--a-line); border-inline-start-width: 5px; }
+.dxa-front .notice p { margin: .7em 0; }
+.dxa-front .notice-success { border-inline-start-color: #1a7f37; }
+.dxa-front .notice-error { border-inline-start-color: var(--a-red); }
+.dxa-front .notice-warning { border-inline-start-color: #b8860b; }
+.dxa-front .notice-info { border-inline-start-color: var(--a-teal-deep); }
+
+.dxa-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+.dxa-screen .wrap.dxa .dxa-filters a { display: inline-block; padding: 6px 14px; border: 1px solid var(--a-line); background: var(--a-white); color: var(--a-ink); font-weight: 600; text-decoration: none; }
+.dxa-screen .wrap.dxa .dxa-filters a[aria-current="page"] { border-color: var(--a-ink); background: var(--a-ink); color: var(--a-white); }
+.dxa-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+
+@media (max-width: 782px) {
+  .dxa-front .dxa-top { position: static; }
+  .dxa-front .form-table th, .dxa-front .form-table td { display: block; width: auto; }
+  .dxa-front .form-table th { padding-bottom: 0; }
+  .dxa-front .regular-text { width: 100%; }
+}

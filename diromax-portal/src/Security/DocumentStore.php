@@ -49,6 +49,43 @@ final class DocumentStore {
 		return null !== $this->master_key();
 	}
 
+	/** Option holding the fingerprint of the key documents are stored with. */
+	public const FINGERPRINT_OPTION = 'dx_portal_key_fp';
+
+	/**
+	 * A short fingerprint of the current key, safe to show: an HMAC made with
+	 * the key, so it identifies the key without revealing it.
+	 *
+	 * @return string|null 12 hex digits, or null without a key.
+	 */
+	public function fingerprint(): ?string {
+		$key = $this->master_key();
+
+		return null === $key ? null : substr( hash_hmac( 'sha256', 'dx-portal-fingerprint', $key ), 0, 12 );
+	}
+
+	/**
+	 * The fingerprint of the key the stored documents were encrypted with.
+	 *
+	 * @return string '' before the first upload.
+	 */
+	public function known_fingerprint(): string {
+		$known = get_option( self::FINGERPRINT_OPTION, '' );
+
+		return is_string( $known ) ? $known : '';
+	}
+
+	/**
+	 * Remember the current key as the one documents are stored with.
+	 */
+	public function remember_key(): void {
+		$current = $this->fingerprint();
+
+		if ( null !== $current ) {
+			update_option( self::FINGERPRINT_OPTION, $current, false );
+		}
+	}
+
 	/**
 	 * New random stored name.
 	 *
@@ -145,6 +182,34 @@ final class DocumentStore {
 
 			// The stream ended without its final tag: truncated.
 			return false;
+		} catch ( \SodiumException ) {
+			return false;
+		} finally {
+			fclose( $in );
+		}
+	}
+
+	/**
+	 * Does the key open this stored file? Decrypts the first chunk only.
+	 *
+	 * @param string $stored_name Stored file name.
+	 * @param int    $key_version Key version it was stored with.
+	 * @return bool|null Null when the file is not on disk or there is no key.
+	 */
+	public function can_open( string $stored_name, int $key_version ): ?bool {
+		$path = $this->path( $stored_name );
+		$in   = is_readable( $path ) ? fopen( $path, 'rb' ) : false;
+
+		if ( false === $in || null === $this->master_key( $key_version ) ) {
+			return null;
+		}
+
+		try {
+			$header = (string) fread( $in, SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_HEADERBYTES );
+			$state  = sodium_crypto_secretstream_xchacha20poly1305_init_pull( $header, $this->file_key( $stored_name, $key_version ) );
+			$cipher = (string) fread( $in, self::CHUNK + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES );
+
+			return false !== sodium_crypto_secretstream_xchacha20poly1305_pull( $state, $cipher );
 		} catch ( \SodiumException ) {
 			return false;
 		} finally {
