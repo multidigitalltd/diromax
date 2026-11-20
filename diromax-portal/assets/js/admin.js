@@ -84,23 +84,6 @@
 		text.addEventListener( 'input', apply );
 	} );
 
-	// "/" jumps to the case search, as on many web apps; not while typing.
-	document.addEventListener( 'keydown', function ( event ) {
-		var search = document.getElementById( 'dxa-top-search' );
-		var target = event.target;
-
-		if ( '/' !== event.key || ! search || event.ctrlKey || event.metaKey || event.altKey ) {
-			return;
-		}
-
-		if ( target && ( target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test( target.tagName ) ) ) {
-			return;
-		}
-
-		event.preventDefault();
-		search.focus();
-	} );
-
 	Array.prototype.forEach.call( document.querySelectorAll( '[data-dxa-confirm]' ), function ( button ) {
 		button.addEventListener( 'click', function ( event ) {
 			if ( ! window.confirm( button.getAttribute( 'data-dxa-confirm' ) ) ) {

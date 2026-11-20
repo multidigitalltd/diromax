@@ -48,12 +48,12 @@ async function signIn(page, user, pass, redirect) {
   check('dashboard: totals, attention and active cases', (await page.locator('.dxa-kpis li').count()) === 6 && (await page.textContent('h1')).includes('לוח בקרה') && (await page.locator('.dxa-cases__i').count()) >= 1);
   await axe(page, 'app dashboard');
 
-  // ---------- 1.4.0: cache-busting URLs, "/" shortcut, dashboard actions ----------
+  // ---------- 1.4.0: cache-busting URLs, dashboard actions ----------
   const css = await page.getAttribute('link[href*="admin.min.css"]', 'href');
   check('stylesheet URL carries the version and a content hash', /[?&]ver=\d+\.\d+\.\d+-[a-f0-9]{8}/.test(css), css);
   await page.locator('h1').click();
   await page.keyboard.press('/');
-  check('"/" jumps to the case search', await page.evaluate(() => document.activeElement && document.activeElement.id === 'dxa-top-search'));
+  check('no single-character shortcut takes the focus (standard 8.3.8, WCAG 2.1.4)', await page.evaluate(() => !document.activeElement || document.activeElement.id !== 'dxa-top-search'));
 
   const settleLink = page.locator('.dxa-row-actions a:has-text("סימון כשולמה")').first();
   check('payment requests on the dashboard have actions', (await page.locator('.dxa-row-actions').count()) > 0);

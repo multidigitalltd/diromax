@@ -67,7 +67,7 @@ $dxa_user = wp_get_current_user();
 				<input type="hidden" name="<?php echo esc_attr( (string) $dxa_name ); ?>" value="<?php echo esc_attr( $dxa_value ); ?>">
 			<?php endforeach; ?>
 			<label class="screen-reader-text" for="dxa-top-search"><?php esc_html_e( 'חיפוש תיק לפי כתובת או מספר', 'diromax-portal' ); ?></label>
-			<input type="search" id="dxa-top-search" name="s" value="<?php echo esc_attr( $dxa_term ); ?>" placeholder="<?php esc_attr_e( 'חיפוש תיק… ( / )', 'diromax-portal' ); ?>" maxlength="100" aria-keyshortcuts="/">
+			<input type="search" id="dxa-top-search" name="s" value="<?php echo esc_attr( $dxa_term ); ?>" placeholder="<?php esc_attr_e( 'חיפוש תיק…', 'diromax-portal' ); ?>" maxlength="100">
 		</form>
 		<?php if ( $dxa_front ) : ?>
 			<?php if ( current_user_can( 'manage_options' ) ) : ?>
