@@ -34,10 +34,10 @@ final class Router {
 	public const CASE_ID = 'dx_manage_case';
 
 	/** Staff screens. */
-	public const SCREENS = array( 'dashboard', 'cases', 'new', 'settings', 'case' );
+	public const SCREENS = array( 'dashboard', 'cases', 'new', 'settings', 'case', 'manifest' );
 
 	/** Bump when the rules change, so an updated plugin refreshes them once. */
-	public const RULES_VERSION = '2';
+	public const RULES_VERSION = '3';
 
 	/** Option holding the rules version last flushed. */
 	private const RULES_OPTION = 'dx_portal_rules';
@@ -55,6 +55,7 @@ final class Router {
 		add_rewrite_rule( '^' . $base . '/(login|logout|account)/?$', 'index.php?' . self::VIEW . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/(case|doc)/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=$matches[1]&' . self::ARG . '=$matches[2]', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=dashboard', 'top' );
+		add_rewrite_rule( '^' . $base . '/manage/manifest\\.webmanifest$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=manifest', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/(cases|new|settings)/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/case/([0-9]{1,10})/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=case&' . self::CASE_ID . '=$matches[1]', 'top' );
 
@@ -135,6 +136,7 @@ final class Router {
 		} else {
 			$path = match ( $screen ) {
 				'dashboard' => '',
+				'manifest'  => 'manifest.webmanifest',
 				'case'      => 'case/' . $case_id . '/',
 				default     => $screen . '/',
 			};

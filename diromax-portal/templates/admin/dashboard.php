@@ -19,7 +19,7 @@ use Diromax\Portal\Service\Stages;
 
 defined( 'ABSPATH' ) || exit;
 
-$case_link = static function ( array $row, string $tab ): void {
+$case_link       = static function ( array $row, string $tab ): void {
 	printf(
 		'<a href="%1$s">%2$s</a><br><span class="dxa-muted">%3$s</span>',
 		esc_url( Admin::case_url( (int) $row['case_id'], $tab ) ),
@@ -27,7 +27,27 @@ $case_link = static function ( array $row, string $tab ): void {
 		esc_html( (string) $row['number'] )
 	);
 };
-$statuses  = Labels::decision_statuses();
+$statuses        = Labels::decision_statuses();
+$request_actions = static function ( array $row, string $today ): void {
+	$case_id = (int) $row['case_id'];
+	?>
+	<div class="dxa-row-actions">
+		<?php if ( $today !== (string) $row['last_reminder_on'] ) : ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="dxa-inline-form">
+				<input type="hidden" name="action" value="dx_portal_send_reminder">
+				<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case_id ); ?>">
+				<input type="hidden" name="entry_id" value="<?php echo esc_attr( (string) $row['id'] ); ?>">
+				<input type="hidden" name="dx_back" value="dashboard">
+				<?php wp_nonce_field( 'dx_portal_send_reminder_' . $case_id ); ?>
+				<button type="submit" class="button" data-dxa-confirm="<?php esc_attr_e( 'לשלוח עכשיו ללקוחות של התיק תזכורת על הדרישה הזו?', 'diromax-portal' ); ?>"><?php esc_html_e( 'תזכורת', 'diromax-portal' ); ?></button>
+			</form>
+		<?php else : ?>
+			<span class="dxa-muted"><?php esc_html_e( 'תזכורת נשלחה היום', 'diromax-portal' ); ?></span>
+		<?php endif; ?>
+		<a href="<?php echo esc_url( add_query_arg( 'settle', (int) $row['id'], Admin::case_url( $case_id, 'finance' ) ) ); ?>"><?php esc_html_e( 'סימון כשולמה', 'diromax-portal' ); ?></a>
+	</div>
+	<?php
+};
 $user_name = wp_get_current_user()->display_name;
 $header    = array(
 	'current' => 'dashboard',
@@ -144,6 +164,7 @@ $header    = array(
 						<th scope="col"><?php esc_html_e( 'סכום', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'באיחור', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'תזכורות', 'diromax-portal' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'פעולות', 'diromax-portal' ); ?></th>
 					</tr></thead>
 					<tbody>
 						<?php foreach ( $view['overdue'] as $row ) : ?>
@@ -159,6 +180,7 @@ $header    = array(
 									?>
 								</td>
 								<td><?php echo esc_html( (string) $row['reminders_sent'] ); ?></td>
+								<td><?php $request_actions( $row, (string) $view['today'] ); ?></td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
@@ -177,6 +199,7 @@ $header    = array(
 						<th scope="col"><?php esc_html_e( 'דרישה', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'סכום', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'עד', 'diromax-portal' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'פעולות', 'diromax-portal' ); ?></th>
 					</tr></thead>
 					<tbody>
 						<?php foreach ( $view['upcoming'] as $row ) : ?>
@@ -185,6 +208,7 @@ $header    = array(
 								<td><?php echo esc_html( (string) $row['description'] ); ?></td>
 								<td dir="ltr" class="dxa-num"><?php echo esc_html( Money::format( (int) $row['total'] ) ); ?></td>
 								<td dir="ltr"><?php echo esc_html( Labels::date( $row['due_date'] ) ); ?></td>
+								<td><?php $request_actions( $row, (string) $view['today'] ); ?></td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>

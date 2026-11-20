@@ -77,6 +77,23 @@ function dx_register_nonce_route() {
 add_action( 'rest_api_init', 'dx_register_nonce_route' );
 
 /**
+ * All-In-One Security can refuse REST requests from visitors who are not
+ * signed in. The lead form's nonce route is public by design (it only hands
+ * out a fresh form nonce), so it stays reachable when that option is on.
+ *
+ * @param mixed $routes Whitelisted REST namespaces.
+ * @return array<int, string>
+ */
+function dx_aios_allow_nonce_route( $routes ) {
+	$routes   = is_array( $routes ) ? array_values( array_filter( $routes, 'is_string' ) ) : array();
+	$routes[] = 'diromax';  // /wp-json/diromax/v1/nonce.
+	$routes[] = '/diromax'; // ?rest_route=/diromax/v1/nonce, without pretty permalinks.
+
+	return array_values( array_unique( $routes ) );
+}
+add_filter( 'aios_whitelisted_rest_routes', 'dx_aios_allow_nonce_route' );
+
+/**
  * Rest nonce.
  *
  * @return WP_REST_Response

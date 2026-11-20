@@ -18,6 +18,7 @@ php "$root/bin/build-assets.php"
 mkdir -p "$stage/diromax-portal"
 cp -r "$root/diromax-portal/assets" "$root/diromax-portal/src" "$root/diromax-portal/templates" "$stage/diromax-portal/"
 cp "$root/diromax-portal/diromax-portal.php" "$root/diromax-portal/uninstall.php" "$root/diromax-portal/README.md" "$stage/diromax-portal/"
+cp "$root/CHANGELOG.md" "$stage/diromax-portal/CHANGELOG.md"
 
 find "$stage" \( -name '.DS_Store' -o -name 'Thumbs.db' -o -name '*.swp' \) -delete
 find "$stage" -type d -exec chmod 755 {} +

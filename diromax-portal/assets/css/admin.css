@@ -323,3 +323,25 @@
 .dxa-chip--on_hold { border-color: var(--a-orange); background: var(--a-orange-tint); color: var(--a-orange-text); }
 .dxa-allclear { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 16px; padding: 14px 18px; background: var(--a-white); border: 1px solid var(--a-line); border-inline-start: 5px solid var(--a-teal-deep); color: var(--a-ink); font-weight: 600; }
 .dxa-allclear span { color: var(--a-teal-deep); font-weight: 800; }
+
+/* ---------- Ledger filter, row actions, next steps ---------- */
+.dxa-filterbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 16px; margin: 0 0 12px; }
+.dxa-filterbar .dxa-field { margin: 0 0 8px; }
+.dxa-filterbar__count { margin: 0 0 14px; }
+.dxa tr[hidden] { display: none; }
+.dxa-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.dxa-screen .wrap.dxa .dxa-row-actions .button { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.dxa-next { margin: 0 0 24px; padding: 4px 20px 16px; background: var(--a-white); border: 1px solid var(--a-line); border-top: 4px solid var(--a-orange); }
+.dxa-screen .wrap.dxa .dxa-next h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 14px 0 10px; font-size: 17px; font-weight: 800; }
+.dxa-next__bar { display: grid; grid-template-columns: repeat(var(--dxa-steps, 5), 1fr); gap: 4px; margin: 0 0 12px; }
+.dxa-next__bar i { height: 6px; background: var(--a-line-soft); }
+.dxa-next__bar i.is-done { background: var(--a-teal-deep); }
+.dxa-checklist { margin: 0; padding: 0; list-style: none; }
+.dxa-checklist li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; padding: 10px 0; border-top: 1px solid var(--a-line-soft); }
+.dxa-checklist li:first-child { border-top: 0; }
+.dxa-checklist__mark { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: 0 0 auto; border: 2px solid var(--a-line); font-family: var(--a-font-num); font-weight: 800; color: var(--a-muted); }
+.dxa-checklist .is-done .dxa-checklist__mark { border-color: var(--a-teal-deep); background: var(--a-teal-deep); color: var(--a-white); }
+.dxa-checklist .is-done .dxa-checklist__t { color: var(--a-muted); }
+.dxa-checklist .is-todo .dxa-checklist__t { font-weight: 700; color: var(--a-ink); }
+.dxa-checklist__go { margin-inline-start: auto; font-weight: 700; }
+

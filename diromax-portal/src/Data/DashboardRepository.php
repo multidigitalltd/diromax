@@ -42,7 +42,7 @@ final class DashboardRepository {
 	public function requests_due( int $manager, string $from, string $to ): array {
 		return $this->rows(
 			$this->db->prepare(
-				"SELECT c.id AS case_id, c.number, c.title AS case_title, l.id, l.description, l.total, l.due_date, l.reminders_sent
+				"SELECT c.id AS case_id, c.number, c.title AS case_title, l.id, l.description, l.total, l.due_date, l.reminders_sent, l.last_reminder_on
 				   FROM %i l INNER JOIN %i c ON c.id = l.case_id
 				  WHERE l.type = 'request' AND l.status = 'open' AND l.voided_at IS NULL AND l.visible = 1
 				    AND l.due_date BETWEEN %s AND %s AND c.status = 'active' AND ( %d = 0 OR c.manager_id = %d )

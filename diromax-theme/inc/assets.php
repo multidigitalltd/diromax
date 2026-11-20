@@ -33,6 +33,29 @@ function dx_asset_url( $min_relative, $src_relative ) {
 }
 
 /**
+ * Version for an asset's URL: the theme version and a short hash of the
+ * file's content, so a changed file gets a new URL and no browser, page
+ * cache or CDN keeps serving the old one after an update.
+ *
+ * @param string $min_relative Minified file, relative to the theme.
+ * @param string $src_relative Source file, relative to the theme.
+ * @return string
+ */
+function dx_asset_version( $min_relative, $src_relative ) {
+	static $versions = array();
+
+	$debug    = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG );
+	$relative = ! $debug && file_exists( DX_DIR . '/' . $min_relative ) ? $min_relative : $src_relative;
+
+	if ( ! isset( $versions[ $relative ] ) ) {
+		$hash                  = is_readable( DX_DIR . '/' . $relative ) ? md5_file( DX_DIR . '/' . $relative ) : false;
+		$versions[ $relative ] = DX_VERSION . ( false === $hash ? '' : '-' . substr( $hash, 0, 8 ) );
+	}
+
+	return $versions[ $relative ];
+}
+
+/**
  * Does the current request render editor content that needs the block stylesheet?
  *
  * @return bool
@@ -75,7 +98,7 @@ function dx_enqueue_assets() {
 		'dx-style',
 		dx_asset_url( 'style.min.css', 'style.css' ),
 		array(),
-		DX_VERSION
+		dx_asset_version( 'style.min.css', 'style.css' )
 	);
 
 	// A child theme's own style.css still loads, layered on top.
@@ -89,7 +112,7 @@ function dx_enqueue_assets() {
 			'dx-a11y',
 			dx_asset_url( 'assets/js/a11y.min.js', 'assets/js/a11y.js' ),
 			array(),
-			DX_VERSION,
+			dx_asset_version( 'assets/js/a11y.min.js', 'assets/js/a11y.js' ),
 			array(
 				'in_footer' => true,
 				'strategy'  => 'defer',
@@ -102,7 +125,7 @@ function dx_enqueue_assets() {
 			'dx-forms',
 			dx_asset_url( 'assets/js/forms.min.js', 'assets/js/forms.js' ),
 			array(),
-			DX_VERSION,
+			dx_asset_version( 'assets/js/forms.min.js', 'assets/js/forms.js' ),
 			array(
 				'in_footer' => true,
 				'strategy'  => 'defer',

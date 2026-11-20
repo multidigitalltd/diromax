@@ -285,6 +285,7 @@ final class Pages {
 				'pending' => $this->app->notifier->pending( $client_case ),
 				'members' => $this->app->members->for_case( $client_case->id ),
 				'recent'  => array_slice( $this->app->audit->for_case( $client_case->id, 8 ), 0, 8 ),
+				'setup'   => $this->setup_steps( $client_case ),
 			),
 			'details'   => array(
 				'stages'   => Stages::names(),
@@ -305,6 +306,8 @@ final class Pages {
 				'payees'     => $this->app->ledger->payees(),
 				'documents'  => $this->documents_by_id( $client_case ),
 				'today'      => $this->app->clock->today(),
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only: opens one request's "mark as paid" form.
+				'settle'     => isset( $_GET['settle'] ) ? absint( $_GET['settle'] ) : 0,
 			),
 			'decisions' => $this->decisions_data( $client_case ),
 			'updates'   => array(
@@ -323,6 +326,53 @@ final class Pages {
 			),
 			default     => array(),
 		};
+	}
+
+	/**
+	 * The steps that make a new case useful to the client, with where each
+	 * one is done. Shown on the overview until all are done.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return array<int, array{label:string, done:bool, url:string, action:string}>
+	 */
+	public function setup_steps( CaseRecord $client_case ): array {
+		$members  = $this->app->members->for_case( $client_case->id );
+		$signed   = array_filter( $members, static fn( $member ): bool => null !== $member->last_seen_at );
+		$add      = static fn( string $tab ): string => add_query_arg( 'add', '1', Admin::case_url( $client_case->id, $tab ) );
+		$has_kind = static fn( string $kind, array $documents ): bool => array() !== array_filter( $documents, static fn( $document ): bool => $kind === $document->kind );
+
+		return array(
+			array(
+				'label'  => __( 'קובעים תקציב לפי סעיפים', 'diromax-portal' ),
+				'done'   => array_sum( $this->app->budget->planned( $client_case->id ) ) > 0,
+				'url'    => Admin::case_url( $client_case->id, 'budget' ),
+				'action' => __( 'לתקציב', 'diromax-portal' ),
+			),
+			array(
+				'label'  => __( 'מוסיפים את הלקוח לתיק', 'diromax-portal' ),
+				'done'   => array() !== $members,
+				'url'    => Admin::case_url( $client_case->id, 'members' ),
+				'action' => __( 'להוספת לקוח', 'diromax-portal' ),
+			),
+			array(
+				'label'  => __( 'הלקוח נכנס לאזור האישי', 'diromax-portal' ),
+				'done'   => array() !== $signed,
+				'url'    => Admin::case_url( $client_case->id, 'members' ),
+				'action' => __( 'לשליחת הזמנה', 'diromax-portal' ),
+			),
+			array(
+				'label'  => __( 'מעלים את ההסכם החתום', 'diromax-portal' ),
+				'done'   => $has_kind( 'agreement', $this->app->documents->for_case( $client_case->id, false ) ),
+				'url'    => $add( 'documents' ),
+				'action' => __( 'להעלאת ההסכם', 'diromax-portal' ),
+			),
+			array(
+				'label'  => __( 'מפרסמים עדכון ראשון ללקוח', 'diromax-portal' ),
+				'done'   => array() !== $this->app->updates->for_case( $client_case->id, false ),
+				'url'    => $add( 'updates' ),
+				'action' => __( 'לעדכון חדש', 'diromax-portal' ),
+			),
+		);
 	}
 
 	/**

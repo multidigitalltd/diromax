@@ -99,7 +99,7 @@ function dx_privacy_script() {
 		'dx-privacy',
 		dx_asset_url( 'assets/js/privacy.min.js', 'assets/js/privacy.js' ),
 		array(),
-		DX_VERSION,
+		dx_asset_version( 'assets/js/privacy.min.js', 'assets/js/privacy.js' ),
 		array(
 			'in_footer' => true,
 			'strategy'  => 'defer',

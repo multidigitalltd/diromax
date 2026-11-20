@@ -88,6 +88,11 @@ final class ReminderService {
 			return new WP_Error( 'dx_not_open', __( 'אפשר לשלוח תזכורת רק על דרישת תשלום פתוחה שגלויה ללקוח.', 'diromax-portal' ) );
 		}
 
+		// Nobody to send it to: say so instead of reporting a reminder that reached no one.
+		if ( array() === $this->app->members->for_case( $client_case->id, true ) ) {
+			return new WP_Error( 'dx_no_recipients', __( 'אין בתיק לקוח שמקבל מיילים, ולכן התזכורת לא נשלחה. מוסיפים לקוח בלשונית "לקוחות", או מפעילים לו מיילים.', 'diromax-portal' ) );
+		}
+
 		if ( ! $this->app->ledger->mark_reminded( $entry_id, $this->app->clock->today(), false ) ) {
 			return new WP_Error( 'dx_reminded_today', __( 'כבר נשלחה היום תזכורת על הדרישה הזו.', 'diromax-portal' ) );
 		}

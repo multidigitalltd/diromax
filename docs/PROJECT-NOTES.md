@@ -32,6 +32,7 @@ bash diromax-portal/tests/e2e/setup.sh /tmp/dx-e2e   # throwaway WordPress for t
 php bin/build-assets.php              # minified CSS/JS for the theme and the plugin
 bash bin/build-zip.sh                 # dist/diromax.zip (theme)
 bash bin/build-plugin-zip.sh          # dist/diromax-portal.zip (plugin, without tests)
+php bin/build-icons.php               # app icons for the management app, from the theme logo (needs GD)
 ```
 
 ## Architecture
@@ -46,6 +47,7 @@ bash bin/build-plugin-zip.sh          # dist/diromax-portal.zip (plugin, without
   - `src/Service` — use cases (ledger, cases, documents, invites, login, notifications, mail).
   - `src/Admin`, `src/Portal` — controllers that build view models; `templates/` only prints them.
   - The management app at `/portal/manage/` (`Portal\ManageController`) renders the same admin templates and view models (`Admin\Pages::*_data()`) in a page of its own (`templates/manage/shell.php`), without the theme or wp-admin. `Admin::use_front()` points every plugin link at the app; form handlers detect the app from the form's referer (`Router::is_manage_url()`) and send the user back there. Same capability checks, same admin-post handlers and nonces. Rewrite rules refresh once per `Router::RULES_VERSION`, since replacing the plugin by upload does not run activation.
+  - Releases: bump `Version` in `diromax-portal/diromax-portal.php` and `DX_PORTAL_VERSION` together (theme: `style.css` and `DX_VERSION`); `ReleaseTest` fails if they differ. Asset URLs carry the version and a content hash (`Support\AssetFile`, theme `dx_asset_version()`), so a changed file is never served from a stale cache. Changes are listed in `CHANGELOG.md`.
   - The key guard: `DocumentStore` remembers the fingerprint (an HMAC made with the key) of the key the first document was stored with; `DocumentService::key_status()` reports a changed key while documents exist, blocks uploads, and staff screens show an error.
   - Admin screens share one shell (`templates/admin/parts/header.php`: brand bar, plugin navigation, page head) and the portal's design tokens; `admin.css` is scoped to `body.dxa-screen`, so the rest of wp-admin is untouched. The dashboard totals come from each active case's cached summary (one query), the activity feed from one audit query scoped to the manager. `Service\DemoCase` builds a sample case through the regular services (no clients, so no email).
 - Custom tables (InnoDB, foreign keys between them): cases, members, ledger, budget, updates, documents, audit, events, mail log, login tokens, decisions, acknowledgements (schema version 2). ADR: cases are a table rather than a post type so ledger rows can reference them with a foreign key and the manager/status filters are indexed columns.

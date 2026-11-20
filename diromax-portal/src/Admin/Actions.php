@@ -59,6 +59,13 @@ final class Actions {
 	);
 
 	/**
+	 * The form was posted from the dashboard: go back there after it.
+	 *
+	 * @var bool
+	 */
+	private bool $to_dashboard = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Plugin $app Object graph.
@@ -91,6 +98,7 @@ final class Actions {
 		$case_id = isset( $_POST['case_id'] ) ? absint( $_POST['case_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified on the next line, bound to this case.
 		check_admin_referer( 'dx_portal_' . $action . '_' . $case_id );
 		self::return_to_sender();
+		$this->to_dashboard = isset( $_POST['dx_back'] ) && 'dashboard' === sanitize_key( wp_unslash( $_POST['dx_back'] ) );
 
 		$actor = get_current_user_id();
 		$input = self::input( $lines, $blocks );
@@ -527,6 +535,10 @@ final class Actions {
 			Flash::set( 'error', $result->get_error_message(), Errors::fields( $result ), $old, $form );
 		} else {
 			Flash::set( 'success', $success );
+		}
+
+		if ( $this->to_dashboard ) {
+			self::redirect( Admin::page_url( Admin::PAGE_DASHBOARD ) );
 		}
 
 		self::redirect( Admin::case_url( $client_case->id, $tab ) . ( '' !== $form && $result instanceof WP_Error ? '#form-' . $form : '' ) );
