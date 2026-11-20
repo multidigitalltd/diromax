@@ -70,6 +70,15 @@ async function dismissPrivacy(page) {
   await admin.waitForLoadState('networkidle');
   check('request saved', (await admin.textContent('.notice-success')).includes('התנועה נשמרה'));
 
+  // Send what is already waiting (the new request, earlier changes) so the reminder goes out on its own.
+  // Otherwise the background batch races the reminder, and an immediate reminder carries whatever is pending.
+  await admin.goto(tab('overview'));
+  if (await admin.locator('.dxa-pending button.button-primary').count()) {
+    await admin.click('.dxa-pending button.button-primary');
+    await admin.waitForLoadState('networkidle');
+  }
+  await admin.goto(tab('finance'));
+
   let before = mailFiles().length;
   const row = admin.locator('tr', { hasText: 'מקדמה לקבלן הגג' });
   await row.locator('button:has-text("שליחת תזכורת עכשיו")').click();
