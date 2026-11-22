@@ -87,6 +87,24 @@ final class SignatureRepository {
 	}
 
 	/**
+	 * Signatures given with an email address, for the privacy export: what
+	 * and when, without the sealed ID number or drawing.
+	 *
+	 * @param string $email Address.
+	 * @return array<int, array<string, string|null>>
+	 */
+	public function by_email( string $email ): array {
+		return (array) $this->db->get_results(
+			$this->db->prepare(
+				'SELECT case_id, subject_type, subject_id, signer_name, signer_email, method, signed_at FROM %i WHERE signer_email = %s ORDER BY signed_at LIMIT 1000',
+				Schema::table( 'signatures' ),
+				$email
+			),
+			ARRAY_A
+		);
+	}
+
+	/**
 	 * Typed row.
 	 *
 	 * @param array<string, string|null> $row Row.

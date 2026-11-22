@@ -134,7 +134,7 @@ async function dismissPrivacy(page) {
   await page.waitForLoadState('networkidle');
   const caseUrl = page.url().split('?')[0];
 
-  check('"waiting for you" banner lists the decision and the agreement', (await page.textContent('.dxp-todo')).includes('החלטה אחת שמחכה לאישורך') && (await page.textContent('.dxp-todo')).includes('אישור קריאה'));
+  check('"waiting for you" banner lists the decision and the agreement to sign', (await page.textContent('.dxp-todo')).includes('החלטה אחת שמחכה לאישורך') && (await page.textContent('.dxp-todo')).includes('לחתימה:'));
   await page.screenshot({ path: out('32-portal-todo.png') });
 
   await page.goto(caseUrl + '?tab=decisions');
@@ -142,9 +142,17 @@ async function dismissPrivacy(page) {
   await page.click('button[value=approve]');
   await page.waitForLoadState('networkidle');
   check('approve without the confirmation box → explained, nothing saved', (await page.textContent('.dxp-notice--error')).includes('צריך לסמן') && await page.isVisible('button[value=approve]'));
+  check('approving shows the signature pad (drawing needs the script)', await page.isVisible('.dxp-dec__form canvas'));
   before = mailFiles().length;
   await page.check('input[name=confirm]');
   await page.fill('textarea[name=note]', 'מאשרים, תודה');
+  const pad = await page.locator('.dxp-dec__form canvas').boundingBox();
+  await page.mouse.move(pad.x + 20, pad.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(pad.x + 120, pad.y + 70, { steps: 8 });
+  await page.mouse.move(pad.x + 220, pad.y + 25, { steps: 8 });
+  await page.mouse.up();
+  check('the drawing becomes a PNG in the form', (await page.inputValue('.dxp-dec__form input[name=sign_image]')).startsWith('data:image/png;base64,'));
   await page.click('button[value=approve]');
   await page.waitForLoadState('networkidle');
   const toManager = mailsSince(before);
@@ -152,11 +160,15 @@ async function dismissPrivacy(page) {
   await page.screenshot({ path: out('33-portal-decision-answered.png'), fullPage: true });
 
   await page.goto(caseUrl + '?tab=documents');
-  await page.check('#dxp-ack-ok');
-  await page.click('.dxp-ack button[type=submit]');
+  await axe(page, 'portal documents with the agreement to sign');
+  await page.click('.dxp-agr .dxp-sign > summary');
+  // The keyboard path: the typed name signs, no drawing.
+  await page.check('.dxp-agr input[name=no_draw]');
+  await page.check('.dxp-agr input[name=confirm]');
+  await page.click('.dxp-agr .dxp-sign__form button[type=submit]');
   await page.waitForLoadState('networkidle');
-  check('agreement confirmed once', (await page.textContent('.dxp-notice--ok')).includes('אישור הקריאה נרשם') && (await page.textContent('.dxp-agr')).includes('אישרת שקראת את ההסכם') && !(await page.$('.dxp-todo')));
-  await axe(page, 'portal documents with confirmation');
+  check('agreement signed with the typed name, banner gone', (await page.textContent('.dxp-notice--ok')).includes('החתימה נשמרה') && (await page.textContent('.dxp-agr')).includes('חתמת על המסמך') && !(await page.$('.dxp-todo')));
+  await axe(page, 'portal documents after signing');
 
   await page.goto(caseUrl);
   const clientCsv = await page.request.get(await page.getAttribute('a:has-text("CSV")', 'href'));

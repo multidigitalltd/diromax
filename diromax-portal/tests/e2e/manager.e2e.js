@@ -106,6 +106,7 @@ async function axe(page, label) {
   await voidBox.locator('button[type=submit]').click();
   await page.waitForLoadState('networkidle');
   check('entry voided, shown struck through with reason', (await page.textContent('.dxa-ledger')).includes('בוטל: הוזן בתיק הלא נכון'));
+  await axe(page, 'finance tab with a voided entry');
   await page.screenshot({ path: out('14-admin-finance.png'), fullPage: true });
 
   // Members tab: add a second client with an invitation.

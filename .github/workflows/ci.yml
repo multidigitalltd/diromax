@@ -152,6 +152,9 @@ jobs:
       - name: Management app on the site (/portal/manage/)
         working-directory: diromax-portal/tests/e2e
         run: node manage.e2e.js "$RUNNER_TEMP/e2e"
+      - name: Release 1.6.0 - due dates, tasks, uploads, report and signatures
+        working-directory: diromax-portal/tests/e2e
+        run: node phase3.e2e.js "$RUNNER_TEMP/e2e"
 
       - name: No PHP warnings or notices
         run: |

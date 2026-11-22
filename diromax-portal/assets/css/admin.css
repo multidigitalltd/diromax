@@ -230,7 +230,7 @@
 .dxa-screen .wrap.dxa .tablenav { margin: 8px 0; }
 .dxa-table td, .dxa-table th { vertical-align: top; }
 .dxa-ledger .dxa-num, .dxa .dxa-num { white-space: nowrap; font-family: var(--a-font-num); font-weight: 800; color: var(--a-ink); }
-.dxa-voided td { opacity: .7; }
+.dxa-voided td, .dxa-voided strong, .dxa-ledger .dxa-voided .dxa-num { color: var(--a-muted); }
 .dxa-voided strong, .dxa-voided .dxa-num { text-decoration: line-through; }
 .dxa-actions { min-width: 140px; }
 .dxa-actions form { margin: 0 0 4px; }

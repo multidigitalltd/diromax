@@ -319,4 +319,24 @@ final class SignatureTest extends PortalTestCase {
 		$this->assertNull( $this->app->store->unseal( $sealed, 'id|signature|case:1|document:3' ), 'Moved to another record, it does not open.' );
 		$this->assertNull( $this->app->store->unseal( 'garbage', 'x' ) );
 	}
+
+	public function test_a_signer_finds_their_signatures_in_the_privacy_export(): void {
+		[ , $case, $owner, $agreement ] = $this->signable();
+		( new SignatureService( $this->app ) )->sign_document(
+			$case,
+			$agreement->id,
+			$owner,
+			array(
+				'name'    => 'משפחת כהן',
+				'no_draw' => '1',
+				'confirm' => '1',
+			)
+		);
+
+		$export = ( new \Diromax\Portal\Service\Retention( $this->app ) )->export( (string) get_userdata( $owner )->user_email );
+		$groups = array_column( $export['data'], 'group_id' );
+
+		$this->assertContains( 'dx-portal-signature', $groups );
+		$this->assertStringNotContainsString( 'image_enc', (string) wp_json_encode( $export ), 'Not the sealed drawing or ID number.' );
+	}
 }
