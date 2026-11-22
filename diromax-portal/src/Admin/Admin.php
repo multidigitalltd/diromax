@@ -218,6 +218,30 @@ final class Admin {
 	}
 
 	/**
+	 * Preload links for the two fonts that paint above the fold (the text and
+	 * the heading), as the theme does on the site. Without them a slow
+	 * connection swaps the fonts late, and the text reflows (layout shift).
+	 *
+	 * @return string HTML, or '' without the theme's font files.
+	 */
+	public static function font_preloads(): string {
+		$dir  = get_template_directory() . '/assets/fonts/';
+		$uri  = get_template_directory_uri() . '/assets/fonts/';
+		$html = '';
+
+		foreach ( array(
+			'heebo-hebrew.woff2'     => 'font/woff2',
+			'anomalia-bold-aaa.woff' => 'font/woff',
+		) as $file => $type ) {
+			if ( is_readable( $dir . $file ) ) {
+				$html .= '<link rel="preload" href="' . esc_url( $uri . $file ) . '" as="font" type="' . esc_attr( $type ) . '" crossorigin>' . "\n";
+			}
+		}
+
+		return $html;
+	}
+
+	/**
 	 * The site's own fonts, from the Diromax theme when it is installed,
 	 * so the admin screens match the portal. Self-hosted, no third party.
 	 *

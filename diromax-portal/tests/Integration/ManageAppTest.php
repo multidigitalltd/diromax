@@ -228,4 +228,17 @@ final class ManageAppTest extends PortalTestCase {
 
 		$this->assertSame( array(), ( new Admin( $this->app ) )->config_notices( $this->client() ) );
 	}
+
+	/**
+	 * Regression (performance budget): the app's own page head did not
+	 * preload the fonts the theme preloads on the site, so on a slow
+	 * connection the text swapped fonts late and reflowed (layout shift).
+	 */
+	public function test_the_app_preloads_the_fonts_that_paint_first(): void {
+		$html = Admin::font_preloads();
+
+		$this->assertSame( 2, substr_count( $html, '<link rel="preload"' ) );
+		$this->assertStringContainsString( 'heebo-hebrew.woff2" as="font" type="font/woff2" crossorigin>', $html );
+		$this->assertStringContainsString( 'anomalia-bold-aaa.woff" as="font" type="font/woff" crossorigin>', $html );
+	}
 }
