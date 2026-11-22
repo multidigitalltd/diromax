@@ -268,6 +268,7 @@ function localDate(offsetDays) {
   // sign-ins are rate limited per address, and earlier journeys used them.
   await mctx.storageState({ path: path.join(S, 'staff-state.json') });
   await cctx.storageState({ path: path.join(S, 'client-state.json') });
+  await actx.storageState({ path: path.join(S, 'admin-state.json') }); // phase5.e2e.js deletes a case as the administrator.
   await browser.close();
   process.exit(results.every(r => r.ok) ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(2); });

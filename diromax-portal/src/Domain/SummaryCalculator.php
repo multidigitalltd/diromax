@@ -23,12 +23,12 @@ final class SummaryCalculator {
 	/**
 	 * Calculate a summary.
 	 *
-	 * @param LedgerEntry[]      $entries Entries of one case. Voided entries are ignored.
-	 * @param array<string, int> $budget  Planned amount per category key, in agorot.
-	 * @param string             $today   Today, Y-m-d, for overdue requests.
+	 * @param LedgerEntry[] $entries Entries of one case. Voided entries are ignored.
+	 * @param BudgetTree    $budget  Sections and sub-sections with their planned amounts.
+	 * @param string        $today   Today, Y-m-d, for overdue requests.
 	 * @return CaseSummary
 	 */
-	public static function calculate( array $entries, array $budget, string $today ): CaseSummary {
+	public static function calculate( array $entries, BudgetTree $budget, string $today ): CaseSummary {
 		$totals      = array(
 			'cost'      => 0,
 			'committed' => 0,
@@ -67,7 +67,7 @@ final class SummaryCalculator {
 		$requests = self::open_requests( $entries, $today );
 
 		return new CaseSummary(
-			budget: array_sum( $budget ),
+			budget: $budget->total(),
 			cost_to_date: $totals['cost'],
 			committed: $totals['committed'],
 			payments: $totals['payments'],
@@ -80,24 +80,25 @@ final class SummaryCalculator {
 			open_request_count: $requests['count'],
 			overdue_count: $requests['overdue'],
 			next_request_id: $requests['next'],
-			categories: $categories,
+			categories: self::roll_up( $categories ),
 		);
 	}
 
 	/**
-	 * Budget lines with zeroed actuals.
+	 * Budget lines with zeroed actuals, in the tree's order.
 	 *
-	 * @param array<string, int> $budget Planned amount per category.
-	 * @return array<string, array{planned:int, paid:int, committed:int}>
+	 * @param BudgetTree $budget Budget.
+	 * @return array<string, array{planned:int, paid:int, committed:int, parent:string}>
 	 */
-	private static function category_lines( array $budget ): array {
+	private static function category_lines( BudgetTree $budget ): array {
 		$lines = array();
 
-		foreach ( $budget as $category => $planned ) {
-			$lines[ $category ] = array(
-				'planned'   => $planned,
+		foreach ( $budget->lines() as $line ) {
+			$lines[ $line['key'] ] = array(
+				'planned'   => $line['planned'],
 				'paid'      => 0,
 				'committed' => 0,
+				'parent'    => $line['parent'],
 			);
 		}
 
@@ -105,20 +106,45 @@ final class SummaryCalculator {
 	}
 
 	/**
-	 * Add one expense to the running totals and its category line.
+	 * Add each sub-section's numbers to its section, so a section shows its
+	 * whole total. Sub-sections keep their own.
 	 *
-	 * @param LedgerEntry                                                $entry      The expense.
-	 * @param array<string, int>                                         $totals     Running totals, by reference.
-	 * @param array<string, array{planned:int, paid:int, committed:int}> $categories Category lines, by reference.
+	 * @param array<string, array{planned:int, paid:int, committed:int, parent:string}> $lines Lines with own amounts.
+	 * @return array<string, array{planned:int, paid:int, committed:int, parent:string}>
+	 */
+	private static function roll_up( array $lines ): array {
+		foreach ( $lines as $line ) {
+			$parent = $line['parent'];
+
+			if ( '' === $parent || ! isset( $lines[ $parent ] ) ) {
+				continue;
+			}
+
+			$lines[ $parent ]['planned']   += $line['planned'];
+			$lines[ $parent ]['paid']      += $line['paid'];
+			$lines[ $parent ]['committed'] += $line['committed'];
+		}
+
+		return $lines;
+	}
+
+	/**
+	 * Add one expense to the running totals and its budget line.
+	 *
+	 * @param LedgerEntry                                                               $entry      The expense.
+	 * @param array<string, int>                                                        $totals     Running totals, by reference.
+	 * @param array<string, array{planned:int, paid:int, committed:int, parent:string}> $categories Budget lines, by reference.
 	 */
 	private static function add_expense( LedgerEntry $entry, array &$totals, array &$categories ): void {
 		$key = '' === $entry->category ? 'other' : $entry->category;
 
 		if ( ! isset( $categories[ $key ] ) ) {
+			// A key that is not in the budget (an old entry): a section of its own.
 			$categories[ $key ] = array(
 				'planned'   => 0,
 				'paid'      => 0,
 				'committed' => 0,
+				'parent'    => '',
 			);
 		}
 

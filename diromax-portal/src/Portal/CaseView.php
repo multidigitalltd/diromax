@@ -12,6 +12,7 @@ namespace Diromax\Portal\Portal;
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Data\DocumentRecord;
 use Diromax\Portal\Data\LedgerRow;
+use Diromax\Portal\Domain\BudgetTree;
 use Diromax\Portal\Domain\CaseStatus;
 use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\EntryStatus;
@@ -77,6 +78,8 @@ final class CaseView {
 	public function build( CaseRecord $client_case, int $viewer, string $tab ): array {
 		$rows       = $this->app->ledger->for_case( $client_case->id, true );
 		$summary    = $this->app->case_service->summary( $client_case, true );
+		$tree       = $this->app->budget->tree( $client_case->id );
+		$budget     = self::categories( $summary, $tree );
 		$signatures = new SignatureService( $this->app );
 		$signer     = $signatures->may_sign( $client_case, $viewer );
 
@@ -93,13 +96,13 @@ final class CaseView {
 			'stages'     => self::stages( $client_case ),
 			'request'    => $this->request( $rows, $summary ),
 			'kpis'       => self::kpis( $summary ),
-			'entries'    => $this->entries( $rows ),
+			'entries'    => $this->entries( $rows, $tree ),
 			'totals'     => array(
 				'cost'      => Money::format( $summary->cost_to_date ),
 				'committed' => Money::format( $summary->committed ),
 				'payments'  => Money::format( $summary->payments ),
 			),
-			'categories' => self::categories( $summary ),
+			'categories' => $budget,
 			'balance'    => $summary->has_project_account ? array(
 				'payments' => Money::format( $summary->payments - $summary->refunds ),
 				'spent'    => Money::format( $summary->payments - $summary->refunds - $summary->project_balance ),
@@ -135,7 +138,7 @@ final class CaseView {
 			'tab'        => in_array( $tab, Router::CASE_TABS, true ) ? $tab : 'finance',
 			'filters'    => array(
 				'types'      => Labels::types(),
-				'categories' => Settings::categories(),
+				'categories' => self::filter_sections( $budget, $rows, $tree ),
 			),
 		);
 	}
@@ -264,9 +267,10 @@ final class CaseView {
 	 * Ledger rows for the table.
 	 *
 	 * @param LedgerRow[] $rows Visible entries.
+	 * @param BudgetTree  $tree The case's budget.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function entries( array $rows ): array {
+	private function entries( array $rows, BudgetTree $tree ): array {
 		$documents = array();
 
 		foreach ( $this->app->documents->for_case( $rows[0]->entry->case_id ?? 0, true ) as $document ) {
@@ -285,8 +289,8 @@ final class CaseView {
 				'tone'        => self::tone( $entry->type, $entry->status ),
 				'description' => $entry->description,
 				'sub'         => self::subline( $row ),
-				'category'    => EntryType::Expense === $entry->type || '' !== $entry->category ? Settings::category_label( $entry->category ) : '—',
-				'category_id' => $entry->category,
+				'category'    => EntryType::Expense === $entry->type || '' !== $entry->category ? Labels::budget_line( $tree, $entry->category ) : '—',
+				'category_id' => self::section_key( $tree, $entry->category ),
 				'funding'     => null === $entry->funding ? '—' : ( Labels::funding()[ $entry->funding->value ] ?? '' ),
 				'amount'      => ( EntryType::Payment === $entry->type ? '+' : '' ) . Money::format( $entry->total ),
 				'vat'         => $entry->vat > 0 ? sprintf( /* translators: 1: net amount, 2: VAT. */ __( 'לפני מע״מ %1$s · מע״מ %2$s', 'diromax-portal' ), Money::format( $entry->net ), Money::format( $entry->vat ) ) : '',
@@ -346,27 +350,119 @@ final class CaseView {
 	}
 
 	/**
-	 * Budget against actuals per category.
+	 * Budget against actuals for the client (spec 19.2): each section with
+	 * its total, and under it the sub-sections, plus a "general" line for
+	 * what is charged to the section itself, so the lines add up. A line
+	 * with no amount and nothing spent is left out.
 	 *
 	 * @param CaseSummary $summary Client summary.
-	 * @return array<int, array{label:string, paid:string, planned:string, committed:string, paid_pct:float, committed_pct:float}>
+	 * @param BudgetTree  $tree    The case's budget.
+	 * @return array<int, array{key:string, label:string, paid:string, planned:string, committed:string, paid_pct:float, committed_pct:float, children:array<int, array{key:string, label:string, paid:string, planned:string, committed:string, paid_pct:float, committed_pct:float}>}>
 	 */
-	private static function categories( CaseSummary $summary ): array {
+	private static function categories( CaseSummary $summary, BudgetTree $tree ): array {
 		$list = array();
 
 		foreach ( $summary->categories as $key => $line ) {
-			$base   = max( $line['planned'], $line['paid'] + $line['committed'], 1 );
-			$list[] = array(
-				'label'         => Settings::category_label( (string) $key ),
-				'paid'          => Money::plain( $line['paid'] ),
-				'planned'       => Money::format( $line['planned'] ),
-				'committed'     => $line['committed'] > 0 ? Money::plain( $line['committed'] ) : '',
-				'paid_pct'      => round( $line['paid'] * 100 / $base, 1 ),
-				'committed_pct' => round( ( $line['paid'] + $line['committed'] ) * 100 / $base, 1 ),
-			);
+			$key = (string) $key;
+
+			if ( '' !== $line['parent'] || ! self::shows( $line ) ) {
+				continue;
+			}
+
+			$children = array();
+			$own      = $line;
+
+			foreach ( $summary->categories as $child_key => $child ) {
+				if ( $key !== $child['parent'] ) {
+					continue;
+				}
+
+				$own['planned']   -= $child['planned'];
+				$own['paid']      -= $child['paid'];
+				$own['committed'] -= $child['committed'];
+
+				if ( self::shows( $child ) ) {
+					$children[] = self::budget_row( (string) $child_key, (string) ( $tree->find( (string) $child_key )['label'] ?? $child_key ), $child );
+				}
+			}
+
+			if ( array() !== $children && self::shows( $own ) ) {
+				/* translators: %s: budget section. */
+				$children[] = self::budget_row( $key, sprintf( __( '%s (כללי)', 'diromax-portal' ), Labels::budget_line( $tree, $key ) ), $own );
+			}
+
+			$list[] = self::budget_row( $key, Labels::budget_line( $tree, $key ), $line ) + array( 'children' => $children );
 		}
 
 		return $list;
+	}
+
+	/**
+	 * Does a budget line have anything to show?
+	 *
+	 * @param array{planned:int, paid:int, committed:int, parent:string} $line Line.
+	 * @return bool
+	 */
+	private static function shows( array $line ): bool {
+		return 0 !== $line['planned'] || 0 !== $line['paid'] || 0 !== $line['committed'];
+	}
+
+	/**
+	 * One budget line, formatted.
+	 *
+	 * @param string                                                     $key   Key.
+	 * @param string                                                     $label Label.
+	 * @param array{planned:int, paid:int, committed:int, parent:string} $line  Numbers.
+	 * @return array{key:string, label:string, paid:string, planned:string, committed:string, paid_pct:float, committed_pct:float}
+	 */
+	private static function budget_row( string $key, string $label, array $line ): array {
+		$base = max( $line['planned'], $line['paid'] + $line['committed'], 1 );
+
+		return array(
+			'key'           => $key,
+			'label'         => $label,
+			'paid'          => Money::plain( $line['paid'] ),
+			'planned'       => Money::format( $line['planned'] ),
+			'committed'     => $line['committed'] > 0 ? Money::plain( $line['committed'] ) : '',
+			'paid_pct'      => round( $line['paid'] * 100 / $base, 1 ),
+			'committed_pct' => round( ( $line['paid'] + $line['committed'] ) * 100 / $base, 1 ),
+		);
+	}
+
+	/**
+	 * The section an entry is filtered under.
+	 *
+	 * @param BudgetTree $tree     The case's budget.
+	 * @param string     $category The entry's key.
+	 * @return string
+	 */
+	private static function section_key( BudgetTree $tree, string $category ): string {
+		$section = $tree->section_of( $category );
+
+		return '' !== $section ? $section : $category;
+	}
+
+	/**
+	 * Sections the client can filter the ledger by: those in the budget
+	 * view, and those of visible entries.
+	 *
+	 * @param array<int, array{key:string, label:string}> $budget Client budget lines.
+	 * @param LedgerRow[]                                 $rows   Visible entries.
+	 * @param BudgetTree                                  $tree   The case's budget.
+	 * @return array<string, string> Key => label.
+	 */
+	private static function filter_sections( array $budget, array $rows, BudgetTree $tree ): array {
+		$sections = array_column( $budget, 'label', 'key' );
+
+		foreach ( $rows as $row ) {
+			if ( '' !== $row->entry->category ) {
+				$key = self::section_key( $tree, $row->entry->category );
+
+				$sections[ $key ] ??= Labels::budget_line( $tree, $key );
+			}
+		}
+
+		return $sections;
 	}
 
 	/**

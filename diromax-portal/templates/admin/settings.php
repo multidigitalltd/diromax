@@ -44,10 +44,10 @@ $header   = array(
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="dxa-categories"><?php esc_html_e( 'סעיפי תקציב', 'diromax-portal' ); ?></label></th>
+				<th scope="row"><label for="dxa-categories"><?php esc_html_e( 'תקציב ברירת מחדל לתיק חדש', 'diromax-portal' ); ?></label></th>
 				<td>
-					<textarea id="dxa-categories" name="settings[categories]" rows="12" class="large-text code" dir="rtl"><?php echo esc_textarea( (string) $view['categories'] ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'סעיף בכל שורה: מפתח באנגלית, סימן שווה, שם בעברית. לא משנים מפתח של סעיף שכבר בשימוש.', 'diromax-portal' ); ?></p>
+					<textarea id="dxa-categories" name="settings[categories]" rows="20" class="large-text" dir="rtl" aria-describedby="dxa-categories-help"><?php echo esc_textarea( (string) $view['categories'] ); ?></textarea>
+					<p class="description" id="dxa-categories-help"><?php esc_html_e( 'סעיף בכל שורה. סעיף משנה: שורה שמתחילה במקף (-), מתחת לסעיף שלו. כל תיק חדש מתחיל מהרשימה הזו, ובתוך התיק אפשר לשנות אותה בחופשיות. שינוי כאן לא משנה תיקים קיימים.', 'diromax-portal' ); ?></p>
 				</td>
 			</tr>
 		</table>

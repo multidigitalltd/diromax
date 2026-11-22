@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Tests\Unit;
 
+use Diromax\Portal\Domain\BudgetTree;
 use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
 use Diromax\Portal\Domain\Funding;
@@ -17,13 +18,14 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * @covers \Diromax\Portal\Domain\SummaryCalculator
+ * @covers \Diromax\Portal\Domain\BudgetTree
  * @covers \Diromax\Portal\Domain\CaseSummary
  * @covers \Diromax\Portal\Domain\LedgerEntry
  */
 final class SummaryCalculatorTest extends TestCase {
 
 	public function test_spec_example_matches_to_the_agora(): void {
-		$summary = SummaryCalculator::calculate( LedgerFixtures::spec_example(), LedgerFixtures::spec_budget(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( LedgerFixtures::spec_example(), BudgetTree::flat( LedgerFixtures::spec_budget() ), '2026-11-18' );
 
 		$this->assertSame( 48000000, $summary->budget );
 		$this->assertSame( 7880000, $summary->cost_to_date );
@@ -42,13 +44,14 @@ final class SummaryCalculatorTest extends TestCase {
 	}
 
 	public function test_category_lines_split_paid_and_committed(): void {
-		$summary = SummaryCalculator::calculate( LedgerFixtures::spec_example(), LedgerFixtures::spec_budget(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( LedgerFixtures::spec_example(), BudgetTree::flat( LedgerFixtures::spec_budget() ), '2026-11-18' );
 
 		$this->assertSame(
 			array(
 				'planned'   => 5500000,
 				'paid'      => 3800000,
 				'committed' => 0,
+				'parent'    => '',
 			),
 			$summary->categories['architecture']
 		);
@@ -77,7 +80,7 @@ final class SummaryCalculatorTest extends TestCase {
 			)
 		);
 
-		$summary = SummaryCalculator::calculate( $entries, LedgerFixtures::spec_budget(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( $entries, BudgetTree::flat( LedgerFixtures::spec_budget() ), '2026-11-18' );
 
 		$this->assertSame( 7880000, $summary->cost_to_date );
 		$this->assertSame( 970000, $summary->project_balance );
@@ -96,7 +99,7 @@ final class SummaryCalculatorTest extends TestCase {
 			),
 		);
 
-		$summary = SummaryCalculator::calculate( $entries, array(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( $entries, new BudgetTree( array() ), '2026-11-18' );
 
 		$this->assertFalse( $summary->has_project_account );
 		$this->assertSame( 0, $summary->project_balance );
@@ -130,7 +133,7 @@ final class SummaryCalculatorTest extends TestCase {
 			),
 		);
 
-		$summary = SummaryCalculator::calculate( $entries, array(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( $entries, new BudgetTree( array() ), '2026-11-18' );
 
 		$this->assertSame( 70000, $summary->project_balance );
 		$this->assertSame( 30000, $summary->refunds );
@@ -138,7 +141,7 @@ final class SummaryCalculatorTest extends TestCase {
 	}
 
 	public function test_expense_without_category_goes_to_other(): void {
-		$summary = SummaryCalculator::calculate( array( LedgerFixtures::entry( array( 'category' => '' ) ) ), array(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( array( LedgerFixtures::entry( array( 'category' => '' ) ) ), new BudgetTree( array() ), '2026-11-18' );
 
 		$this->assertSame( 100, $summary->categories['other']['paid'] );
 	}
@@ -171,7 +174,7 @@ final class SummaryCalculatorTest extends TestCase {
 			),
 		);
 
-		$summary = SummaryCalculator::calculate( $entries, array(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( $entries, new BudgetTree( array() ), '2026-11-18' );
 
 		$this->assertSame( 2, $summary->open_request_count );
 		$this->assertSame( 1, $summary->overdue_count );
@@ -199,14 +202,14 @@ final class SummaryCalculatorTest extends TestCase {
 			),
 		);
 
-		$summary = SummaryCalculator::calculate( $entries, array(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( $entries, new BudgetTree( array() ), '2026-11-18' );
 
 		$this->assertSame( 2, $summary->next_request_id );
 		$this->assertSame( 0, $summary->overdue_count );
 	}
 
 	public function test_empty_case(): void {
-		$summary = SummaryCalculator::calculate( array(), array(), '2026-11-18' );
+		$summary = SummaryCalculator::calculate( array(), new BudgetTree( array() ), '2026-11-18' );
 
 		$this->assertSame( 0, $summary->forecast() );
 		$this->assertNull( $summary->next_request_id );
@@ -214,10 +217,107 @@ final class SummaryCalculatorTest extends TestCase {
 	}
 
 	public function test_to_array_exposes_every_field(): void {
-		$data = SummaryCalculator::calculate( LedgerFixtures::spec_example(), LedgerFixtures::spec_budget(), '2026-11-18' )->to_array();
+		$data = SummaryCalculator::calculate( LedgerFixtures::spec_example(), BudgetTree::flat( LedgerFixtures::spec_budget() ), '2026-11-18' )->to_array();
 
 		$this->assertSame( 7880000, $data['cost_to_date'] );
 		$this->assertArrayHasKey( 'categories', $data );
 		$this->assertCount( 14, $data );
+	}
+
+	public function test_sub_sections_roll_up_into_their_section(): void {
+		$budget  = new BudgetTree(
+			array(
+				array(
+					'key'     => 'consultants',
+					'parent'  => '',
+					'label'   => 'Consultants',
+					'planned' => 1000,
+				),
+				array(
+					'key'     => 'structure',
+					'parent'  => 'consultants',
+					'label'   => 'Structure',
+					'planned' => 5000,
+				),
+				array(
+					'key'     => 'survey',
+					'parent'  => 'consultants',
+					'label'   => 'Survey',
+					'planned' => 2000,
+				),
+				array(
+					'key'     => 'fees',
+					'parent'  => '',
+					'label'   => 'Fees',
+					'planned' => 3000,
+				),
+			)
+		);
+		$entries = array(
+			LedgerFixtures::entry(
+				array(
+					'id'       => 1,
+					'category' => 'structure',
+					'total'    => 4000,
+				)
+			),
+			LedgerFixtures::entry(
+				array(
+					'id'       => 2,
+					'category' => 'consultants',
+					'total'    => 300,
+				)
+			),
+			LedgerFixtures::entry(
+				array(
+					'id'       => 3,
+					'category' => 'survey',
+					'total'    => 500,
+					'status'   => EntryStatus::Committed,
+				)
+			),
+			LedgerFixtures::entry(
+				array(
+					'id'       => 4,
+					'category' => 'survey',
+					'total'    => 999,
+					'voided'   => true,
+				)
+			),
+		);
+
+		$summary = SummaryCalculator::calculate( $entries, $budget, '2026-11-18' );
+
+		$this->assertSame( 11000, $summary->budget, 'Own amounts are counted once.' );
+		$this->assertSame( array( 'consultants', 'structure', 'survey', 'fees' ), array_keys( $summary->categories ) );
+		$this->assertSame(
+			array(
+				'planned'   => 8000,
+				'paid'      => 4300,
+				'committed' => 500,
+				'parent'    => '',
+			),
+			$summary->categories['consultants'],
+			'The section adds its sub-sections to its own line.'
+		);
+		$this->assertSame(
+			array(
+				'planned'   => 5000,
+				'paid'      => 4000,
+				'committed' => 0,
+				'parent'    => 'consultants',
+			),
+			$summary->categories['structure']
+		);
+		$this->assertSame(
+			array(
+				'planned'   => 2000,
+				'paid'      => 0,
+				'committed' => 500,
+				'parent'    => 'consultants',
+			),
+			$summary->categories['survey']
+		);
+		$this->assertSame( 4300, $summary->cost_to_date );
 	}
 }

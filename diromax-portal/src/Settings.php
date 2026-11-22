@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal;
 
+use Diromax\Portal\Domain\BudgetTree;
 use Diromax\Portal\Domain\Text;
 
 defined( 'ABSPATH' ) || exit;
@@ -19,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * Every read goes through defaults and sanitize(), so a hand-edited option can
  * never feed an unexpected type or value to the rest of the plugin.
  *
- * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int, morning_summary:bool}
+ * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, subcategories:array<string, array<string, string>>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int, morning_summary:bool}
  */
 final class Settings {
 
@@ -44,6 +45,61 @@ final class Settings {
 	 */
 	public static function categories(): array {
 		return self::all()['categories'];
+	}
+
+	/**
+	 * The default budget every new case starts from: sections and their
+	 * sub-sections, with no amounts (spec 19.2).
+	 *
+	 * @return BudgetTree
+	 */
+	public static function budget_template(): BudgetTree {
+		$settings = self::all();
+		$lines    = array();
+
+		foreach ( $settings['categories'] as $key => $label ) {
+			$lines[] = array(
+				'key'     => $key,
+				'parent'  => '',
+				'label'   => $label,
+				'planned' => 0,
+			);
+
+			foreach ( $settings['subcategories'][ $key ] ?? array() as $child => $child_label ) {
+				$lines[] = array(
+					'key'     => $child,
+					'parent'  => $key,
+					'label'   => $child_label,
+					'planned' => 0,
+				);
+			}
+		}
+
+		return new BudgetTree( $lines );
+	}
+
+	/**
+	 * A default budget as the two settings that hold it.
+	 *
+	 * @param BudgetTree $tree Default budget.
+	 * @return array{categories:array<string, string>, subcategories:array<string, array<string, string>>}
+	 */
+	public static function template_settings( BudgetTree $tree ): array {
+		$sections = array();
+		$children = array();
+
+		foreach ( $tree->lines() as $line ) {
+			if ( '' === $line['parent'] ) {
+				$sections[ $line['key'] ] = $line['label'];
+			} else {
+				$children[ $line['parent'] ][ $line['key'] ] = $line['label'];
+			}
+		}
+
+		return array(
+			'categories'    => $sections,
+			'subcategories' => $children,
+		);
 	}
 
 	/**
@@ -107,6 +163,25 @@ final class Settings {
 				'management'   => __( 'שכר ניהול דירומקס', 'diromax-portal' ),
 				'reserve'      => __( 'רזרבה לבלתי צפוי', 'diromax-portal' ),
 			),
+			'subcategories'        => array(
+				'consultants' => array(
+					'consultants-structure' => __( 'קונסטרוקציה', 'diromax-portal' ),
+					'consultants-survey'    => __( 'מדידות', 'diromax-portal' ),
+					'consultants-soil'      => __( 'קרקע וביסוס', 'diromax-portal' ),
+					'consultants-plumbing'  => __( 'אינסטלציה וניקוז', 'diromax-portal' ),
+					'consultants-electric'  => __( 'חשמל', 'diromax-portal' ),
+					'consultants-safety'    => __( 'בטיחות ונגישות', 'diromax-portal' ),
+				),
+				'fees'        => array(
+					'fees-permit'      => __( 'אגרות בנייה', 'diromax-portal' ),
+					'fees-betterment'  => __( 'היטל השבחה', 'diromax-portal' ),
+					'fees-development' => __( 'היטלי פיתוח', 'diromax-portal' ),
+				),
+				'legal'       => array(
+					'legal-lawyer'   => __( 'עורך דין', 'diromax-portal' ),
+					'legal-registry' => __( 'רישום בטאבו', 'diromax-portal' ),
+				),
+			),
 		);
 	}
 
@@ -117,7 +192,8 @@ final class Settings {
 	 * @return SettingsShape
 	 */
 	public static function sanitize( array $input ): array {
-		$defaults = self::defaults();
+		$defaults   = self::defaults();
+		$categories = self::categories_from( $input['categories'] ?? null, $defaults['categories'] );
 
 		return array(
 			'vat_rate'             => self::int_in( $input['vat_rate'] ?? null, 0, 5000, $defaults['vat_rate'] ),
@@ -126,7 +202,8 @@ final class Settings {
 			'hide_amounts'         => self::bool_of( $input['hide_amounts'] ?? null, $defaults['hide_amounts'] ),
 			'payment_details'      => mb_substr( Text::block( is_string( $input['payment_details'] ?? null ) ? $input['payment_details'] : '' ), 0, 500 ),
 			'access_months'        => self::int_in( $input['access_months'] ?? null, 1, 120, $defaults['access_months'] ),
-			'categories'           => self::categories_from( $input['categories'] ?? null, $defaults['categories'] ),
+			'categories'           => $categories,
+			'subcategories'        => self::subcategories_from( $input['subcategories'] ?? null, $categories, $defaults['subcategories'] ),
 			'daily_hour'           => self::int_in( $input['daily_hour'] ?? null, 0, 23, $defaults['daily_hour'] ),
 			'remind_before_days'   => self::int_in( $input['remind_before_days'] ?? null, 0, 14, $defaults['remind_before_days'] ),
 			'remind_overdue_every' => self::int_in( $input['remind_overdue_every'] ?? null, 0, 30, $defaults['remind_overdue_every'] ),
@@ -197,5 +274,39 @@ final class Settings {
 		}
 
 		return array() === $clean ? $fallback : array_slice( $clean, 0, 40, true );
+	}
+
+	/**
+	 * Sub-sections of the default budget: only under sections that exist,
+	 * keys unique across the whole default, at most 30 under a section.
+	 *
+	 * @param mixed                                $value      Raw value.
+	 * @param array<string, string>                $categories Sections.
+	 * @param array<string, array<string, string>> $fallback   Defaults.
+	 * @return array<string, array<string, string>>
+	 */
+	private static function subcategories_from( mixed $value, array $categories, array $fallback ): array {
+		$used  = array_fill_keys( array_keys( $categories ), true );
+		$clean = array();
+
+		foreach ( is_array( $value ) ? $value : $fallback as $parent => $children ) {
+			if ( ! isset( $categories[ $parent ] ) || ! is_array( $children ) ) {
+				continue;
+			}
+
+			foreach ( $children as $key => $label ) {
+				$key   = sanitize_key( (string) $key );
+				$label = is_string( $label ) ? mb_substr( Text::line( $label ), 0, 60 ) : '';
+
+				if ( '' === $key || '' === $label || isset( $used[ $key ] ) || 'other' === $key || strlen( $key ) > 40 || count( $clean[ $parent ] ?? array() ) >= BudgetTree::MAX_CHILDREN ) {
+					continue;
+				}
+
+				$used[ $key ]             = true;
+				$clean[ $parent ][ $key ] = $label;
+			}
+		}
+
+		return $clean;
 	}
 }

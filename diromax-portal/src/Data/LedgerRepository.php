@@ -254,6 +254,59 @@ final class LedgerRepository {
 	}
 
 	/**
+	 * Entries per budget key in a case, voided ones included: they still
+	 * show in the ledger with their line.
+	 *
+	 * @param int $case_id Case.
+	 * @return array<string, int>
+	 */
+	public function count_by_category( int $case_id ): array {
+		$rows   = $this->db->get_results(
+			$this->db->prepare( "SELECT category, COUNT(*) AS n FROM %i WHERE case_id = %d AND category <> '' GROUP BY category", Schema::table( 'ledger' ), $case_id ),
+			ARRAY_A
+		);
+		$counts = array();
+
+		foreach ( (array) $rows as $row ) {
+			$counts[ (string) $row['category'] ] = (int) $row['n'];
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Entries of a case with no budget key (payments, refunds, most requests).
+	 *
+	 * @param int $case_id Case.
+	 * @return int
+	 */
+	public function count_without_category( int $case_id ): int {
+		return (int) $this->db->get_var(
+			$this->db->prepare( "SELECT COUNT(*) FROM %i WHERE case_id = %d AND category = ''", Schema::table( 'ledger' ), $case_id )
+		);
+	}
+
+	/**
+	 * Move a case's entries from one budget key to another (a sub-section
+	 * that was removed goes to its section).
+	 *
+	 * @param int    $case_id Case.
+	 * @param string $from    Old key.
+	 * @param string $to      New key.
+	 * @return bool False when the update failed.
+	 */
+	public function recategorize( int $case_id, string $from, string $to ): bool {
+		return false !== $this->db->update(
+			Schema::table( 'ledger' ),
+			array( 'category' => $to ),
+			array(
+				'case_id'  => $case_id,
+				'category' => $from,
+			)
+		);
+	}
+
+	/**
 	 * Columns shared by insert and update.
 	 *
 	 * @param EntryDraft $draft Draft.

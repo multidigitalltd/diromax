@@ -36,7 +36,7 @@ final class EntryValidator {
 	/**
 	 * Constructor.
 	 *
-	 * @param string[] $categories Allowed budget category keys.
+	 * @param string[] $categories Allowed budget keys: the case's sections and sub-sections.
 	 * @param int      $vat_rate   Current VAT rate, basis points.
 	 * @param string   $today      Today, Y-m-d.
 	 */

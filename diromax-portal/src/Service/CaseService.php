@@ -10,12 +10,13 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Service;
 
 use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Data\MemberRecord;
+use Diromax\Portal\Domain\BudgetTree;
 use Diromax\Portal\Domain\CaseFieldsValidator;
 use Diromax\Portal\Domain\CaseStatus;
 use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\MemberRole;
 use Diromax\Portal\Domain\NotifyMode;
-use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Domain\SummaryCalculator;
 use Diromax\Portal\Domain\Text;
@@ -23,6 +24,7 @@ use Diromax\Portal\Plugin;
 use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Settings;
 use Diromax\Portal\Support\Ids;
+use Diromax\Portal\Support\Transaction;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -85,6 +87,9 @@ final class CaseService {
 		if ( 0 !== $lead_id ) {
 			$leads->link( $lead_id, $client_case );
 		}
+
+		// Every case starts from the office's default budget (spec 19.2).
+		$this->app->budget->seed( $client_case->id, Settings::budget_template() );
 
 		$this->app->audit->record(
 			'case.created',
@@ -334,11 +339,13 @@ final class CaseService {
 	}
 
 	/**
-	 * Replace the budget lines.
+	 * Change a case's budget from the budget form (spec 19.2): rename,
+	 * set amounts, add and remove sections and sub-sections, reorder.
+	 * Entries of a removed sub-section move to its section first.
 	 *
-	 * @param CaseRecord            $client_case  Case.
-	 * @param array<string, string> $input Category key => amount as typed.
-	 * @param int                   $actor Acting user.
+	 * @param CaseRecord            $client_case Case.
+	 * @param array<string, string> $input       Flat form fields, as BudgetTree::edit() reads them.
+	 * @param int                   $actor       Acting user.
 	 * @return true|WP_Error
 	 */
 	public function save_budget( CaseRecord $client_case, array $input, int $actor ): bool|WP_Error {
@@ -346,33 +353,42 @@ final class CaseService {
 			return Errors::forbidden();
 		}
 
-		$lines  = array();
-		$errors = array();
+		$before = $this->app->budget->tree( $client_case->id );
+		$taken  = array_fill_keys( $before->keys(), true );
+		$result = $before->edit(
+			$input,
+			$this->app->ledger->count_by_category( $client_case->id ),
+			static function () use ( &$taken ): string {
+				do {
+					$key = 'b' . bin2hex( random_bytes( 4 ) );
+				} while ( isset( $taken[ $key ] ) );
 
-		foreach ( array_keys( Settings::categories() ) as $key ) {
-			$raw = trim( $input[ $key ] ?? '' );
+				$taken[ $key ] = true;
 
-			if ( '' === $raw ) {
-				continue;
+				return $key;
 			}
+		);
 
-			$amount = Money::parse( $raw );
-
-			if ( null === $amount || $amount > Money::MAX ) {
-				$errors[ $key ] = 'invalid';
-				continue;
-			}
-
-			$lines[ $key ] = $amount;
+		if ( array() !== $result['errors'] ) {
+			return Errors::invalid( $result['errors'] );
 		}
 
-		if ( $errors ) {
-			return Errors::invalid( $errors );
-		}
+		// Entries of removed sub-sections move to their section, and the lines
+		// are replaced, together or not at all (PR #15 review).
+		$saved = Transaction::run(
+			$this->app->db,
+			function () use ( $client_case, $result ): bool {
+				foreach ( $result['moved'] as $from => $to ) {
+					if ( ! $this->app->ledger->recategorize( $client_case->id, $from, $to ) ) {
+						return false;
+					}
+				}
 
-		$before = $this->app->budget->planned( $client_case->id );
+				return $this->app->budget->replace( $client_case->id, $result['tree'] );
+			}
+		);
 
-		if ( ! $this->app->budget->replace( $client_case->id, $lines ) ) {
+		if ( ! $saved ) {
 			return Errors::storage();
 		}
 
@@ -381,9 +397,11 @@ final class CaseService {
 			$client_case->id,
 			'case',
 			$client_case->id,
-			array(
-				'before' => $before,
-				'after'  => $lines,
+			array_filter(
+				array(
+					'changed' => self::budget_diff( $before, $result['tree'] ),
+					'moved'   => $result['moved'],
+				)
 			),
 			$this->app->clock->mysql()
 		);
@@ -393,25 +411,142 @@ final class CaseService {
 	}
 
 	/**
-	 * Permanently delete a closed case with its files.
+	 * Lines that changed, for the audit log: key => [before, after], each
+	 * "label: agorot" or null when the line did not exist.
 	 *
-	 * @param CaseRecord $client_case  Case.
-	 * @param int        $actor Acting user.
-	 * @return true|WP_Error
+	 * @param BudgetTree $before Old budget.
+	 * @param BudgetTree $after  New budget.
+	 * @return array<string, array{0:string|null, 1:string|null}>
 	 */
-	public function delete( CaseRecord $client_case, int $actor ): bool|WP_Error {
+	private static function budget_diff( BudgetTree $before, BudgetTree $after ): array {
+		$describe = static fn( ?array $line ): ?string => null === $line ? null : $line['label'] . ': ' . $line['planned'];
+		$diff     = array();
+
+		foreach ( array_unique( array_merge( $before->keys(), $after->keys() ) ) as $key ) {
+			$old = $describe( $before->find( $key ) );
+			$new = $describe( $after->find( $key ) );
+
+			if ( $old !== $new ) {
+				$diff[ $key ] = array( $old, $new );
+			}
+		}
+
+		return $diff;
+	}
+
+	/**
+	 * What deleting a case removes, for the confirmation on the case screen.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $actor       Acting user.
+	 * @return array{entries:int, documents:int, photos:int, messages:int, accounts:array<int, array{name:string, email:string}>}
+	 */
+	public function deletion_preview( CaseRecord $client_case, int $actor ): array {
+		return array(
+			'entries'   => array_sum( $this->app->ledger->count_by_category( $client_case->id ) ) + $this->app->ledger->count_without_category( $client_case->id ),
+			'documents' => count( $this->app->documents->stored_names( $client_case->id ) ),
+			'photos'    => $this->app->photos->count_for_case( $client_case->id, false ),
+			'messages'  => $this->app->messages->count_for_case( $client_case->id ),
+			'accounts'  => array_map(
+				static fn( MemberRecord $member ): array => array(
+					'name'  => $member->name,
+					'email' => $member->email,
+				),
+				$this->clients_only_here( $client_case, $actor )
+			),
+		);
+	}
+
+	/**
+	 * Permanently delete a case, open or closed (spec 19.1): its rows, its
+	 * encrypted files, and the accounts of clients who have no other case.
+	 * Staff accounts are never deleted. The audit log keeps who deleted
+	 * which case number, and when.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $actor       Acting user.
+	 * @return int|WP_Error Client accounts deleted.
+	 */
+	public function delete( CaseRecord $client_case, int $actor ): int|WP_Error {
 		if ( ! $this->app->policy->can_delete_case( $actor, $client_case ) ) {
 			return Errors::forbidden();
 		}
+
+		// Read before the rows go: membership is what makes an account the case's own.
+		$accounts = $this->clients_only_here( $client_case, $actor );
 
 		foreach ( array_merge( $this->app->documents->stored_names( $client_case->id ), $this->app->photos->stored_names( $client_case->id ) ) as $name ) {
 			$this->app->store->delete( $name );
 		}
 
-		$this->app->cases->delete( $client_case->id );
-		$this->app->audit->record( 'case.deleted', null, 'case', $client_case->id, array( 'number' => $client_case->number ), $this->app->clock->mysql() );
+		if ( null !== $client_case->lead_id ) {
+			( new LeadLink( $this->app ) )->unlink( $client_case->lead_id, $client_case->id );
+		}
 
-		return true;
+		$this->app->cases->delete( $client_case->id );
+		$deleted = $this->delete_accounts( $accounts );
+
+		$this->app->audit->record(
+			'case.deleted',
+			null,
+			'case',
+			$client_case->id,
+			array(
+				'number'   => $client_case->number,
+				'status'   => $client_case->status->value,
+				'accounts' => $deleted,
+			),
+			$this->app->clock->mysql()
+		);
+
+		return $deleted;
+	}
+
+	/**
+	 * Client accounts that belong to this case and nothing else: portal
+	 * clients only, in no other case, never the person deleting.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $actor       Acting user.
+	 * @return MemberRecord[]
+	 */
+	private function clients_only_here( CaseRecord $client_case, int $actor ): array {
+		return array_values(
+			array_filter(
+				$this->app->members->for_case( $client_case->id ),
+				fn( MemberRecord $member ): bool => $member->user_id !== $actor
+					&& ! is_super_admin( $member->user_id )
+					&& $this->app->policy->is_client_only( $member->user_id )
+					&& 1 === $this->app->members->case_count( $member->user_id )
+			)
+		);
+	}
+
+	/**
+	 * Delete client accounts left without a case. Each is checked again,
+	 * now that the case is gone.
+	 *
+	 * @param MemberRecord[] $accounts Candidates.
+	 * @return int Deleted.
+	 */
+	private function delete_accounts( array $accounts ): int {
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+
+		$deleted = 0;
+
+		foreach ( $accounts as $member ) {
+			if ( 0 !== $this->app->members->case_count( $member->user_id ) || ! $this->app->policy->is_client_only( $member->user_id ) ) {
+				continue;
+			}
+
+			$this->app->mail_log->anonymize_user( $member->user_id );
+
+			if ( wp_delete_user( $member->user_id ) ) {
+				++$deleted;
+			}
+		}
+
+		return $deleted;
 	}
 
 	/**
@@ -427,7 +562,7 @@ final class CaseService {
 			$this->app->ledger->for_case( $client_case->id, $visible_only )
 		);
 
-		return SummaryCalculator::calculate( $entries, $this->app->budget->planned( $client_case->id ), $this->app->clock->today() );
+		return SummaryCalculator::calculate( $entries, $this->app->budget->tree( $client_case->id ), $this->app->clock->today() );
 	}
 
 	/**

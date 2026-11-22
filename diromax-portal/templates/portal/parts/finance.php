@@ -110,25 +110,49 @@ $entries = $view['entries'];
 
 	<div class="dxp-split">
 		<?php if ( array() !== $view['categories'] ) : ?>
+			<?php
+			/**
+			 * One budget line: name, paid of planned, the bar.
+			 *
+			 * @param array{label:string, paid:string, planned:string, committed:string, paid_pct:float, committed_pct:float} $line Line.
+			 * @param string $tag b for a line on its own, span inside a summary.
+			 */
+			$dx_bva_line = static function ( array $line, string $tag ): void {
+				?>
+			<span class="dxp-bva__row">
+				<?php echo 'b' === $tag ? '<b>' : '<span class="dxp-bva__name">'; ?><?php echo esc_html( (string) $line['label'] ); ?><?php echo 'b' === $tag ? '</b>' : '</span>'; ?>
+				<span>
+					<?php
+					/* translators: 1: paid, 2: planned. */
+					echo esc_html( sprintf( __( '%1$s מתוך %2$s', 'diromax-portal' ), $line['paid'], $line['planned'] ) );
+					if ( '' !== $line['committed'] ) {
+						/* translators: %s: committed amount. */
+						echo esc_html( sprintf( __( ' · התחייבות %s', 'diromax-portal' ), $line['committed'] ) );
+					}
+					?>
+				</span>
+			</span>
+			<span class="dxp-bar" aria-hidden="true"><i class="dxp-bar__comm" style="width:<?php echo esc_attr( (string) $line['committed_pct'] ); ?>%"></i><i class="dxp-bar__paid" style="width:<?php echo esc_attr( (string) $line['paid_pct'] ); ?>%"></i></span>
+				<?php
+			};
+	?>
 		<div>
 			<h2><?php esc_html_e( 'תקציב מול ביצוע', 'diromax-portal' ); ?></h2>
 			<ul class="dxp-bva">
 				<?php foreach ( $view['categories'] as $line ) : ?>
 					<li>
-						<div class="dxp-bva__row">
-							<b><?php echo esc_html( (string) $line['label'] ); ?></b>
-							<span>
-								<?php
-								/* translators: 1: paid, 2: planned. */
-								echo esc_html( sprintf( __( '%1$s מתוך %2$s', 'diromax-portal' ), $line['paid'], $line['planned'] ) );
-								if ( '' !== $line['committed'] ) {
-									/* translators: %s: committed amount. */
-									echo esc_html( sprintf( __( ' · התחייבות %s', 'diromax-portal' ), $line['committed'] ) );
-								}
-								?>
-							</span>
-						</div>
-						<div class="dxp-bar" aria-hidden="true"><i class="dxp-bar__comm" style="width:<?php echo esc_attr( (string) $line['committed_pct'] ); ?>%"></i><i class="dxp-bar__paid" style="width:<?php echo esc_attr( (string) $line['paid_pct'] ); ?>%"></i></div>
+						<?php if ( array() === $line['children'] ) : ?>
+							<?php $dx_bva_line( $line, 'b' ); ?>
+						<?php else : ?>
+							<details class="dxp-bva__more">
+								<summary><?php $dx_bva_line( $line, 'span' ); ?></summary>
+								<ul class="dxp-bva dxp-bva--sub">
+									<?php foreach ( $line['children'] as $child ) : ?>
+										<li><?php $dx_bva_line( $child, 'span' ); ?></li>
+									<?php endforeach; ?>
+								</ul>
+							</details>
+						<?php endif; ?>
 					</li>
 				<?php endforeach; ?>
 			</ul>

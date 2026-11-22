@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Domain\BudgetTemplate;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\CsvExport;
@@ -354,19 +355,53 @@ final class Actions {
 	}
 
 	/**
-	 * Save the budget.
+	 * Save the budget tree (spec 19.2).
 	 *
 	 * @param CaseRecord $client_case  Case.
 	 * @param int        $actor Actor.
 	 */
 	private function save_budget( CaseRecord $client_case, int $actor ): void {
-		$lines = array();
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified in handle().
+		$raw  = isset( $_POST['budget'] ) && is_array( $_POST['budget'] ) ? wp_unslash( $_POST['budget'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized in budget_input().
+		$move = isset( $_POST['move'] ) ? sanitize_text_field( wp_unslash( $_POST['move'] ) ) : '';
+		// phpcs:enable
+		$input = self::budget_input( is_array( $raw ) ? $raw : array(), $move );
 
-		foreach ( array_keys( Settings::categories() ) as $key ) {
-			$lines[ $key ] = isset( $_POST['budget'][ $key ] ) ? sanitize_text_field( wp_unslash( $_POST['budget'][ $key ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in handle().
+		$this->finish( $client_case, 'budget', $this->app->case_service->save_budget( $client_case, $input, $actor ), '' !== $input['move'] ? __( 'הסדר עודכן והתקציב נשמר.', 'diromax-portal' ) : __( 'התקציב נשמר.', 'diromax-portal' ), 'budget', $input );
+	}
+
+	/**
+	 * The budget form as flat fields: "{key}.label", "{key}.planned",
+	 * "{key}.remove", "add.{section}.label", "add.*.label", "move".
+	 *
+	 * @param array<mixed> $raw  $_POST['budget'], unslashed.
+	 * @param string       $move "{key}:up" or "{key}:down" from the arrow buttons.
+	 * @return array<string, string>
+	 */
+	private static function budget_input( array $raw, string $move ): array {
+		$input = array( 'move' => 1 === preg_match( '/^[a-z0-9_-]{1,40}:(up|down)$/', $move ) ? $move : '' );
+
+		foreach ( array( 'lines', 'add' ) as $group ) {
+			$rows = isset( $raw[ $group ] ) && is_array( $raw[ $group ] ) ? $raw[ $group ] : array();
+
+			foreach ( array_slice( $rows, 0, 2000, true ) as $key => $fields ) {
+				$key = '*' === $key ? '*' : sanitize_key( (string) $key );
+
+				if ( '' === $key || ! is_array( $fields ) ) {
+					continue;
+				}
+
+				$prefix = 'add' === $group ? 'add.' . $key : $key;
+
+				foreach ( array( 'label', 'planned', 'remove' ) as $name ) {
+					if ( isset( $fields[ $name ] ) && is_string( $fields[ $name ] ) ) {
+						$input[ $prefix . '.' . $name ] = sanitize_text_field( $fields[ $name ] );
+					}
+				}
+			}
 		}
 
-		$this->finish( $client_case, 'budget', $this->app->case_service->save_budget( $client_case, $lines, $actor ), __( 'התקציב נשמר.', 'diromax-portal' ), 'budget', $lines );
+		return $input;
 	}
 
 	/**
@@ -533,7 +568,7 @@ final class Actions {
 	}
 
 	/**
-	 * Delete a closed case for good. Requires typing the case number.
+	 * Delete a case for good, open or closed. Requires typing the case number.
 	 *
 	 * @param CaseRecord            $client_case  Case.
 	 * @param array<string, string> $input Fields.
@@ -541,16 +576,22 @@ final class Actions {
 	 */
 	private function delete_case( CaseRecord $client_case, array $input, int $actor ): void {
 		if ( $input['confirm'] !== $client_case->number ) {
-			$this->finish( $client_case, 'details', Errors::invalid( array( 'confirm' => 'invalid' ) ), '' );
+			$this->finish( $client_case, 'details', Errors::invalid( array( 'confirm' => 'invalid' ) ), '', 'delete' );
 		}
 
 		$result = $this->app->case_service->delete( $client_case, $actor );
 
 		if ( $result instanceof WP_Error ) {
-			$this->finish( $client_case, 'details', $result, '' );
+			$this->finish( $client_case, 'details', $result, '', 'delete' );
 		}
 
-		Flash::set( 'success', __( 'התיק נמחק לצמיתות, כולל המסמכים.', 'diromax-portal' ) );
+		Flash::set(
+			'success',
+			0 === $result
+				? __( 'התיק נמחק לצמיתות, כולל המסמכים והצילומים.', 'diromax-portal' )
+				/* translators: %d: number of client accounts. */
+				: sprintf( _n( 'התיק נמחק לצמיתות, כולל המסמכים והצילומים, וגם %d חשבון לקוח שלא היה לו תיק אחר.', 'התיק נמחק לצמיתות, כולל המסמכים והצילומים, וגם %d חשבונות לקוח שלא היה להם תיק אחר.', $result, 'diromax-portal' ), $result )
+		);
 		self::redirect( Admin::page_url( Admin::PAGE_CASES ) );
 	}
 
@@ -573,7 +614,6 @@ final class Actions {
 			'hide_amounts'     => isset( $raw['hide_amounts'] ) ? '1' : '',
 			'payment_details'  => sanitize_textarea_field( (string) ( $raw['payment_details'] ?? '' ) ),
 			'access_months'    => sanitize_text_field( (string) ( $raw['access_months'] ?? '' ) ),
-			'categories'       => self::categories_input( (string) ( $raw['categories'] ?? '' ) ),
 			'monthly_summary'  => isset( $raw['monthly_summary'] ) ? '1' : '0',
 			'morning_summary'  => isset( $raw['morning_summary'] ) ? '1' : '0',
 		);
@@ -581,6 +621,9 @@ final class Actions {
 		foreach ( array( 'daily_hour', 'remind_before_days', 'remind_overdue_every', 'remind_overdue_max', 'stale_days' ) as $number ) {
 			$input[ $number ] = sanitize_text_field( (string) ( $raw[ $number ] ?? '' ) );
 		}
+
+		// The default budget: sections, and sub-sections on "- " lines (spec 19.2).
+		$input += Settings::template_settings( BudgetTemplate::parse( sanitize_textarea_field( (string) ( $raw['categories'] ?? '' ) ), Settings::budget_template() ) );
 
 		$before = Settings::all();
 		$after  = Settings::save( $input );
@@ -749,7 +792,7 @@ final class Actions {
 	 * @param string                $form    Form key for field errors.
 	 * @param array<string, string> $old     Submitted values.
 	 */
-	private function finish( CaseRecord $client_case, string $tab, mixed $result, string $success, string $form = '', array $old = array() ): void {
+	private function finish( CaseRecord $client_case, string $tab, mixed $result, string $success, string $form = '', array $old = array() ): never {
 		if ( $result instanceof WP_Error ) {
 			Flash::set( 'error', $result->get_error_message(), Errors::fields( $result ), $old, $form );
 		} else {
@@ -853,27 +896,5 @@ final class Actions {
 		}
 
 		return $files;
-	}
-
-	/**
-	 * Categories from the settings textarea: one "key=Label" per line.
-	 *
-	 * @param string $text Textarea value.
-	 * @return array<string, string>
-	 */
-	private static function categories_input( string $text ): array {
-		$categories = array();
-
-		$lines = preg_split( '/\R/', sanitize_textarea_field( $text ) );
-
-		foreach ( false === $lines ? array() : $lines as $line ) {
-			$parts = array_map( 'trim', explode( '=', $line, 2 ) );
-
-			if ( 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1] ) {
-				$categories[ $parts[0] ] = $parts[1];
-			}
-		}
-
-		return $categories;
 	}
 }

@@ -63,7 +63,7 @@ final class LedgerService {
 			return Errors::forbidden();
 		}
 
-		$draft = $this->validator()->validate( $input );
+		$draft = $this->validator( $client_case )->validate( $input );
 
 		if ( is_array( $draft ) ) {
 			return Errors::invalid( $draft );
@@ -111,7 +111,7 @@ final class LedgerService {
 		}
 
 		$input['type'] = $row->entry->type->value;
-		$draft         = $this->validator()->validate( $input );
+		$draft         = $this->validator( $client_case )->validate( $input );
 
 		if ( is_array( $draft ) ) {
 			return Errors::invalid( $draft );
@@ -203,7 +203,7 @@ final class LedgerService {
 			return Errors::invalid( array( 'type' => 'invalid' ) );
 		}
 
-		$draft = $this->validator()->validate( self::settling_input( $row, $input ) );
+		$draft = $this->validator( $client_case )->validate( self::settling_input( $row, $input ) );
 
 		if ( is_array( $draft ) ) {
 			return Errors::invalid( $draft );
@@ -316,14 +316,14 @@ final class LedgerService {
 	}
 
 	/**
-	 * Validator configured with the current categories, VAT rate and date.
+	 * Validator configured with the case's budget lines (sections and
+	 * sub-sections), the VAT rate and today's date.
 	 *
+	 * @param CaseRecord $client_case Case.
 	 * @return EntryValidator
 	 */
-	private function validator(): EntryValidator {
-		$settings = Settings::all();
-
-		return new EntryValidator( array_keys( $settings['categories'] ), $settings['vat_rate'], $this->app->clock->today() );
+	private function validator( CaseRecord $client_case ): EntryValidator {
+		return new EntryValidator( $this->app->budget->tree( $client_case->id )->keys(), Settings::all()['vat_rate'], $this->app->clock->today() );
 	}
 
 	/**

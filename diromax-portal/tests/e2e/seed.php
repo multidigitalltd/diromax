@@ -20,7 +20,7 @@ update_user_meta( $manager, 'dx_portal_phone', '054-000-0000' );
 
 $case = $app->case_service->create( array( 'title' => 'רח׳ הזית 14, קריית אונו', 'scope' => 'הוספת יחידת דיור על הגג', 'property_type' => 'דירת גג', 'track' => 'מימון מתוך הפרויקט', 'fee_terms' => '10% מהתקציב המאושר (48,000 ₪), ייפרע מהתמורה', 'signed_on' => '2026-07-03' ), $manager );
 
-$app->case_service->save_budget( $case, array( 'architecture' => '55000', 'consultants' => '18000', 'fees' => '42000', 'contractor' => '290000', 'management' => '48000', 'reserve' => '27000' ), $manager );
+$app->case_service->save_budget( $case, array( 'architecture.planned' => '55000', 'consultants.planned' => '18000', 'fees.planned' => '42000', 'contractor.planned' => '290000', 'management.planned' => '48000', 'reserve.planned' => '27000' ), $manager );
 
 $member = $app->case_service->add_member( $case, array( 'email' => 'cohen@example.org', 'name' => 'משפחת כהן', 'role' => 'owner', 'notify' => '1', 'invite' => '' ), $manager );
 

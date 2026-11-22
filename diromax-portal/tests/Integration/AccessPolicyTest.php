@@ -74,19 +74,15 @@ final class AccessPolicyTest extends PortalTestCase {
 		$this->assertFalse( $this->app->policy->is_client_only( $admin ) );
 	}
 
-	public function test_only_closed_cases_can_be_deleted_and_only_by_admin(): void {
+	public function test_any_case_can_be_deleted_but_only_by_an_administrator(): void {
 		$admin   = $this->admin();
 		$manager = $this->manager();
 		$case    = $this->case_for( $manager );
 
-		$this->assertFalse( $this->app->policy->can_delete_case( $admin, $case ) );
-
-		$closed = $this->app->case_service->set_status( $case, 'closed', $manager );
-		$this->assertNotWPError( $closed );
-
-		$this->assertTrue( $this->app->policy->can_delete_case( $admin, $closed ) );
-		$this->assertFalse( $this->app->policy->can_delete_case( $manager, $closed ) );
-		$this->assertFalse( $this->app->policy->can_delete_case( 0, $closed ) );
+		$this->assertTrue( $this->app->policy->can_delete_case( $admin, $case ), 'Open cases too (spec 19.1).' );
+		$this->assertFalse( $this->app->policy->can_delete_case( $manager, $case ), 'Not even the case manager.' );
+		$this->assertFalse( $this->app->policy->can_delete_case( $this->client(), $case ) );
+		$this->assertFalse( $this->app->policy->can_delete_case( 0, $case ) );
 	}
 
 	public function test_client_access_ends_after_the_access_period(): void {

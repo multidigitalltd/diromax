@@ -22,20 +22,20 @@ final readonly class CaseSummary {
 	/**
 	 * Constructor.
 	 *
-	 * @param int                                                        $budget              Approved budget.
-	 * @param int                                                        $cost_to_date        Paid expenses, every funding source.
-	 * @param int                                                        $committed           Committed, unpaid expenses.
-	 * @param int                                                        $payments            Payments received into the project account.
-	 * @param int                                                        $refunds             Refunds paid back to the client.
-	 * @param int                                                        $project_balance     Payments − refunds − expenses paid from the project account.
-	 * @param bool                                                       $has_project_account Any movement through the project account at all.
-	 * @param int                                                        $deferred            Paid expenses to be settled from the proceeds.
-	 * @param int                                                        $partner_funded      Paid expenses carried by a partner.
-	 * @param int                                                        $open_requests       Total of open payment requests.
-	 * @param int                                                        $open_request_count  Number of open payment requests.
-	 * @param int                                                        $overdue_count       Open requests past their due date.
-	 * @param int|null                                                   $next_request_id     Open request with the nearest due date.
-	 * @param array<string, array{planned:int, paid:int, committed:int}> $categories     Budget against actuals per category.
+	 * @param int                                                                       $budget              Approved budget.
+	 * @param int                                                                       $cost_to_date        Paid expenses, every funding source.
+	 * @param int                                                                       $committed           Committed, unpaid expenses.
+	 * @param int                                                                       $payments            Payments received into the project account.
+	 * @param int                                                                       $refunds             Refunds paid back to the client.
+	 * @param int                                                                       $project_balance     Payments − refunds − expenses paid from the project account.
+	 * @param bool                                                                      $has_project_account Any movement through the project account at all.
+	 * @param int                                                                       $deferred            Paid expenses to be settled from the proceeds.
+	 * @param int                                                                       $partner_funded      Paid expenses carried by a partner.
+	 * @param int                                                                       $open_requests       Total of open payment requests.
+	 * @param int                                                                       $open_request_count  Number of open payment requests.
+	 * @param int                                                                       $overdue_count       Open requests past their due date.
+	 * @param int|null                                                                  $next_request_id     Open request with the nearest due date.
+	 * @param array<string, array{planned:int, paid:int, committed:int, parent:string}> $categories Budget against actuals per line, in the tree's order; a section's numbers include its sub-sections.
 	 */
 	public function __construct(
 		public int $budget,

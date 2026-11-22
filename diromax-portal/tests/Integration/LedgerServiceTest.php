@@ -20,12 +20,12 @@ final class LedgerServiceTest extends PortalTestCase {
 		$case    = $this->case_for( $manager );
 
 		$budget = array(
-			'architecture' => '55000',
-			'consultants'  => '18000',
-			'fees'         => '42000',
-			'contractor'   => '290000',
-			'management'   => '48000',
-			'reserve'      => '27000',
+			'architecture.planned' => '55000',
+			'consultants.planned'  => '18000',
+			'fees.planned'         => '42000',
+			'contractor.planned'   => '290000',
+			'management.planned'   => '48000',
+			'reserve.planned'      => '27000',
 		);
 		$this->assertTrue( $this->app->case_service->save_budget( $case, $budget, $manager ) );
 

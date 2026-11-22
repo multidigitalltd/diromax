@@ -65,9 +65,15 @@ if ( array() === $view['photos'] ) {
 			<div class="dxp-pm">
 				<p class="dxp-pm__k"><?php esc_html_e( 'מנהל הפרויקט שלך', 'diromax-portal' ); ?></p>
 				<p class="dxp-pm__n"><?php echo esc_html( (string) $manager['name'] ); ?></p>
+				<?php if ( '' !== $manager['tel'] ) : ?>
+					<p class="dxp-pm__tel">
+						<span class="dxp-pm__tel-k"><?php echo esc_html( $manager['office'] ? __( 'טלפון המשרד:', 'diromax-portal' ) : __( 'טלפון:', 'diromax-portal' ) ); ?></span>
+						<a href="<?php echo esc_url( 'tel:' . $manager['tel'] ); ?>" dir="ltr"><?php echo esc_html( (string) $manager['phone'] ); ?></a>
+					</p>
+				<?php endif; ?>
 				<p class="dxp-pm__btns">
 					<?php if ( '' !== $manager['tel'] ) : ?>
-						<a class="dxp-btn" href="<?php echo esc_url( 'tel:' . $manager['tel'] ); ?>"><?php esc_html_e( 'שיחה', 'diromax-portal' ); ?><span class="dxp-sr"> <?php echo esc_html( (string) $manager['phone'] ); ?></span></a>
+						<a class="dxp-btn" href="<?php echo esc_url( 'tel:' . $manager['tel'] ); ?>"><?php esc_html_e( 'שיחה', 'diromax-portal' ); ?><span class="dxp-sr"> <?php echo esc_html( (string) $manager['name'] ); ?></span></a>
 					<?php endif; ?>
 					<?php if ( '' !== $manager['whatsapp'] ) : ?>
 						<a class="dxp-btn" href="<?php echo esc_url( (string) $manager['whatsapp'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'וואטסאפ', 'diromax-portal' ); ?><span class="dxp-sr"> <?php esc_html_e( '(נפתח בחלון חדש)', 'diromax-portal' ); ?></span></a>

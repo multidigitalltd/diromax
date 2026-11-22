@@ -93,6 +93,17 @@ final class LeadLink {
 	}
 
 	/**
+	 * Forget the case a lead was opened into (the case was deleted), so a
+	 * new case can be opened from it.
+	 *
+	 * @param int $lead_id Lead post.
+	 * @param int $case_id The deleted case.
+	 */
+	public function unlink( int $lead_id, int $case_id ): void {
+		delete_post_meta( $lead_id, self::META, (string) $case_id );
+	}
+
+	/**
 	 * Row actions on the leads list: open a case, or go to the case opened.
 	 *
 	 * @param array<string, string> $actions Actions.

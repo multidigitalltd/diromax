@@ -266,6 +266,23 @@
 .dxa-amount { direction: ltr; text-align: end; max-width: 180px; }
 .dxa-entry [data-dxa-for][hidden] { display: none; }
 
+/* Budget tree (spec 19.2) */
+.dxa-budget__top { margin: 0 0 12px; }
+.dxa-budget th[scope="row"] { min-width: 260px; }
+.dxa-budget .dxa-budget__name { width: 100%; max-width: 340px; }
+.dxa-budget__head th, .dxa-budget__head td { border-top: 2px solid var(--a-line); background: var(--a-white); }
+.dxa-budget__head .dxa-budget__name { font-weight: 700; }
+.dxa-budget__child th { padding-inline-start: 28px; }
+.dxa-budget__child .dxa-budget__name, .dxa-budget__add .dxa-budget__name { max-width: 300px; }
+.dxa-budget__branch { display: inline-block; width: 18px; color: var(--a-muted); }
+.dxa-budget__add th, .dxa-budget__add td { padding-top: 4px; padding-bottom: 12px; }
+.dxa-budget__add th { padding-inline-start: 28px; }
+.dxa-budget__new th, .dxa-budget__new td { border-top: 2px dashed var(--a-line); }
+.dxa-budget__total { display: block; margin-top: 4px; color: var(--a-muted); }
+.dxa-budget__moves { display: inline-flex; gap: 4px; }
+.dxa-budget__moves .button { min-width: 32px; min-height: 32px; }
+.dxa-budget tfoot th, .dxa-budget tfoot td { border-top: 2px solid var(--a-ink); }
+
 .dxa-screen .wrap.dxa form > h2, .dxa-screen .wrap.dxa .dxa-panel > h2, .dxa-screen .wrap.dxa section > h2 { font-size: 18px; font-weight: 800; }
 .dxa-screen .wrap.dxa .form-table { margin: 0 0 24px; background: var(--a-white); border: 1px solid var(--a-line); }
 .dxa-screen .wrap.dxa .form-table th { padding: 16px 20px; color: var(--a-ink); }
@@ -307,6 +324,8 @@
 .dxa-seg__in--skipped:checked + label { background: var(--a-muted); color: var(--a-white); }
 .dxa-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .dxa-danger { margin-top: 32px; padding: 4px 20px 16px; background: var(--a-white); border: 2px solid var(--a-red); }
+.dxa-purge { list-style: disc; margin: 0 0 12px; padding-inline-start: 20px; }
+.dxa-purge ul { list-style: circle; margin: 6px 0 0; padding-inline-start: 20px; }
 
 .dxa-badge--pending { background: var(--a-orange); border-color: var(--a-orange); color: var(--a-on-orange); }
 .dxa-badge--approved { background: var(--a-teal-deep); border-color: var(--a-teal-deep); color: var(--a-white); }

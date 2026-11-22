@@ -22,17 +22,19 @@ final class Contact {
 	/**
 	 * A manager's card: name, email, phone and WhatsApp link.
 	 *
-	 * Falls back to the office phone from the theme's contact settings.
+	 * Falls back to the office phone from the theme's contact settings;
+	 * "office" says so, for the label next to the number.
 	 *
 	 * @param int $user_id Manager.
-	 * @return array{name:string, email:string, phone:string, tel:string, whatsapp:string}
+	 * @return array{name:string, email:string, phone:string, tel:string, whatsapp:string, office:bool}
 	 */
 	public static function manager( int $user_id ): array {
-		$user  = get_userdata( $user_id );
-		$phone = $user ? (string) get_user_meta( $user_id, self::PHONE_META, true ) : '';
+		$user   = get_userdata( $user_id );
+		$phone  = $user ? trim( (string) get_user_meta( $user_id, self::PHONE_META, true ) ) : '';
+		$office = '' === $phone;
 
-		if ( '' === $phone ) {
-			$phone = (string) get_theme_mod( 'dx_phone', '' );
+		if ( $office ) {
+			$phone = trim( (string) get_theme_mod( 'dx_phone', '' ) );
 		}
 
 		$digits = (string) preg_replace( '/\D/', '', $phone );
@@ -43,6 +45,7 @@ final class Contact {
 			'phone'    => $phone,
 			'tel'      => $digits,
 			'whatsapp' => '' === $digits ? '' : 'https://wa.me/' . ( str_starts_with( $digits, '0' ) ? '972' . substr( $digits, 1 ) : $digits ),
+			'office'   => $office && '' !== $phone,
 		);
 	}
 

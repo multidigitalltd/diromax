@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Data;
 
+use Diromax\Portal\Settings;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -21,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '6';
+	public const VERSION = '7';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
@@ -54,10 +56,20 @@ final class Schema {
 	 * Create or update every table, then the constraints.
 	 */
 	public static function install(): void {
+		global $wpdb;
+
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		$from = (int) get_option( self::OPTION, '0' );
 
 		dbDelta( self::definitions() );
 		self::add_foreign_keys();
+
+		if ( $from > 0 && $from < 7 ) {
+			// 1.9.0: every case gets its own budget tree, from the sections it used (spec 19.2).
+			( new BudgetRepository( $wpdb ) )->adopt_sections( Settings::categories() );
+		}
+
 		update_option( self::OPTION, self::VERSION, false );
 	}
 
@@ -188,6 +200,8 @@ final class Schema {
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   case_id bigint(20) unsigned NOT NULL,
   category varchar(40) NOT NULL,
+  parent varchar(40) NOT NULL DEFAULT '',
+  label varchar(80) NOT NULL DEFAULT '',
   planned bigint(20) NOT NULL DEFAULT 0,
   note varchar(200) NOT NULL DEFAULT '',
   sort smallint(5) unsigned NOT NULL DEFAULT 0,
