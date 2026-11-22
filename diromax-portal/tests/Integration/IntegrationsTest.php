@@ -129,6 +129,29 @@ final class IntegrationsTest extends PortalTestCase {
 		$this->assertStringNotContainsString( 'secret-for-tests', self::raw() );
 	}
 
+	public function test_an_unreadable_turnstile_secret_keeps_the_forms_closed(): void {
+		Integrations::save( array( 'turnstile_site' => 'site-key-for-tests-0000' ) );
+		$values                     = get_option( Integrations::OPTION );
+		$values['turnstile_secret'] = $this->app->store->seal( 'another-secret-0000', 'integration|token' );
+		update_option( Integrations::OPTION, $values, false );
+
+		$calls = 0;
+		$count = static function ( $preempt ) use ( &$calls ) {
+			++$calls;
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $count );
+
+		$this->assertTrue( Integrations::unreadable( 'turnstile_secret' ) );
+		$this->assertTrue( Turnstile::enabled(), 'Still protected: the form asks for the widget.' );
+		$this->assertFalse( Turnstile::verify( 'a-token' ), 'And refuses every answer.' );
+		$this->assertTrue( dx_turnstile_enabled(), 'The lead form too.' );
+		$this->assertFalse( dx_turnstile_verify( 'a-token', 'dx_lead' ) );
+		$this->assertSame( 0, $calls, 'Cloudflare is not asked without a secret.' );
+
+		remove_filter( 'pre_http_request', $count );
+	}
+
 	public function test_a_secret_sealed_for_another_field_or_key_does_not_open(): void {
 		update_option(
 			Integrations::OPTION,

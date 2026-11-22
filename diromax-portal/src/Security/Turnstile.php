@@ -36,7 +36,8 @@ final class Turnstile {
 	 * @return bool
 	 */
 	public static function enabled(): bool {
-		return '' !== self::site_key() && '' !== self::secret();
+		// A saved secret the site key cannot open still means "protected": fail closed (PR #14 review).
+		return '' !== self::site_key() && ( '' !== self::secret() || Integrations::unreadable( 'turnstile_secret' ) );
 	}
 
 	/**
@@ -56,6 +57,11 @@ final class Turnstile {
 	 */
 	public static function verify( string $token ): bool {
 		if ( '' === $token || strlen( $token ) > 2048 ) {
+			return false;
+		}
+
+		if ( '' === self::secret() ) {
+			Logger::error( 'turnstile.secret_unreadable' );
 			return false;
 		}
 

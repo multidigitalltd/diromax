@@ -17,12 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Are both keys configured?
+ * Is the form protected? Both keys configured, or a saved secret that cannot
+ * be opened (then every submission is refused rather than let through).
  *
  * @return bool
  */
 function dx_turnstile_enabled() {
-	return '' !== dx_turnstile_site_key() && '' !== dx_turnstile_secret();
+	// The portal plugin says when a saved secret cannot be opened: the form stays protected and refuses (fail closed).
+	return '' !== dx_turnstile_site_key() && ( '' !== dx_turnstile_secret() || (bool) apply_filters( 'dx_turnstile_required', false ) );
 }
 
 /**
@@ -56,6 +58,11 @@ function dx_turnstile_secret() {
  */
 function dx_turnstile_verify( $token, $action ) {
 	if ( '' === $token || strlen( $token ) > 2048 ) {
+		return false;
+	}
+
+	if ( '' === dx_turnstile_secret() ) {
+		error_log( 'diromax: turnstile secret missing or unreadable' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operational log line, no personal data.
 		return false;
 	}
 

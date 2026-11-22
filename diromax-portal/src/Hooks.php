@@ -66,6 +66,7 @@ final class Hooks {
 		// The theme's lead form uses the same Turnstile keys, set on the portal's settings screen.
 		add_filter( 'dx_turnstile_site_key', static fn(): string => Integrations::get( 'turnstile_site' ) );
 		add_filter( 'dx_turnstile_secret', static fn(): string => Integrations::get( 'turnstile_secret' ) );
+		add_filter( 'dx_turnstile_required', static fn(): bool => Integrations::unreadable( 'turnstile_secret' ) );
 		add_filter( 'dx_nav_links', array( self::class, 'nav_link' ), 10, 2 );
 		add_filter(
 			'attach_session_information',
