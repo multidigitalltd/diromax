@@ -123,6 +123,24 @@ final class BudgetTreeTest extends PortalTestCase {
 		$this->assertStringContainsString( $traffic, (string) wp_json_encode( $audit['details'] ) );
 	}
 
+	public function test_moving_entries_and_saving_the_lines_succeed_or_fail_together(): void {
+		$manager            = $this->manager();
+		[ $case, $traffic ] = $this->case_with_sub_section( $manager );
+		$entry              = $this->app->ledger_service->add( $case, self::expense( array( 'category' => $traffic ) ), $manager );
+		$this->assertIsInt( $entry );
+
+		// The new lines cannot be written: nothing of the edit may stay.
+		$table  = Schema::table( 'budget' );
+		$break  = static fn( string $sql ): string => str_starts_with( $sql, 'INSERT INTO `' . $table . '`' ) ? 'INSERT INTO `' . $table . '_missing` VALUES (1)' : $sql;
+		add_filter( 'query', $break );
+		$result = $this->app->case_service->save_budget( $case, array( $traffic . '.remove' => '1' ), $manager );
+		remove_filter( 'query', $break );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( $traffic, $this->app->ledger->find( $entry )?->entry->category, 'The entry did not move.' );
+		$this->assertNotNull( ( new \Diromax\Portal\Data\BudgetRepository( $GLOBALS['wpdb'] ) )->tree( $case->id )->find( $traffic ), 'The sub-section is still there.' );
+	}
+
 	public function test_a_section_with_entries_cannot_be_removed(): void {
 		$manager = $this->manager();
 		$case    = $this->case_for( $manager );

@@ -24,6 +24,7 @@ use Diromax\Portal\Plugin;
 use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Settings;
 use Diromax\Portal\Support\Ids;
+use Diromax\Portal\Support\Transaction;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -372,12 +373,22 @@ final class CaseService {
 			return Errors::invalid( $result['errors'] );
 		}
 
-		// Before the lines go: the section each moves to is kept either way.
-		foreach ( $result['moved'] as $from => $to ) {
-			$this->app->ledger->recategorize( $client_case->id, $from, $to );
-		}
+		// Entries of removed sub-sections move to their section, and the lines
+		// are replaced, together or not at all (PR #15 review).
+		$saved = Transaction::run(
+			$this->app->db,
+			function () use ( $client_case, $result ): bool {
+				foreach ( $result['moved'] as $from => $to ) {
+					if ( ! $this->app->ledger->recategorize( $client_case->id, $from, $to ) ) {
+						return false;
+					}
+				}
 
-		if ( ! $this->app->budget->save( $client_case->id, $result['tree'] ) ) {
+				return $this->app->budget->replace( $client_case->id, $result['tree'] );
+			}
+		);
+
+		if ( ! $saved ) {
 			return Errors::storage();
 		}
 

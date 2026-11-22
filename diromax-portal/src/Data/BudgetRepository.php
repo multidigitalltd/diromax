@@ -84,35 +84,42 @@ final class BudgetRepository {
 	 * @return bool
 	 */
 	public function save( int $case_id, BudgetTree $tree ): bool {
+		return Transaction::run( $this->db, fn(): bool => $this->replace( $case_id, $tree ) );
+	}
+
+	/**
+	 * Replace a case's lines, inside a transaction the caller runs (so other
+	 * writes can share it).
+	 *
+	 * @param int        $case_id Case.
+	 * @param BudgetTree $tree    New budget.
+	 * @return bool
+	 */
+	public function replace( int $case_id, BudgetTree $tree ): bool {
 		$table = Schema::table( 'budget' );
 		unset( $this->cache[ $case_id ] );
 
-		return Transaction::run(
-			$this->db,
-			function () use ( $table, $case_id, $tree ): bool {
-				if ( false === $this->db->delete( $table, array( 'case_id' => $case_id ) ) ) {
-					return false;
-				}
+		if ( false === $this->db->delete( $table, array( 'case_id' => $case_id ) ) ) {
+			return false;
+		}
 
-				foreach ( $tree->lines() as $sort => $line ) {
-					$row = array(
-						'case_id'  => $case_id,
-						'category' => $line['key'],
-						'parent'   => $line['parent'],
-						'label'    => $line['label'],
-						'planned'  => $line['planned'],
-						'sort'     => $sort,
-					);
+		foreach ( $tree->lines() as $sort => $line ) {
+			$row = array(
+				'case_id'  => $case_id,
+				'category' => $line['key'],
+				'parent'   => $line['parent'],
+				'label'    => $line['label'],
+				'planned'  => $line['planned'],
+				'sort'     => $sort,
+			);
 
-					// Explicit formats: WordPress maps a column named "parent" to %d by default.
-					if ( false === $this->db->insert( $table, $row, array( '%d', '%s', '%s', '%s', '%d', '%d' ) ) ) {
-						return false;
-					}
-				}
-
-				return true;
+			// Explicit formats: WordPress maps a column named "parent" to %d by default.
+			if ( false === $this->db->insert( $table, $row, array( '%d', '%s', '%s', '%s', '%d', '%d' ) ) ) {
+				return false;
 			}
-		);
+		}
+
+		return true;
 	}
 
 	/**

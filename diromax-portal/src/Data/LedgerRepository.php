@@ -293,10 +293,10 @@ final class LedgerRepository {
 	 * @param int    $case_id Case.
 	 * @param string $from    Old key.
 	 * @param string $to      New key.
-	 * @return int Entries moved.
+	 * @return bool False when the update failed.
 	 */
-	public function recategorize( int $case_id, string $from, string $to ): int {
-		return (int) $this->db->update(
+	public function recategorize( int $case_id, string $from, string $to ): bool {
+		return false !== $this->db->update(
 			Schema::table( 'ledger' ),
 			array( 'category' => $to ),
 			array(

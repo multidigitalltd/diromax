@@ -103,7 +103,10 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 <p class="description"><?php esc_html_e( 'תיק סגור נשאר גלוי ללקוח לפי תקופת הגישה שבהגדרות, ואחר כך הגישה נסגרת.', 'diromax-portal' ); ?></p>
 
 <?php if ( null !== $view['purge'] ) : ?>
-	<?php $dx_purge = $view['purge']; ?>
+	<?php
+	$dx_purge  = $view['purge'];
+	$dx_delete = new Form( $view['flash'], 'delete' );
+	?>
 	<div class="dxa-danger" id="dxa-delete">
 		<h2><?php esc_html_e( 'מחיקת התיק לצמיתות', 'diromax-portal' ); ?></h2>
 		<p><strong><?php esc_html_e( 'אי אפשר לשחזר.', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'יימחקו:', 'diromax-portal' ); ?></p>
@@ -151,7 +154,7 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 			?>
 			"><?php esc_html_e( 'הורדת כל התנועות ל-CSV', 'diromax-portal' ); ?></a>
 		</p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="dxa-inline">
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="dxa-inline" id="form-delete">
 			<input type="hidden" name="action" value="dx_portal_delete_case">
 			<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
 			<?php wp_nonce_field( 'dx_portal_delete_case_' . $case->id ); ?>
@@ -161,9 +164,9 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 				echo esc_html( sprintf( __( 'לאישור, מקלידים את מספר התיק: %s', 'diromax-portal' ), $case->number ) );
 				?>
 			</label>
-			<input type="text" id="dxa-confirm" name="confirm" autocomplete="off" dir="ltr"<?php echo '' !== $form->error( 'confirm' ) ? ' aria-invalid="true" aria-describedby="dxa-confirm-error"' : ''; ?>>
+			<input type="text" id="dxa-confirm" name="confirm" autocomplete="off" dir="ltr"<?php echo '' !== $dx_delete->error( 'confirm' ) ? ' aria-invalid="true" aria-describedby="dxa-confirm-error"' : ''; ?>>
 			<button type="submit" class="button button-link-delete"><?php esc_html_e( 'מחיקה לצמיתות', 'diromax-portal' ); ?></button>
-			<?php if ( '' !== $form->error( 'confirm' ) ) : ?>
+			<?php if ( '' !== $dx_delete->error( 'confirm' ) ) : ?>
 				<p class="dxa-error" id="dxa-confirm-error"><?php esc_html_e( 'מספר התיק לא תואם. התיק לא נמחק.', 'diromax-portal' ); ?></p>
 			<?php endif; ?>
 		</form>

@@ -576,13 +576,13 @@ final class Actions {
 	 */
 	private function delete_case( CaseRecord $client_case, array $input, int $actor ): void {
 		if ( $input['confirm'] !== $client_case->number ) {
-			$this->finish( $client_case, 'details', Errors::invalid( array( 'confirm' => 'invalid' ) ), '' );
+			$this->finish( $client_case, 'details', Errors::invalid( array( 'confirm' => 'invalid' ) ), '', 'delete' );
 		}
 
 		$result = $this->app->case_service->delete( $client_case, $actor );
 
 		if ( $result instanceof WP_Error ) {
-			$this->finish( $client_case, 'details', $result, '' );
+			$this->finish( $client_case, 'details', $result, '', 'delete' );
 		}
 
 		Flash::set(
