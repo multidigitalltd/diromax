@@ -17,7 +17,9 @@ use Diromax\Portal\Portal\CaseView;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
+use Diromax\Portal\Service\MorningSummary;
 use Diromax\Portal\Service\Stages;
+use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -34,7 +36,7 @@ final class Pages {
 	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'documents', 'log' );
+	public const TABS = array( 'overview', 'tasks', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -109,6 +111,8 @@ final class Pages {
 			'stale'      => $repo->stale_cases( $manager, $this->app->clock->mysql_in( -$stale * DAY_IN_SECONDS ) ),
 			'quiet'      => $repo->never_signed_in( $manager, $this->app->clock->mysql_in( -3 * DAY_IN_SECONDS ) ),
 			'failed'     => $repo->failed_mail( $manager ),
+			'late'       => ( new MorningSummary( $this->app ) )->late_stages( $scope ),
+			'tasks'      => $this->app->tasks->open_for( $user, null, 20 ),
 		);
 	}
 
@@ -146,7 +150,7 @@ final class Pages {
 	 * columns; a case with no stage in progress is listed apart.
 	 *
 	 * @param int $user User: every case for an administrator, own cases for a manager.
-	 * @return array{columns: array<int, array{number:string, name:string, cards: array<int, array{case:CaseRecord, days:int|null, also:string}>}>, waiting: CaseRecord[], total:int, capped:bool}
+	 * @return array{columns: array<int, array{number:string, name:string, cards: array<int, array{case:CaseRecord, days:int|null, also:string, late:string}>}>, waiting: CaseRecord[], total:int, capped:bool}
 	 */
 	public function board_data( int $user ): array {
 		$cases   = $this->app->cases->active_for( $this->app->policy->can_manage_all( $user ) ? null : $user, self::BOARD_LIMIT );
@@ -169,6 +173,7 @@ final class Pages {
 					'case' => $client_case,
 					'days' => StageProgress::days_in( $client_case->stages[ $number ], $today ),
 					'also' => implode( ', ', array_map( array( Stages::class, 'number' ), array_diff( $active, array( $number ) ) ) ),
+					'late' => StageProgress::is_late( $client_case->stages[ $number ], $today ) ? Labels::date( $client_case->stages[ $number ]['due'] ) : '',
 				);
 			}
 		}
@@ -304,7 +309,7 @@ final class Pages {
 				'statuses'  => Labels::case_statuses(),
 				'can_all'   => $this->app->policy->can_manage_all( $user ),
 				'can_purge' => $this->app->policy->can_delete_case( $user, $client_case ),
-				'steps'     => CaseView::stages( $client_case ),
+				'steps'     => CaseView::stages( $client_case, $this->app->clock->today() ),
 				'counts'    => $this->tab_counts( $client_case ),
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only: opens the add form.
 				'adding'    => isset( $_GET['add'] ),
@@ -362,6 +367,7 @@ final class Pages {
 				'stages'         => Stages::names(),
 				'stage_statuses' => Labels::stage_statuses(),
 				'managers'       => $this->app->case_service->managers(),
+				'today'          => $this->app->clock->today(),
 			),
 			'members'   => array(
 				'members' => $this->app->members->for_case( $client_case->id ),
@@ -391,6 +397,11 @@ final class Pages {
 				'kinds'     => Labels::document_kinds(),
 				'key_ready' => $this->app->store->is_configured(),
 				'acks'      => $this->app->acknowledgements->for_case( $client_case->id ),
+			),
+			'tasks'     => array(
+				'tasks'     => $this->app->tasks->for_case( $client_case->id ),
+				'assignees' => ( new TaskService( $this->app ) )->assignees( $client_case ),
+				'today'     => $this->app->clock->today(),
 			),
 			'log'       => array(
 				'audit' => $this->app->audit->for_case( $client_case->id, 300 ),
@@ -464,6 +475,7 @@ final class Pages {
 			'finance'   => (int) ( $client_case->summary['open_request_count'] ?? 0 ),
 			'decisions' => $pending,
 			'members'   => count( $this->app->members->for_case( $client_case->id ) ),
+			'tasks'     => $this->app->tasks->open_count( $client_case->id ),
 		);
 	}
 
@@ -513,6 +525,7 @@ final class Pages {
 	private static function tab_labels(): array {
 		return array(
 			'overview'  => __( 'סקירה', 'diromax-portal' ),
+			'tasks'     => __( 'משימות', 'diromax-portal' ),
 			'details'   => __( 'פרטי התיק', 'diromax-portal' ),
 			'members'   => __( 'לקוחות', 'diromax-portal' ),
 			'budget'    => __( 'תקציב', 'diromax-portal' ),

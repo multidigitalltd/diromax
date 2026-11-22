@@ -111,7 +111,7 @@ final class CaseService {
 	 * the case's lead stage follows from them.
 	 *
 	 * @param CaseRecord            $client_case Case.
-	 * @param array<string, string> $input       Details; manager_id; stage_status as "1:done,2:active,…" (stages left out keep their status).
+	 * @param array<string, string> $input       Details; manager_id; stage_status as "1:done,2:active,…" and stage_due as "1:2027-01-31,2:,…" (stages left out keep theirs).
 	 * @param int                   $actor       Acting user.
 	 * @return CaseRecord|WP_Error
 	 */
@@ -123,9 +123,14 @@ final class CaseService {
 		$checked  = CaseFieldsValidator::validate( $input );
 		$fields   = $checked['fields'];
 		$statuses = StageProgress::parse( $input['stage_status'] ?? '' );
+		$dues     = StageProgress::parse_dues( $input['stage_due'] ?? '' );
 
 		if ( null === $statuses ) {
 			$checked['errors']['stages'] = 'invalid';
+		}
+
+		if ( null === $dues ) {
+			$checked['errors']['stage_due'] = 'invalid';
 		}
 
 		if ( $this->app->policy->can_manage_all( $actor ) && isset( $input['manager_id'] ) ) {
@@ -138,11 +143,11 @@ final class CaseService {
 			}
 		}
 
-		if ( $checked['errors'] || null === $statuses ) {
+		if ( $checked['errors'] || null === $statuses || null === $dues ) {
 			return Errors::invalid( $checked['errors'] );
 		}
 
-		$stages           = StageProgress::set( $client_case->stages, $statuses, $this->app->clock->today() );
+		$stages           = StageProgress::with_dues( StageProgress::set( $client_case->stages, $statuses, $this->app->clock->today() ), $dues );
 		$fields['stage']  = StageProgress::lead( $stages );
 		$fields['stages'] = (string) wp_json_encode( $stages );
 

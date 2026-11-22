@@ -121,12 +121,14 @@ final class CaseView {
 
 	/**
 	 * Stage tracker. Several stages can be in progress; only a single one
-	 * is marked as the current step for assistive technology.
+	 * is marked as the current step for assistive technology. Due dates are
+	 * internal: they are given only for staff screens, when $today is set.
 	 *
 	 * @param CaseRecord $client_case Case.
-	 * @return array<int, array{number:string, name:string, status:string, label:string, when:string, current:bool}>
+	 * @param string     $today       Y-m-d for staff screens; '' for the client.
+	 * @return array<int, array{number:string, name:string, status:string, label:string, when:string, current:bool, due:string, late:bool}>
 	 */
-	public static function stages( CaseRecord $client_case ): array {
+	public static function stages( CaseRecord $client_case, string $today = '' ): array {
 		$labels = Labels::stage_statuses();
 		$single = 1 === count( StageProgress::active( $client_case->stages ) );
 		$list   = array();
@@ -134,6 +136,7 @@ final class CaseView {
 		foreach ( Stages::names() as $number => $name ) {
 			$state  = $client_case->stages[ $number ] ?? null;
 			$status = null !== $state && isset( $labels[ $state['status'] ] ) ? $state['status'] : StageStatus::Pending->value;
+			$staff  = '' !== $today && null !== $state;
 			$list[] = array(
 				'number'  => Stages::number( $number ),
 				'name'    => $name,
@@ -141,6 +144,8 @@ final class CaseView {
 				'label'   => $labels[ $status ],
 				'when'    => null === $state ? '' : Labels::stage_when( $state ),
 				'current' => $single && StageStatus::Active->value === $status,
+				'due'     => $staff && null !== $state['due'] && ! in_array( $status, array( 'done', 'skipped' ), true ) ? Labels::date( $state['due'] ) : '',
+				'late'    => $staff && StageProgress::is_late( $state, $today ),
 			);
 		}
 

@@ -21,13 +21,13 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '2';
+	public const VERSION = '3';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
 
 	/** Every table, without prefix. */
-	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements' );
+	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures' );
 
 	/**
 	 * Full table name.
@@ -98,6 +98,10 @@ final class Schema {
 		$tokens  = self::table( 'login_tokens' );
 		$choices = self::table( 'decisions' );
 		$acks    = self::table( 'acknowledgements' );
+		$tasks   = self::table( 'tasks' );
+		$asks    = self::table( 'doc_requests' );
+		$signreq = self::table( 'sign_requests' );
+		$signs   = self::table( 'signatures' );
 
 		return array(
 			"CREATE TABLE {$cases} (
@@ -214,6 +218,8 @@ final class Schema {
   sha256 char(64) NOT NULL,
   key_version smallint(5) unsigned NOT NULL DEFAULT 1,
   visible tinyint(1) NOT NULL DEFAULT 1,
+  sign_required tinyint(1) NOT NULL DEFAULT 0,
+  request_id bigint(20) unsigned DEFAULT NULL,
   uploaded_by bigint(20) unsigned NOT NULL,
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
@@ -310,6 +316,78 @@ final class Schema {
   PRIMARY KEY  (document_id,user_id),
   KEY case_created (case_id,created_at)
 ) {$c};",
+			"CREATE TABLE {$tasks} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  title varchar(200) NOT NULL,
+  assignee_id bigint(20) unsigned NOT NULL,
+  due_date date DEFAULT NULL,
+  done_at datetime DEFAULT NULL,
+  done_by bigint(20) unsigned DEFAULT NULL,
+  created_by bigint(20) unsigned NOT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY case_done (case_id,done_at),
+  KEY assignee_done (assignee_id,done_at,due_date)
+) {$c};",
+			"CREATE TABLE {$asks} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  title varchar(200) NOT NULL,
+  note varchar(500) NOT NULL DEFAULT '',
+  status varchar(10) NOT NULL DEFAULT 'open',
+  document_id bigint(20) unsigned DEFAULT NULL,
+  created_by bigint(20) unsigned NOT NULL,
+  created_at datetime NOT NULL,
+  closed_at datetime DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY case_status (case_id,status)
+) {$c};",
+			"CREATE TABLE {$signreq} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  document_id bigint(20) unsigned NOT NULL,
+  signer_name varchar(100) NOT NULL,
+  signer_email varchar(190) NOT NULL,
+  user_id bigint(20) unsigned DEFAULT NULL,
+  token_hash char(64) NOT NULL,
+  status varchar(10) NOT NULL DEFAULT 'pending',
+  code_hash char(64) NOT NULL DEFAULT '',
+  code_expires_at datetime DEFAULT NULL,
+  code_attempts tinyint(3) unsigned NOT NULL DEFAULT 0,
+  codes_sent tinyint(3) unsigned NOT NULL DEFAULT 0,
+  codes_window_at datetime DEFAULT NULL,
+  verified_at datetime DEFAULT NULL,
+  expires_at datetime NOT NULL,
+  created_by bigint(20) unsigned NOT NULL,
+  created_at datetime NOT NULL,
+  closed_at datetime DEFAULT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY token_hash (token_hash),
+  KEY case_document (case_id,document_id),
+  KEY status_expires (status,expires_at)
+) {$c};",
+			"CREATE TABLE {$signs} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  subject_type varchar(10) NOT NULL,
+  subject_id bigint(20) unsigned NOT NULL,
+  request_id bigint(20) unsigned DEFAULT NULL,
+  user_id bigint(20) unsigned DEFAULT NULL,
+  signer_name varchar(100) NOT NULL,
+  signer_email varchar(190) NOT NULL,
+  id_number_enc text DEFAULT NULL,
+  image_enc mediumtext DEFAULT NULL,
+  sha256 char(64) NOT NULL,
+  method varchar(10) NOT NULL,
+  ip varchar(45) NOT NULL DEFAULT '',
+  user_agent varchar(255) NOT NULL DEFAULT '',
+  verified_at datetime DEFAULT NULL,
+  signed_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY case_subject (case_id,subject_type,subject_id),
+  KEY user_id (user_id)
+) {$c};",
 		);
 	}
 
@@ -346,6 +424,12 @@ final class Schema {
 			'dx_choices_amount' => array( 'decisions', 'CHECK (amount IS NULL OR amount >= 0)' ),
 			'dx_acks_case'      => array( 'acknowledgements', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_acks_doc'       => array( 'acknowledgements', 'FOREIGN KEY (document_id) REFERENCES ' . self::table( 'documents' ) . ' (id) ON DELETE CASCADE' ),
+			'dx_tasks_case'     => array( 'tasks', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_asks_case'      => array( 'doc_requests', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_asks_doc'       => array( 'doc_requests', 'FOREIGN KEY (document_id) REFERENCES ' . self::table( 'documents' ) . ' (id) ON DELETE SET NULL' ),
+			'dx_signreq_case'   => array( 'sign_requests', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_signreq_doc'    => array( 'sign_requests', 'FOREIGN KEY (document_id) REFERENCES ' . self::table( 'documents' ) . ' (id) ON DELETE CASCADE' ),
+			'dx_signs_case'     => array( 'signatures', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 		);
 	}
 

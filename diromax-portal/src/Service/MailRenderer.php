@@ -144,6 +144,37 @@ final class MailRenderer {
 	}
 
 	/**
+	 * The staff morning summary.
+	 *
+	 * @param string     $name  Recipient's name.
+	 * @param MailCard[] $cards Tasks and late stages.
+	 * @param string     $url   Dashboard.
+	 * @return MailMessage
+	 */
+	public function morning( string $name, array $cards, string $url ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => $cards[0]->title ?? '',
+				'eyebrow'   => __( 'תיקי לקוחות · סיכום בוקר', 'diromax-portal' ),
+				'headline'  => __( 'מה מחכה לך היום', 'diromax-portal' ),
+				'greeting'  => $name,
+				'intro'     => __( 'המשימות שלך שהגיע מועדן, והשלבים שעברו את היעד בתיקים שלך.', 'diromax-portal' ),
+				'body'      => 'case-update',
+				'items'     => $cards,
+				'stages'    => Stages::names(),
+				'summary'   => null,
+				'cta'       => array(
+					'label' => __( 'ללוח הבקרה', 'diromax-portal' ),
+					'url'   => $url,
+				),
+			)
+		);
+
+		return $this->message( __( 'סיכום בוקר · תיקי לקוחות', 'diromax-portal' ), $view );
+	}
+
+	/**
 	 * Security notice after a password was set or changed.
 	 *
 	 * @param string $name Recipient's name.

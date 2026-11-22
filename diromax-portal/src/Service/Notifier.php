@@ -352,6 +352,35 @@ final class Notifier {
 	}
 
 	/**
+	 * Send a message to a member of staff, not about one case, and log it.
+	 *
+	 * @param int         $user_id  Staff member.
+	 * @param string      $email    Address.
+	 * @param MailMessage $message  Message.
+	 * @param string      $template Template code for the log.
+	 * @return bool
+	 */
+	public function send_to_staff( int $user_id, string $email, MailMessage $message, string $template ): bool {
+		$ok = Mailer::send( $email, $message, null );
+
+		$this->app->mail_log->add(
+			array(
+				'case_id'   => null,
+				'user_id'   => $user_id,
+				'recipient' => $email,
+				'template'  => $template,
+				'subject'   => $message->subject,
+				'batch_key' => '',
+				'status'    => $ok ? 'sent' : 'failed',
+				'error'     => $ok ? '' : 'wp_mail_failed',
+			),
+			$this->app->clock->mysql()
+		);
+
+		return $ok;
+	}
+
+	/**
 	 * Send one message and log it.
 	 *
 	 * @param int|null        $case_id   Case.

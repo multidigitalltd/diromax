@@ -147,12 +147,46 @@ $header    = array(
 	<div class="dxa-dash-grid">
 	<div class="dxa-dash-main">
 	<h2 class="dxa-section-title"><?php esc_html_e( 'דורש טיפול', 'diromax-portal' ); ?></h2>
-	<?php $attention = count( $view['overdue'] ) + count( $view['upcoming'] ) + count( $view['decisions'] ) + count( $view['actions'] ) + count( $view['stale'] ) + count( $view['quiet'] ) + count( $view['failed'] ); ?>
+	<?php $attention = count( $view['overdue'] ) + count( $view['upcoming'] ) + count( $view['decisions'] ) + count( $view['actions'] ) + count( $view['stale'] ) + count( $view['quiet'] ) + count( $view['failed'] ) + count( $view['late'] ) + count( $view['tasks'] ); ?>
 	<?php if ( 0 === $attention ) : ?>
 		<p class="dxa-allclear" role="status"><span aria-hidden="true">✓</span> <?php esc_html_e( 'אין כרגע שום דבר שמחכה לטיפול: אין דרישות באיחור או בשבוע הקרוב, אין החלטות פתוחות, וכל הלקוחות קיבלו עדכון לאחרונה.', 'diromax-portal' ); ?></p>
 	<?php endif; ?>
 	<?php if ( $attention > 0 ) : ?>
 	<div class="dxa-cards">
+		<section class="dxa-card<?php echo array() === $view['tasks'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-tasks">
+			<h2 id="dxa-dash-tasks"><?php esc_html_e( 'המשימות שלי', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['tasks'] ) ); ?></span></h2>
+			<?php if ( array() === $view['tasks'] ) : ?>
+				<p><?php esc_html_e( 'אין משימות פתוחות שהוטלו עליך.', 'diromax-portal' ); ?></p>
+			<?php else : ?>
+				<table class="widefat striped">
+					<thead><tr>
+						<th scope="col"><?php esc_html_e( 'משימה', 'diromax-portal' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'עד', 'diromax-portal' ); ?></th>
+					</tr></thead>
+					<tbody>
+						<?php foreach ( $view['tasks'] as $row ) : ?>
+							<?php $task_late = null !== $row['due_date'] && $row['due_date'] < $view['today']; ?>
+							<tr>
+								<td>
+									<a href="<?php echo esc_url( Admin::case_url( (int) $row['case_id'], 'tasks' ) ); ?>"><?php echo esc_html( $row['title'] ); ?></a><br>
+									<span class="dxa-muted"><?php echo esc_html( $row['case_title'] . ' · ' . $row['number'] ); ?></span>
+								</td>
+								<td>
+									<?php if ( null === $row['due_date'] ) : ?>
+										<span class="dxa-muted"><?php esc_html_e( 'בלי תאריך', 'diromax-portal' ); ?></span>
+									<?php elseif ( $task_late ) : ?>
+										<span class="dxa-late"><?php echo esc_html( Labels::date( $row['due_date'] ) . ' · ' . __( 'באיחור', 'diromax-portal' ) ); ?></span>
+									<?php else : ?>
+										<?php echo esc_html( $row['due_date'] === $view['today'] ? __( 'היום', 'diromax-portal' ) : Labels::date( $row['due_date'] ) ); ?>
+									<?php endif; ?>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
+		</section>
+
 		<section class="dxa-card dxa-card--hot<?php echo array() === $view['overdue'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-overdue">
 			<h2 id="dxa-dash-overdue"><?php esc_html_e( 'דרישות תשלום באיחור', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) $view['totals']['overdue_count'] ); ?></span></h2>
 			<?php if ( array() === $view['overdue'] ) : ?>
@@ -210,6 +244,35 @@ $header    = array(
 								<td dir="ltr" class="dxa-num"><?php echo esc_html( Money::format( (int) $row['total'] ) ); ?></td>
 								<td dir="ltr"><?php echo esc_html( Labels::date( $row['due_date'] ) ); ?></td>
 								<td><?php $request_actions( $row, (string) $view['today'] ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
+		</section>
+
+		<section class="dxa-card<?php echo array() === $view['late'] ? ' dxa-card--empty' : ' dxa-card--hot'; ?>" aria-labelledby="dxa-dash-late">
+			<h2 id="dxa-dash-late"><?php esc_html_e( 'שלבים שעברו את היעד', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['late'] ) ); ?></span></h2>
+			<?php if ( array() === $view['late'] ) : ?>
+				<p><?php esc_html_e( 'כל השלבים עומדים ביעד, או שלא נקבע להם יעד.', 'diromax-portal' ); ?></p>
+			<?php else : ?>
+				<table class="widefat striped">
+					<thead><tr>
+						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'שלב', 'diromax-portal' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'היעד היה', 'diromax-portal' ); ?></th>
+					</tr></thead>
+					<tbody>
+						<?php foreach ( array_slice( $view['late'], 0, 10 ) as $row ) : ?>
+							<tr>
+								<td><?php $case_link( $row, 'details' ); ?></td>
+								<td><?php echo esc_html( $row['stage'] ); ?></td>
+								<td>
+									<?php
+									/* translators: 1: due date, 2: days late. */
+									echo esc_html( sprintf( _n( '%1$s · יום %2$d באיחור', '%1$s · %2$d ימים באיחור', $row['days'], 'diromax-portal' ), Labels::date( $row['due'] ), $row['days'] ) );
+									?>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>

@@ -21,6 +21,7 @@ use Diromax\Portal\Data\LedgerRepository;
 use Diromax\Portal\Data\MailLog;
 use Diromax\Portal\Data\MemberRepository;
 use Diromax\Portal\Data\Schema;
+use Diromax\Portal\Data\TaskRepository;
 use Diromax\Portal\Data\TokenRepository;
 use Diromax\Portal\Data\UpdateRepository;
 use Diromax\Portal\Security\AccessPolicy;
@@ -137,6 +138,12 @@ final class Plugin {
 	 */
 	public readonly AcknowledgementRepository $acknowledgements;
 	/**
+	 * Team tasks.
+	 *
+	 * @var TaskRepository
+	 */
+	public readonly TaskRepository $tasks;
+	/**
 	 * Dashboard queries.
 	 *
 	 * @var DashboardRepository
@@ -220,6 +227,7 @@ final class Plugin {
 
 		$this->acknowledgements = new AcknowledgementRepository( $wpdb );
 		$this->dashboard        = new DashboardRepository( $wpdb );
+		$this->tasks            = new TaskRepository( $wpdb );
 		$this->policy           = new AccessPolicy( $this->members, $clock );
 		$this->store            = new DocumentStore();
 		$this->limiter          = new RateLimiter( $clock );

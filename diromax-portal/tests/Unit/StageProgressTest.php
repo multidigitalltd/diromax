@@ -24,7 +24,7 @@ final class StageProgressTest extends TestCase {
 	 * Seven stages with the given statuses, no dates.
 	 *
 	 * @param string ...$statuses One per stage, in order.
-	 * @return array<int, array{status:string, started:string|null, done:string|null}>
+	 * @return array<int, array{status:string, started:string|null, done:string|null, due:string|null}>
 	 */
 	private static function stages( string ...$statuses ): array {
 		$stages = array();
@@ -34,6 +34,7 @@ final class StageProgressTest extends TestCase {
 				'status'  => $status,
 				'started' => null,
 				'done'    => null,
+				'due'     => null,
 			);
 		}
 
@@ -43,7 +44,7 @@ final class StageProgressTest extends TestCase {
 	/**
 	 * Statuses only, keyed 1–7.
 	 *
-	 * @param array<int, array{status:string, started:string|null, done:string|null}> $stages States.
+	 * @param array<int, array{status:string, started:string|null, done:string|null, due:string|null}> $stages States.
 	 * @return string[]
 	 */
 	private static function statuses( array $stages ): array {
@@ -142,10 +143,42 @@ final class StageProgressTest extends TestCase {
 			'status'  => 'active',
 			'started' => '2026-11-01',
 			'done'    => null,
+			'due'     => null,
 		);
 
 		$this->assertSame( 19, StageProgress::days_in( $state, self::TODAY ) );
 		$this->assertNull( StageProgress::days_in( array( 'status' => 'done' ) + $state, self::TODAY ) );
 		$this->assertNull( StageProgress::days_in( array( 'started' => null ) + $state, self::TODAY ) );
+	}
+
+	public function test_due_dates_are_read_and_set(): void {
+		$this->assertSame(
+			array(
+				1 => '2027-01-31',
+				2 => null,
+			),
+			StageProgress::parse_dues( '1:2027-01-31,2:' )
+		);
+
+		foreach ( array( '1:2027-02-30', '8:2027-01-01', '1:31/01/2027', '1:2027-01-01,1:', 'x:2027-01-01', '1' ) as $bad ) {
+			$this->assertNull( StageProgress::parse_dues( $bad ), $bad );
+		}
+
+		$stages = StageProgress::with_dues( self::stages( 'active', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending' ), array( 1 => '2026-11-01' ) );
+		$this->assertSame( '2026-11-01', $stages[1]['due'] );
+		$this->assertNull( $stages[2]['due'] );
+		$this->assertNull( StageProgress::with_dues( $stages, array( 1 => null ) )[1]['due'], 'An empty date clears it.' );
+	}
+
+	public function test_a_stage_is_late_only_while_unfinished_and_past_its_due_date(): void {
+		$stages = self::stages( 'active', 'pending', 'done', 'skipped', 'active', 'active', 'pending' );
+
+		foreach ( array( 1, 2, 3, 4, 5 ) as $number ) {
+			$stages[ $number ]['due'] = '2026-11-19';
+		}
+
+		$stages[6]['due'] = self::TODAY;
+
+		$this->assertSame( array( 1, 2, 5 ), StageProgress::late( $stages, self::TODAY ), 'Done, not relevant, due today and without a date are not late.' );
 	}
 }

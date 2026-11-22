@@ -128,7 +128,7 @@ final class Labels {
 	 * When a stage started or finished, e.g. "מאז 12.11.2026"; empty when
 	 * it has no date for its status.
 	 *
-	 * @param array{status:string, started:string|null, done:string|null} $state One stage.
+	 * @param array{status:string, started:string|null, done:string|null, due:string|null} $state One stage.
 	 * @return string
 	 */
 	public static function stage_when( array $state ): string {
@@ -220,6 +220,18 @@ final class Labels {
 			'portal.password_changed' => __( 'הלקוח עדכן סיסמה', 'diromax-portal' ),
 			'mail.sent_now'           => __( 'עדכונים נשלחו ידנית', 'diromax-portal' ),
 			'mail.cancelled'          => __( 'שליחת עדכונים בוטלה', 'diromax-portal' ),
+			'task.added'              => __( 'נוספה משימה', 'diromax-portal' ),
+			'task.done'               => __( 'משימה בוצעה', 'diromax-portal' ),
+			'task.reopened'           => __( 'משימה חזרה לפתוחות', 'diromax-portal' ),
+			'task.deleted'            => __( 'נמחקה משימה', 'diromax-portal' ),
+			'docrequest.created'      => __( 'נשלחה בקשת מסמך ללקוח', 'diromax-portal' ),
+			'docrequest.fulfilled'    => __( 'הלקוח העלה מסמך שהתבקש', 'diromax-portal' ),
+			'docrequest.cancelled'    => __( 'בקשת מסמך בוטלה', 'diromax-portal' ),
+			'document.client_upload'  => __( 'הלקוח העלה מסמך', 'diromax-portal' ),
+			'signature.requested'     => __( 'נשלחה בקשת חתימה', 'diromax-portal' ),
+			'signature.cancelled'     => __( 'בקשת חתימה בוטלה', 'diromax-portal' ),
+			'signature.code_sent'     => __( 'נשלח קוד חתימה', 'diromax-portal' ),
+			'signature.signed'        => __( 'מסמך נחתם', 'diromax-portal' ),
 		);
 	}
 
@@ -239,6 +251,7 @@ final class Labels {
 			'invoice'   => __( 'חשבונית', 'diromax-portal' ),
 			'receipt'   => __( 'קבלה / אישור תשלום', 'diromax-portal' ),
 			'photo'     => __( 'צילום', 'diromax-portal' ),
+			'client'    => __( 'מהלקוח', 'diromax-portal' ),
 			'other'     => __( 'אחר', 'diromax-portal' ),
 		);
 	}

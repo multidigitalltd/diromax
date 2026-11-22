@@ -17,6 +17,7 @@ use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\DemoCase;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\ReminderService;
+use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Service\UpdateService;
 use Diromax\Portal\Settings;
 use WP_Error;
@@ -56,6 +57,9 @@ final class Actions {
 		'send_now'            => array( array(), array() ),
 		'cancel_pending'      => array( array(), array() ),
 		'delete_case'         => array( array( 'confirm' ), array() ),
+		'add_task'            => array( array( 'title', 'assignee_id', 'due_date' ), array() ),
+		'task_done'           => array( array( 'task_id', 'done' ), array() ),
+		'delete_task'         => array( array( 'task_id' ), array() ),
 	);
 
 	/**
@@ -136,6 +140,9 @@ final class Actions {
 			'send_now'            => $this->send_now( $client_case, $actor ),
 			'cancel_pending'      => $this->cancel_pending( $client_case, $actor ),
 			'delete_case'         => $this->delete_case( $client_case, $input, $actor ),
+			'add_task'            => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->add( $client_case, $input, $actor ), __( 'המשימה נוספה.', 'diromax-portal' ), 'task', $input ),
+			'task_done'           => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->set_done( $client_case, absint( $input['task_id'] ), '1' === $input['done'], $actor ), '1' === $input['done'] ? __( 'המשימה סומנה כבוצעה.', 'diromax-portal' ) : __( 'המשימה חזרה לפתוחות.', 'diromax-portal' ) ),
+			'delete_task'         => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->delete( $client_case, absint( $input['task_id'] ), $actor ), __( 'המשימה נמחקה.', 'diromax-portal' ) ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};
 	}
@@ -184,23 +191,26 @@ final class Actions {
 	 * @param int                   $actor Actor.
 	 */
 	private function update_case( CaseRecord $client_case, array $input, int $actor ): void {
-		$input['stage_status'] = self::stage_statuses();
+		$input['stage_status'] = self::stage_pairs( 'stage_status', 'sanitize_key' );
+		$input['stage_due']    = self::stage_pairs( 'stage_due', 'sanitize_text_field' );
 		$this->finish( $client_case, 'details', $this->app->case_service->update_details( $client_case, $input, $actor ), __( 'פרטי התיק נשמרו.', 'diromax-portal' ), 'details', $input );
 	}
 
 	/**
-	 * The stage status radios (stage_status[N] = status) as "N:status,…"
-	 * for the service, which checks every stage number and status.
+	 * A per-stage field (stage_status[N] or stage_due[N]) as "N:value,…" for
+	 * the service, which checks every stage number and value.
 	 *
+	 * @param string   $field    POST field.
+	 * @param callable $sanitize Sanitizer for each value.
 	 * @return string
 	 */
-	private static function stage_statuses(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in handle().
-		$raw   = isset( $_POST['stage_status'] ) && is_array( $_POST['stage_status'] ) ? wp_unslash( $_POST['stage_status'] ) : array();
+	private static function stage_pairs( string $field, callable $sanitize ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified in handle(); each value is sanitized below.
+		$raw   = isset( $_POST[ $field ] ) && is_array( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : array();
 		$pairs = array();
 
-		foreach ( (array) $raw as $number => $status ) {
-			$pairs[] = absint( $number ) . ':' . sanitize_key( is_string( $status ) ? $status : '' );
+		foreach ( (array) $raw as $number => $value ) {
+			$pairs[] = absint( $number ) . ':' . str_replace( array( ',', ':' ), '', (string) $sanitize( is_string( $value ) ? $value : '' ) );
 		}
 
 		return implode( ',', $pairs );
@@ -462,6 +472,7 @@ final class Actions {
 			'access_months'    => sanitize_text_field( (string) ( $raw['access_months'] ?? '' ) ),
 			'categories'       => self::categories_input( (string) ( $raw['categories'] ?? '' ) ),
 			'monthly_summary'  => isset( $raw['monthly_summary'] ) ? '1' : '0',
+			'morning_summary'  => isset( $raw['morning_summary'] ) ? '1' : '0',
 		);
 
 		foreach ( array( 'daily_hour', 'remind_before_days', 'remind_overdue_every', 'remind_overdue_max', 'stale_days' ) as $number ) {
