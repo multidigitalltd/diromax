@@ -128,6 +128,17 @@ function localDate(offsetDays) {
   check('the client uploads the requested document; the manager is told', (await client.textContent('.dxp-notice--ok')).includes('המסמך הועלה') && !(await client.$('.dxp-asks')) && mailsSince(before).some(m => m.to === 'daniel@example.org' && m.subject.includes('מסמך חדש מהלקוח')));
   check('it appears under "מהלקוח"', (await client.textContent('.dxp-docs')).includes('מהלקוח'));
 
+  // Regression: a photo is re-encoded (location data removed) through
+  // wp_tempnam(), which WordPress loads only in wp-admin; on the portal it crashed.
+  const photo = path.join(S, 'e2e', 'roof.jpg');
+  execFileSync('php', ['-r', '$i = imagecreatetruecolor(40, 30); imagefill($i, 0, 0, imagecolorallocate($i, 200, 120, 40)); imagejpeg($i, $argv[1]);', photo]);
+  await client.click('#upload summary');
+  await client.fill('#dxp-upload-title', 'צילום הגג');
+  await client.setInputFiles('#dxp-upload-file', photo);
+  await client.click('#upload button[type=submit]');
+  await client.waitForLoadState('load');
+  check('the client uploads a photo from the portal', (await client.textContent('.dxp-notice--ok')).includes('המסמך הועלה') && (await client.textContent('.dxp-docs')).includes('צילום הגג'));
+
   await client.goto(portalCase);
   await client.click('a:has-text("דוח מלא")');
   await client.waitForLoadState('load');
