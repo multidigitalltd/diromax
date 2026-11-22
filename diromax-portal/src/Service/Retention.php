@@ -80,7 +80,7 @@ final class Retention {
 
 	/**
 	 * Export a person's portal data: memberships, emails sent, decision answers,
-	 * agreement confirmations and signatures.
+	 * agreement confirmations, email replies and signatures.
 	 *
 	 * @param string $email Email.
 	 * @return array{data: array<int, array<string, mixed>>, done: bool}
@@ -104,6 +104,20 @@ final class Retention {
 
 			foreach ( $this->app->acknowledgements->by_user( (int) $user->ID ) as $index => $row ) {
 				$data[] = self::group( 'dx-portal-agreement', __( 'אישורי קריאת הסכם', 'diromax-portal' ), 'agreement-' . $index, $row );
+			}
+
+			foreach ( $this->app->messages->for_user( (int) $user->ID ) as $index => $row ) {
+				$data[] = self::group(
+					'dx-portal-message',
+					__( 'הודעות ששלחת בתשובה למיילים', 'diromax-portal' ),
+					'message-' . $index,
+					array(
+						'subject'     => $row['subject'],
+						'body'        => $row['body'],
+						'files'       => implode( ', ', array_column( $row['files'], 'name' ) ),
+						'received_at' => $row['received_at'],
+					)
+				);
 			}
 		}
 
@@ -131,6 +145,7 @@ final class Retention {
 		if ( $user ) {
 			$removed += $this->app->members->remove_user( (int) $user->ID );
 			$removed += $this->app->mail_log->anonymize_user( (int) $user->ID );
+			$removed += $this->app->messages->remove_user( (int) $user->ID );
 			$this->app->audit->record( 'privacy.erased', null, 'user', (int) $user->ID, array( 'rows' => $removed ), $this->app->clock->mysql() );
 		}
 

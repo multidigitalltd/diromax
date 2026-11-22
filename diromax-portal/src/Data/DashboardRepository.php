@@ -225,6 +225,31 @@ final class DashboardRepository {
 	}
 
 	/**
+	 * Emails the provider reported back (bounced or marked as spam) since a
+	 * date, newest first: the address is probably wrong.
+	 *
+	 * @param int    $manager Manager, 0 for all.
+	 * @param string $since   UTC DATETIME.
+	 * @return array<int, array<string, string|null>>
+	 */
+	public function bounced_mail( int $manager, string $since ): array {
+		return $this->rows(
+			$this->db->prepare(
+				"SELECT c.id AS case_id, c.number, c.title AS case_title, m.recipient, m.status, m.created_at
+				   FROM %i m INNER JOIN %i c ON c.id = m.case_id
+				  WHERE m.status IN ('bounced','complaint') AND m.created_at >= %s AND ( %d = 0 OR c.manager_id = %d )
+				  ORDER BY m.id DESC LIMIT %d",
+				Schema::table( 'mail_log' ),
+				Schema::table( 'cases' ),
+				$since,
+				$manager,
+				$manager,
+				self::LIMIT
+			)
+		);
+	}
+
+	/**
 	 * Run a prepared query.
 	 *
 	 * @param string|null $sql Prepared SQL.

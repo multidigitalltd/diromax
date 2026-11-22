@@ -146,4 +146,55 @@ $header   = array(
 
 		<?php submit_button( __( 'שמירת ההגדרות', 'diromax-portal' ) ); ?>
 	</form>
+
+	<?php $mail = $view['mail']; ?>
+	<h2 id="dxa-mail-title"><?php esc_html_e( 'שליחה וקבלה של מיילים (Postmark)', 'diromax-portal' ); ?></h2>
+	<p><?php esc_html_e( 'ההגדרות האלה נקבעות בקובץ wp-config.php בלבד, כדי שמפתחות לא יישמרו במסד הנתונים. ההוראות ב-README של התוסף, "Postmark".', 'diromax-portal' ); ?></p>
+	<table class="form-table" role="presentation" aria-labelledby="dxa-mail-title">
+		<tr>
+			<th scope="row"><?php esc_html_e( 'שליחה', 'diromax-portal' ); ?></th>
+			<td>
+				<?php if ( $mail['postmark'] ) : ?>
+					<strong><?php esc_html_e( 'פעיל: כל המיילים של האתר יוצאים דרך Postmark.', 'diromax-portal' ); ?></strong>
+					<p class="description">
+						<?php esc_html_e( 'כתובת השולח:', 'diromax-portal' ); ?>
+						<span dir="ltr"><?php echo esc_html( '' !== $mail['sender'] ? $mail['sender'] : __( 'ברירת המחדל של האתר', 'diromax-portal' ) ); ?></span>
+						· <?php esc_html_e( 'זרם:', 'diromax-portal' ); ?> <code dir="ltr"><?php echo esc_html( $mail['stream'] ); ?></code>
+					</p>
+				<?php else : ?>
+					<strong><?php esc_html_e( 'לא מוגדר: המיילים יוצאים בדרך הרגילה של האתר.', 'diromax-portal' ); ?></strong>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'תשובות של לקוחות לתוך התיק', 'diromax-portal' ); ?></th>
+			<td>
+				<?php if ( $mail['inbound'] && $mail['webhook_key'] ) : ?>
+					<strong><?php esc_html_e( 'פעיל: תשובה של לקוח נשמרת בתיק ומועברת למנהל הפרויקט.', 'diromax-portal' ); ?></strong>
+				<?php elseif ( $mail['inbound'] ) : ?>
+					<strong><?php esc_html_e( 'חסר מפתח ה-webhook (DX_POSTMARK_WEBHOOK_KEY): התשובות לא יתקבלו.', 'diromax-portal' ); ?></strong>
+				<?php else : ?>
+					<?php esc_html_e( 'לא מוגדר: תשובות של לקוחות מגיעות ישירות למייל של מנהל הפרויקט.', 'diromax-portal' ); ?>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'כתובות ה-webhook ב-Postmark', 'diromax-portal' ); ?></th>
+			<td>
+				<p><?php esc_html_e( 'מיילים שחזרו וסימוני ספאם (Bounce, Spam Complaint):', 'diromax-portal' ); ?><br><code dir="ltr"><?php echo esc_html( $mail['events_url'] ); ?></code></p>
+				<p><?php esc_html_e( 'דואר נכנס (Inbound):', 'diromax-portal' ); ?><br><code dir="ltr"><?php echo esc_html( $mail['inbound_url'] ); ?></code></p>
+				<p class="description">
+					<?php esc_html_e( 'במקום KEY כותבים את הערך של DX_POSTMARK_WEBHOOK_KEY.', 'diromax-portal' ); ?>
+					<?php if ( ! $mail['webhook_key'] ) : ?>
+						<strong><?php esc_html_e( 'המפתח עדיין לא מוגדר (לפחות 32 תווים).', 'diromax-portal' ); ?></strong>
+					<?php endif; ?>
+				</p>
+			</td>
+		</tr>
+	</table>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<input type="hidden" name="action" value="dx_portal_test_mail">
+		<?php wp_nonce_field( 'dx_portal_test_mail' ); ?>
+		<?php submit_button( __( 'שליחת מייל בדיקה אליי', 'diromax-portal' ), 'secondary', 'submit', false ); ?>
+	</form>
 </div>

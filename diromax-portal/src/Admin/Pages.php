@@ -15,13 +15,17 @@ use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\CaseView;
 use Diromax\Portal\Portal\Router;
+use Diromax\Portal\Portal\Webhooks;
+use Diromax\Portal\Service\InboundService;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
 use Diromax\Portal\Service\MorningSummary;
+use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Settings;
+use Diromax\Portal\Support\MailConfig;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,7 +41,7 @@ final class Pages {
 	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'tasks', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'documents', 'log' );
+	public const TABS = array( 'overview', 'tasks', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'messages', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -112,6 +116,7 @@ final class Pages {
 			'stale'      => $repo->stale_cases( $manager, $this->app->clock->mysql_in( -$stale * DAY_IN_SECONDS ) ),
 			'quiet'      => $repo->never_signed_in( $manager, $this->app->clock->mysql_in( -3 * DAY_IN_SECONDS ) ),
 			'failed'     => $repo->failed_mail( $manager ),
+			'bounced'    => $repo->bounced_mail( $manager, $this->app->clock->mysql_in( -30 * DAY_IN_SECONDS ) ),
 			'late'       => ( new MorningSummary( $this->app ) )->late_stages( $scope ),
 			'tasks'      => $this->app->tasks->open_for( $user, 0 === $manager, null, 20 ),
 		);
@@ -257,6 +262,7 @@ final class Pages {
 			'key_ready'   => $this->app->store->is_configured(),
 			'fingerprint' => $this->app->store->fingerprint(),
 			'key_status'  => $this->app->document_service->key_status(),
+			'mail'        => self::mail_status(),
 			'categories'  => implode(
 				"\n",
 				array_map(
@@ -265,6 +271,25 @@ final class Pages {
 					Settings::categories()
 				)
 			),
+		);
+	}
+
+	/**
+	 * How the site sends and receives email (spec 17), for the settings screen.
+	 *
+	 * @return array{postmark:bool, sender:string, stream:string, inbound:bool, webhook_key:bool, events_url:string, inbound_url:string}
+	 */
+	public static function mail_status(): array {
+		$with_key = static fn( string $url ): string => (string) preg_replace( '#^(https?://)#', '$1postmark:KEY@', $url );
+
+		return array(
+			'postmark'    => Postmark::configured(),
+			'sender'      => sanitize_email( MailConfig::get( 'from' ) ),
+			'stream'      => '' !== sanitize_key( MailConfig::get( 'stream' ) ) ? sanitize_key( MailConfig::get( 'stream' ) ) : 'outbound',
+			'inbound'     => InboundService::enabled(),
+			'webhook_key' => Webhooks::configured(),
+			'events_url'  => $with_key( Webhooks::url( 'events' ) ),
+			'inbound_url' => $with_key( Webhooks::url( 'inbound' ) ),
 		);
 	}
 
@@ -408,6 +433,10 @@ final class Pages {
 				'assignees' => ( new TaskService( $this->app ) )->assignees( $client_case ),
 				'today'     => $this->app->clock->today(),
 			),
+			'messages'  => array(
+				'messages' => $this->app->messages->for_case( $client_case->id ),
+				'enabled'  => InboundService::enabled(),
+			),
 			'log'       => array(
 				'audit' => $this->app->audit->for_case( $client_case->id, 300 ),
 				'mail'  => $this->app->mail_log->for_case( $client_case->id, 200 ),
@@ -481,6 +510,7 @@ final class Pages {
 			'decisions' => $pending,
 			'members'   => count( $this->app->members->for_case( $client_case->id ) ),
 			'tasks'     => $this->app->tasks->open_count( $client_case->id ),
+			'messages'  => $this->app->messages->count_for_case( $client_case->id ),
 		);
 	}
 
@@ -558,6 +588,7 @@ final class Pages {
 			'finance'   => __( 'כספים', 'diromax-portal' ),
 			'decisions' => __( 'החלטות', 'diromax-portal' ),
 			'updates'   => __( 'עדכונים', 'diromax-portal' ),
+			'messages'  => __( 'הודעות', 'diromax-portal' ),
 			'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 			'log'       => __( 'יומן', 'diromax-portal' ),
 		);
