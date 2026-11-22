@@ -24,6 +24,9 @@ ln -s "$repo/diromax-portal" "$wp/wp-content/plugins/diromax-portal"
 
 salts="$(php -r 'foreach (array("AUTH_KEY","SECURE_AUTH_KEY","LOGGED_IN_KEY","NONCE_KEY","AUTH_SALT","SECURE_AUTH_SALT","LOGGED_IN_SALT","NONCE_SALT") as $k) { echo "define( \"$k\", \"" . bin2hex( random_bytes( 32 ) ) . "\" );\n"; }')"
 key="$(php -r 'echo base64_encode( random_bytes( 32 ) );')"
+# Release 1.7.0: the Postmark webhooks' key (no token: no mail leaves the machine).
+webhook_key="$(php -r 'echo bin2hex( random_bytes( 24 ) );')"
+printf '%s' "$webhook_key" > "$work/webhook-key"
 
 cat > "$wp/wp-config.php" <<CONFIG
 <?php
@@ -40,6 +43,7 @@ define( 'WP_DEBUG_LOG', '$work/debug.log' );
 define( 'WP_DEBUG_DISPLAY', false );
 define( 'DX_PORTAL_KEY', '$key' );
 define( 'DX_PORTAL_PRIVATE_DIR', '$work/private' );
+define( 'DX_POSTMARK_WEBHOOK_KEY', '$webhook_key' );
 define( 'WP_HOME', 'http://127.0.0.1:8088' );
 define( 'WP_SITEURL', 'http://127.0.0.1:8088' );
 define( 'DISABLE_WP_CRON', true );
@@ -49,6 +53,15 @@ define( 'AUTOMATIC_UPDATER_DISABLED', true );
 if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', __DIR__ . '/' ); }
 require_once ABSPATH . 'wp-settings.php';
 CONFIG
+
+# The reply address hash of a case, for the inbound webhook journey (spec 17.3).
+cat > "$work/mailbox-hash.php" <<HASH
+<?php
+\$_SERVER['HTTP_HOST']   = '127.0.0.1:8088';
+\$_SERVER['REQUEST_URI'] = '/';
+require '$wp/wp-load.php';
+echo \\Diromax\\Portal\\Service\\InboundService::mailbox_hash( (string) ( \$argv[1] ?? '' ) );
+HASH
 
 # Outgoing mail is written to files the scripts read (no SMTP in tests).
 cat > "$wp/wp-content/mu-plugins/e2e-mail-capture.php" <<MAIL

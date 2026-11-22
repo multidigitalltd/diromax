@@ -33,10 +33,10 @@ final class MessageRepository {
 	public function __construct( private readonly \wpdb $db ) {}
 
 	/**
-	 * Store a message.
+	 * Store a message with what happened to its files.
 	 *
-	 * @param array{case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string} $fields Fields.
-	 * @param string                                                                                                                         $now    UTC DATETIME.
+	 * @param array{case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, files:MessageFile[]} $fields Fields.
+	 * @param string                                                                                                                                         $now    UTC DATETIME.
 	 * @return int New ID; 0 when it failed or the message is already stored.
 	 */
 	public function insert( array $fields, string $now ): int {
@@ -50,22 +50,12 @@ final class MessageRepository {
 				'sender_email' => mb_substr( $fields['sender_email'], 0, 190 ),
 				'subject'      => mb_substr( $fields['subject'], 0, 255 ),
 				'body'         => $fields['body'],
-				'files'        => '[]',
+				'files'        => (string) wp_json_encode( array_values( $fields['files'] ) ),
 				'received_at'  => $now,
 			)
 		);
 
 		return false === $ok ? 0 : (int) $this->db->insert_id;
-	}
-
-	/**
-	 * Record the files of a stored message.
-	 *
-	 * @param int           $id    Message.
-	 * @param MessageFile[] $files Files.
-	 */
-	public function set_files( int $id, array $files ): void {
-		$this->db->update( Schema::table( 'messages' ), array( 'files' => (string) wp_json_encode( array_values( $files ) ) ), array( 'id' => $id ) );
 	}
 
 	/**

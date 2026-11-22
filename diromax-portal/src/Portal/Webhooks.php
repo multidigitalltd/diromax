@@ -179,7 +179,18 @@ final class Webhooks {
 			return new WP_REST_Response( array( 'ok' => false ), 403 );
 		}
 
-		$result = ( new InboundService( $this->app ) )->receive( $mail );
+		try {
+			$result = ( new InboundService( $this->app ) )->receive( $mail );
+		} catch ( \Throwable $error ) {
+			Logger::error(
+				'inbound.crashed',
+				array(
+					'error' => get_class( $error ),
+					'where' => basename( $error->getFile() ) . ':' . $error->getLine(),
+				)
+			);
+			$result = new WP_Error( 'dx_inbound_failed' );
+		}
 
 		if ( $result instanceof WP_Error ) {
 			// Anything else than 200 makes Postmark try again later.

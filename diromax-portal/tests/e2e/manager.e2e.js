@@ -10,6 +10,7 @@ const out = (n) => path.join(S, 'e2e', n);
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? '  — ' + detail : '')); };
 const mails = () => fs.readdirSync(path.join(S, 'mails')).sort();
+const { mailNames, codeFor } = require('./signin');
 
 async function axe(page, label) {
   await page.addScriptTag({ content: AXE });
@@ -27,8 +28,21 @@ async function axe(page, label) {
   await page.goto(BASE + '/wp-login.php');
   await page.fill('#user_login', 'daniel');
   await page.fill('#user_pass', 'Manager-Dev-Pass-2026!');
+  const seenBeforeCode = mailNames(S);
   await page.click('#wp-submit');
   await page.waitForLoadState('networkidle');
+  // Decision 16: the right password alone does not sign in; a code goes to the account's email.
+  const loginCode = await codeFor(S, seenBeforeCode, 'daniel@example.org');
+  check('wp-login: the password leads to the email code step, not into the site', (await page.locator('#dx-code').count()) === 1 && page.url().includes('/wp-login.php'), page.url());
+  await axe(page, 'wp-login code step');
+  await page.fill('#dx-code', loginCode === '000000' ? '111111' : '000000');
+  await page.click('#dx-code-submit');
+  await page.waitForLoadState('networkidle');
+  check('a wrong code is refused', (await page.textContent('#login_error')).includes('הקוד לא נכון') && (await page.getAttribute('#dx-code', 'aria-invalid')) === 'true');
+  await page.fill('#dx-code', loginCode);
+  await page.click('#dx-code-submit');
+  await page.waitForLoadState('networkidle');
+  check('the right code signs in (a project manager lands in the management app)', page.url().startsWith(BASE + '/portal/manage/'), page.url());
 
   await page.goto(BASE + '/wp-admin/admin.php?page=dx-cases');
   check('cases list shows the case with budget use incl. hidden entries (manager view)', (await page.textContent('#wpbody')).includes('רח׳ הזית 14') && (await page.textContent('#wpbody')).includes('16.6%'));
@@ -115,9 +129,10 @@ async function axe(page, label) {
   await page.fill('#dxa-member-email', 'moshe@example.org');
   await page.selectOption('#dxa-member-role', 'partner');
   const beforeInvite = mails().length;
+  const seenBeforeInvite = mailNames(S);
   await page.click('form:has(#dxa-member-email) [type=submit]');
   await page.waitForLoadState('networkidle');
-  const invite = JSON.parse(fs.readFileSync(path.join(S, 'mails', mails()[mails().length - 1]), 'utf8'));
+  const invite = JSON.parse(fs.readFileSync(path.join(S, 'mails', mails().find(f => !seenBeforeInvite.has(f))), 'utf8'));
   check('member added and invited', mails().length === beforeInvite + 1 && invite.to === 'moshe@example.org' && invite.subject.includes('הוזמנת'));
   await axe(page, 'members tab');
 

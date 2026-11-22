@@ -2,7 +2,8 @@
 // client uploads, the case report, and digital signatures (portal and an
 // emailed link for someone outside the system), with axe on every new screen.
 // Runs last, on the site the other journeys seeded.
-const { chromium, devices } = require('playwright');
+const { chromium, devices, request } = require('playwright');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const S = process.argv[2];
@@ -17,6 +18,7 @@ const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); c
 const mailFiles = () => new Set(fs.readdirSync(path.join(S, 'mails')));
 const mailsSince = (seen) => [...mailFiles()].filter(f => !seen.has(f)).sort().map(f => JSON.parse(fs.readFileSync(path.join(S, 'mails', f), 'utf8')));
 const pdf = path.join(S, 'e2e', 'nesach.pdf');
+const { wpSignIn, portalSignIn } = require('./signin');
 
 async function axe(page, label) {
   await page.addScriptTag({ content: AXE });
@@ -59,11 +61,7 @@ function localDate(offsetDays) {
   const mctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
   const page = await mctx.newPage();
   watch(page);
-  await page.goto(BASE + '/wp-login.php?redirect_to=' + encodeURIComponent(BASE + '/portal/manage/case/1/?tab=details'));
-  await page.fill('#user_login', 'daniel');
-  await page.fill('#user_pass', 'Manager-Dev-Pass-2026!');
-  await page.click('#wp-submit');
-  await page.waitForLoadState('load');
+  await wpSignIn(page, S, BASE, { user: 'daniel', pass: 'Manager-Dev-Pass-2026!', email: 'daniel@example.org', redirect: BASE + '/portal/manage/case/1/?tab=details' });
   const caseUrl = BASE + '/portal/manage/case/1/';
 
   const activeStage = await page.locator('#dxa-stages .dxa-seg__in--active:checked').first().getAttribute('name');
@@ -118,11 +116,7 @@ function localDate(offsetDays) {
   watch(client);
   await client.goto(BASE + '/portal/login/');
   await dismissPrivacy(client);
-  await client.click('.dxp-alt summary');
-  await client.fill('#dxp-pw-email', 'cohen@example.org');
-  await client.fill('#dxp-pw', CLIENT_PASSWORD);
-  await client.click('.dxp-alt button[type=submit]');
-  await client.waitForLoadState('load');
+  await portalSignIn(client, S, { email: 'cohen@example.org', pass: CLIENT_PASSWORD });
   const portalCase = client.url().split('?')[0];
   check('the banner asks for the document', (await client.textContent('.dxp-todo')).includes('להעלות: נסח טאבו עדכני'));
   await client.goto(portalCase + '?tab=documents');
@@ -190,6 +184,59 @@ function localDate(offsetDays) {
   const certText = await page.textContent('body');
   check('the certificate holds the ID number, the method and the drawing', certText.includes(VALID_ID) && certText.includes('קוד חד-פעמי') && (await page.locator('img[alt^="החתימה של"]').count()) === 1);
   await axe(page, 'signature certificate');
+
+  // ---------- Release 1.7.0: a client's email reply reaches the case (spec 17.3) ----------
+  // Postmark posts the reply to the inbound webhook over real HTTP, with Basic credentials.
+  const webhookKey = fs.readFileSync(path.join(S, 'webhook-key'), 'utf8').trim();
+  const publicId = portalCase.match(/\/portal\/case\/([a-f0-9]{24})\//)[1];
+  const hash = execFileSync('php', [path.join(S, 'mailbox-hash.php'), publicId]).toString().trim();
+  const attachment = Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n' + Date.now() + '\ntrailer << /Root 1 0 R >>\n%%EOF\n');
+  const reply = {
+    MessageID: 'e2e-' + Date.now(),
+    From: 'cohen@example.org',
+    FromName: 'משפחת כהן',
+    FromFull: { Email: 'cohen@example.org', Name: 'משפחת כהן', MailboxHash: '' },
+    ToFull: [{ Email: 'replies+' + hash + '@inbound.postmarkapp.com', Name: '', MailboxHash: hash }],
+    MailboxHash: hash,
+    Subject: 'Re: עדכון בתיק',
+    TextBody: 'מתי מגיע הקבלן?\n\n> המייל המקורי מדירומקס',
+    StrippedTextReply: 'מתי מגיע הקבלן?',
+    Headers: [{ Name: 'X-Spam-Status', Value: 'No' }, { Name: 'X-Spam-Tests', Value: 'DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,SPF_PASS' }],
+    Attachments: [{ Name: 'צילום-גג.pdf', Content: attachment.toString('base64'), ContentType: 'application/pdf', ContentLength: attachment.length }],
+  };
+  const basic = (password) => ({ Authorization: 'Basic ' + Buffer.from('postmark:' + password).toString('base64') });
+  const inboundUrl = BASE + '/wp-json/diromax-portal/v1/postmark/inbound';
+  const api = await request.newContext();
+  let res = await api.post(inboundUrl, { data: reply, headers: basic('not-the-key') });
+  check('the inbound webhook refuses a wrong key', res.status() === 401, String(res.status()));
+  before = mailFiles();
+  res = await api.post(inboundUrl, { data: reply, headers: basic(webhookKey) });
+  const answer = res.ok() ? await res.json() : {};
+  check('with the key, WordPress lets the request through and the reply is kept', res.status() === 200 && answer.result === 'stored', res.status() + ' ' + JSON.stringify(answer));
+  const forward = mailsSince(before).find(m => m.to === 'daniel@example.org');
+  check('the manager gets the whole reply, with the file, answering goes to the client', !!forward && forward.subject.includes('הודעה ממשפחת כהן') && forward.message.includes('המייל המקורי מדירומקס') && forward.headers.some(h => h.startsWith('Reply-To:') && h.includes('cohen@example.org')) && Object.keys(forward.attachments || {}).includes('צילום-גג.pdf'), forward ? forward.subject : 'no mail');
+  res = await api.post(inboundUrl, { data: reply, headers: basic(webhookKey) });
+  check('the same reply delivered twice is kept once', res.status() === 200 && (await res.json()).result === 'duplicate');
+  await api.dispose();
+
+  await page.goto(caseUrl + '?tab=messages');
+  const messagesTab = await page.textContent('.dxa-messages');
+  check('the messages tab shows the reply and links its file', messagesTab.includes('מתי מגיע הקבלן?') && !messagesTab.includes('המייל המקורי') && (await page.locator('.dxa-message__files a', { hasText: 'צילום-גג.pdf' }).count()) === 1);
+  await page.screenshot({ path: out('70-messages-tab.png'), fullPage: true });
+  await axe(page, 'case messages tab');
+
+  // The administrator sees how mail is set up, never the key itself.
+  const actx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  const adminPage = await actx.newPage();
+  watch(adminPage);
+  await wpSignIn(adminPage, S, BASE, { user: 'dxadmin', pass: 'Admin-Dev-Pass-2026!', email: 'admin@example.org', redirect: BASE + '/wp-admin/admin.php?page=dx-portal-settings' });
+  const settingsHtml = await adminPage.content();
+  check('settings show the Postmark setup and the webhook addresses, not the key', settingsHtml.includes('שליחה וקבלה של מיילים') && settingsHtml.includes('postmark:KEY@127.0.0.1:8088/wp-json/diromax-portal/v1/postmark/inbound') && !settingsHtml.includes(webhookKey));
+  await axe(adminPage, 'settings with the mail section');
+  before = mailFiles();
+  await adminPage.click('form:has(input[value="dx_portal_test_mail"]) [type=submit]');
+  await adminPage.waitForLoadState('load');
+  check('a test email goes to the administrator', (await adminPage.textContent('.notice-success')).includes('מייל בדיקה נשלח') && mailsSince(before).some(m => m.to === 'admin@example.org' && m.subject.includes('מייל בדיקה')));
 
   check('no script errors or failed assets', errors.length === 0, errors.join(' | '));
   fs.writeFileSync(out('phase3-results.json'), JSON.stringify(results, null, 2));

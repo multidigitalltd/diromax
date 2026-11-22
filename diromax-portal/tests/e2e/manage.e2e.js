@@ -10,6 +10,8 @@ const BASE = 'http://127.0.0.1:8088';
 const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const out = (n) => path.join(S, 'e2e', n);
 const CLIENT_PASSWORD = 'גג חדש בקריית אונו 2026'; // Set by phase2.e2e.js.
+const { wpSignIn, portalSignIn } = require('./signin');
+const EMAILS = { daniel: 'daniel@example.org', dxadmin: 'admin@example.org' };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? '  — ' + detail : '')); };
 
@@ -20,11 +22,7 @@ async function axe(page, label) {
 }
 
 async function signIn(page, user, pass, redirect) {
-  await page.goto(BASE + '/wp-login.php' + (redirect ? '?redirect_to=' + encodeURIComponent(redirect) : ''));
-  await page.fill('#user_login', user);
-  await page.fill('#user_pass', pass);
-  await page.click('#wp-submit');
-  await page.waitForLoadState('load');
+  await wpSignIn(page, S, BASE, { user, pass, email: EMAILS[user], redirect });
 }
 
 (async () => {
@@ -88,7 +86,7 @@ async function signIn(page, user, pass, redirect) {
   await page.click('a.row-title');
   await page.waitForLoadState('load');
   const caseUrl = page.url().split('?')[0];
-  check('case screen in the app, with stages and tabs', /\/portal\/manage\/case\/\d+\/$/.test(caseUrl) && (await page.locator('.dxa-step').count()) === 7 && (await page.locator('.dxa-tabs .nav-tab').count()) === 10, caseUrl);
+  check('case screen in the app, with stages and tabs', /\/portal\/manage\/case\/\d+\/$/.test(caseUrl) && (await page.locator('.dxa-step').count()) === 7 && (await page.locator('.dxa-tabs .nav-tab').count()) === 11, caseUrl);
   await axe(page, 'app case overview');
 
   await page.click('.dxa-head__actions a:has-text("+ תנועה")');
@@ -193,11 +191,7 @@ async function signIn(page, user, pass, redirect) {
   // The client signs in with the password set in the phase 2 journey (the
   // sign-in link is rate limited per address, and earlier journeys used it).
   await client.goto(BASE + '/portal/login/');
-  await client.click('.dxp-alt summary');
-  await client.fill('#dxp-pw-email', 'cohen@example.org');
-  await client.fill('#dxp-pw', CLIENT_PASSWORD);
-  await client.click('.dxp-alt button[type=submit]');
-  await client.waitForLoadState('load');
+  await portalSignIn(client, S, { email: 'cohen@example.org', pass: CLIENT_PASSWORD });
   check('the client is signed in to the portal', client.url().includes('/portal/') && !client.url().includes('/login/'), client.url());
   await client.goto(BASE + '/portal/manage/');
   check('a client is sent back to the portal', !client.url().includes('/manage/') && client.url().includes('/portal/'), client.url());

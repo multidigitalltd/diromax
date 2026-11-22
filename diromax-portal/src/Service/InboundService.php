@@ -17,6 +17,7 @@ use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Support\Ids;
 use Diromax\Portal\Support\MailConfig;
+use Diromax\Portal\Support\TempFile;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -124,8 +125,24 @@ final class InboundService {
 			return 'duplicate';
 		}
 
-		set_transient( $seen, 1, self::SEEN_FOR );
+		$result = $this->handle( $provider_id, $mail );
 
+		// Remembered only once handled: a failure is tried again by Postmark.
+		if ( ! $result instanceof WP_Error ) {
+			set_transient( $seen, 1, self::SEEN_FOR );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Sort, keep and forward one new message.
+	 *
+	 * @param string               $provider_id Postmark's message ID.
+	 * @param array<string, mixed> $mail        Inbound JSON.
+	 * @return string|WP_Error
+	 */
+	private function handle( string $provider_id, array $mail ): string|WP_Error {
 		$headers = self::headers( $mail['Headers'] ?? array() );
 
 		if ( self::is_spam( $headers ) ) {
@@ -168,7 +185,6 @@ final class InboundService {
 		$stored = $this->store( $client_case, $member, $letter );
 
 		if ( $stored instanceof WP_Error ) {
-			delete_transient( $seen );
 			return $stored;
 		}
 
@@ -265,25 +281,6 @@ final class InboundService {
 	 * @return Outcome|WP_Error What happened to each file.
 	 */
 	private function store( CaseRecord $client_case, array $member, array $letter ): array|WP_Error {
-		$now = $this->app->clock->mysql();
-		$id  = $this->app->messages->insert(
-			array(
-				'case_id'      => $client_case->id,
-				'user_id'      => $member['user_id'],
-				'provider_id'  => $letter['provider_id'],
-				'sender_name'  => $member['name'],
-				'sender_email' => $letter['sender']['email'],
-				'subject'      => $letter['subject'],
-				'body'         => '' === $letter['reply'] ? $letter['full'] : $letter['reply'],
-			),
-			$now
-		);
-
-		if ( 0 === $id ) {
-			Logger::error( 'inbound.store_failed', array( 'case' => $client_case->id ) );
-			return Errors::storage();
-		}
-
 		$outcome = array();
 
 		foreach ( $letter['files'] as $file ) {
@@ -298,7 +295,26 @@ final class InboundService {
 			);
 		}
 
-		$this->app->messages->set_files( $id, $outcome );
+		$now = $this->app->clock->mysql();
+		$id  = $this->app->messages->insert(
+			array(
+				'case_id'      => $client_case->id,
+				'user_id'      => $member['user_id'],
+				'provider_id'  => $letter['provider_id'],
+				'sender_name'  => $member['name'],
+				'sender_email' => $letter['sender']['email'],
+				'subject'      => $letter['subject'],
+				'body'         => '' === $letter['reply'] ? $letter['full'] : $letter['reply'],
+				'files'        => $outcome,
+			),
+			$now
+		);
+
+		if ( 0 === $id ) {
+			Logger::error( 'inbound.store_failed', array( 'case' => $client_case->id ) );
+			return Errors::storage();
+		}
+
 		$this->app->audit->record(
 			'message.received',
 			$client_case->id,
@@ -339,7 +355,7 @@ final class InboundService {
 			$sends = isset( DocumentService::TYPES[ $ext ] ) && $total + $size <= self::MAX_FORWARD;
 
 			if ( $sends ) {
-				$path = wp_tempnam( 'dx-portal-forward' );
+				$path = TempFile::create( 'dx-portal-forward' );
 
 				if ( '' !== $path && false !== file_put_contents( $path, $file['bytes'] ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- A private temporary copy for the forward, deleted right after.
 					$label            = isset( $attach[ $file['name'] ] ) ? ( $index + 1 ) . '-' . $file['name'] : $file['name'];

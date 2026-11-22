@@ -322,6 +322,32 @@ final class InboundTest extends PortalTestCase {
 		$this->assertSame( 403, $hooks->inbound( $broken )->get_status(), 'Postmark stops retrying what can never be read.' );
 	}
 
+	/**
+	 * Regression: the message was marked as seen before it was handled, so
+	 * when handling crashed (wp_tempnam() is missing outside wp-admin),
+	 * Postmark's retry was dropped as a duplicate and the reply was lost.
+	 */
+	public function test_a_reply_that_failed_is_handled_again_on_retry(): void {
+		[ $case ] = $this->case_with_client();
+		$mail     = $this->reply( $case, array( 'Attachments' => array( self::pdf() ) ) );
+		$crash    = static function (): bool {
+			throw new \RuntimeException( 'scanner down' );
+		};
+		$hooks    = new Webhooks( $this->app );
+		$request  = new WP_REST_Request( 'POST', '/' . Webhooks::NAMESPACE . '/postmark/inbound' );
+		$request->set_header( 'content-type', 'application/json' );
+		$request->set_body( (string) wp_json_encode( $mail ) );
+
+		add_filter( 'dx_portal_scan_upload', $crash );
+		$this->assertSame( 500, $hooks->inbound( $request )->get_status(), 'A crash asks Postmark to try again.' );
+		remove_filter( 'dx_portal_scan_upload', $crash );
+
+		$this->assertSame( array(), $this->app->messages->for_case( $case->id ) );
+		$this->assertSame( 'stored', $hooks->inbound( $request )->get_data()['result'] );
+		$this->assertCount( 1, $this->app->messages->for_case( $case->id ) );
+		$this->assertNotNull( $this->app->messages->for_case( $case->id )[0]['files'][0]['document_id'] );
+	}
+
 	public function test_replies_are_in_the_privacy_export_and_erased_with_the_person(): void {
 		[ $case ] = $this->case_with_client();
 		( new InboundService( $this->app ) )->receive( $this->reply( $case ) );

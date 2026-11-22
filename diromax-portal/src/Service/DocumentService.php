@@ -18,6 +18,7 @@ use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Security\DocumentStore;
 use Diromax\Portal\Support\Ids;
+use Diromax\Portal\Support\TempFile;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -453,7 +454,7 @@ final class DocumentService {
 			return Errors::invalid( array( 'file' => 'type' ) );
 		}
 
-		$path = wp_tempnam( 'dx-portal-mail' );
+		$path = TempFile::create( 'dx-portal-mail' );
 
 		if ( '' === $path || false === file_put_contents( $path, $bytes ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- A private temporary file, encrypted into the store and deleted.
 			return Errors::storage();
@@ -511,7 +512,7 @@ final class DocumentService {
 			return Errors::invalid( array( 'file' => 'type' ) );
 		}
 
-		$target = wp_tempnam( 'dx-portal-image' ) . '.' . $file['ext'];
+		$target = TempFile::create( 'dx-portal-image' ) . '.' . $file['ext'];
 		$saved  = $editor->save( $target, $file['mime'] );
 
 		if ( $saved instanceof WP_Error || ! is_array( $saved ) || ! isset( $saved['path'] ) ) {
