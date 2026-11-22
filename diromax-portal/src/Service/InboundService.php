@@ -109,6 +109,10 @@ final class InboundService {
 	/**
 	 * Handle one inbound email from Postmark.
 	 *
+	 * Safe to repeat: Postmark tries again whenever this fails, and a kept
+	 * message records how far it got (saving its files, saved, forwarded), so
+	 * a retry carries on from there instead of starting over.
+	 *
 	 * @param array<string, mixed> $mail Postmark's inbound JSON.
 	 * @return string|WP_Error stored, forwarded, duplicate or ignored; WP_Error to be tried again.
 	 */
@@ -120,12 +124,13 @@ final class InboundService {
 		}
 
 		$seen = 'dx_portal_in_' . substr( hash( 'sha256', $provider_id ), 0, 40 );
+		$kept = false === get_transient( $seen ) ? $this->app->messages->find_by_provider( $provider_id ) : null;
 
-		if ( false !== get_transient( $seen ) || $this->app->messages->exists( $provider_id ) ) {
+		if ( false !== get_transient( $seen ) || ( null !== $kept && 'forwarded' === $kept['stage'] ) ) {
 			return 'duplicate';
 		}
 
-		$result = $this->handle( $provider_id, $mail );
+		$result = null === $kept ? $this->handle( $provider_id, $mail ) : $this->resume( $kept, $mail );
 
 		// Remembered only once handled: a failure is tried again by Postmark.
 		if ( ! $result instanceof WP_Error ) {
@@ -157,20 +162,15 @@ final class InboundService {
 			return 'ignored';
 		}
 
-		$sender = self::sender( $mail );
-		$member = null === $client_case ? null : $this->member( $client_case, $sender['email'] );
-		$reason = $this->problem( $client_case, $member, $sender['email'], $headers );
-		$letter = array(
-			'provider_id' => $provider_id,
-			'sender'      => $sender,
-			'subject'     => mb_substr( Text::line( self::str( $mail, 'Subject' ) ), 0, 255 ),
-			'reply'       => self::text( $mail, true ),
-			'full'        => self::text( $mail, false ),
-			'files'       => self::files( $mail['Attachments'] ?? array() ),
-		);
+		$letter = self::letter( $provider_id, $mail );
+		$member = null === $client_case ? null : $this->member( $client_case, $letter['sender']['email'] );
+		$reason = $this->problem( $client_case, $member, $letter['sender']['email'], $headers );
 
 		if ( '' !== $reason || null === $client_case || null === $member ) {
-			$this->forward( $client_case, $letter, array(), $reason );
+			if ( ! $this->forward( $client_case, $letter, array(), $reason ) ) {
+				return self::unsent();
+			}
+
 			Logger::warning(
 				'inbound.forwarded_only',
 				array(
@@ -182,15 +182,129 @@ final class InboundService {
 			return 'forwarded';
 		}
 
-		$stored = $this->store( $client_case, $member, $letter );
+		$id = $this->app->messages->insert(
+			array(
+				'case_id'      => $client_case->id,
+				'user_id'      => $member['user_id'],
+				'provider_id'  => $provider_id,
+				'sender_name'  => $member['name'],
+				'sender_email' => $letter['sender']['email'],
+				'subject'      => $letter['subject'],
+				'body'         => '' === $letter['reply'] ? $letter['full'] : $letter['reply'],
+			),
+			$this->app->clock->mysql()
+		);
 
-		if ( $stored instanceof WP_Error ) {
-			return $stored;
+		if ( 0 === $id ) {
+			Logger::error( 'inbound.store_failed', array( 'case' => $client_case->id ) );
+			return Errors::storage();
 		}
 
-		$this->forward( $client_case, $letter, $stored, '' );
+		return $this->finish( $client_case, $member, $letter, $id, array(), 'saving' );
+	}
+
+	/**
+	 * Carry on with a message an earlier attempt kept but did not finish.
+	 *
+	 * @param array<string, mixed> $kept Stored message (MessageRepository::find_by_provider).
+	 * @param array<string, mixed> $mail Inbound JSON, sent again by Postmark.
+	 * @phpstan-param array{id:int, case_id:int, user_id:int|null, sender_name:string, files:Outcome, stage:string} $kept
+	 * @return string|WP_Error
+	 */
+	private function resume( array $kept, array $mail ): string|WP_Error {
+		$client_case = $this->app->cases->find( $kept['case_id'] );
+
+		if ( null === $client_case ) {
+			return 'ignored';
+		}
+
+		$user_id = (int) $kept['user_id'];
+		$member  = array(
+			'user_id'       => $user_id,
+			'name'          => $kept['sender_name'],
+			'may_add_files' => $user_id > 0 && DecisionService::may_answer( $this->app->members->role( $client_case->id, $user_id ) ),
+		);
+
+		return $this->finish( $client_case, $member, self::letter( Text::line( self::str( $mail, 'MessageID' ) ), $mail ), $kept['id'], $kept['files'], $kept['stage'] );
+	}
+
+	/**
+	 * Save the files still missing, then forward. Each file is recorded as
+	 * soon as it is stored, so a retry never stores it twice.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param array      $member      Sender.
+	 * @param array      $letter      The reply.
+	 * @param int        $id          Message.
+	 * @param array      $files       Files handled so far, in order.
+	 * @param string     $stage       saving or saved.
+	 * @phpstan-param Member  $member
+	 * @phpstan-param Letter  $letter
+	 * @phpstan-param Outcome $files
+	 * @return string|WP_Error
+	 */
+	private function finish( CaseRecord $client_case, array $member, array $letter, int $id, array $files, string $stage ): string|WP_Error {
+		if ( 'saving' === $stage ) {
+			foreach ( array_slice( $letter['files'], count( $files ) ) as $file ) {
+				$document = $member['may_add_files']
+					? $this->app->document_service->store_from_mail( $client_case, $file['name'], $file['bytes'], $member['user_id'] )
+					: new WP_Error( 'dx_forbidden' );
+
+				$files[] = array(
+					'name'        => $file['name'],
+					'document_id' => $document instanceof WP_Error ? null : $document->id,
+					'reason'      => $document instanceof WP_Error ? self::file_reason( $document ) : '',
+				);
+				$this->app->messages->set_files( $id, $files );
+			}
+
+			$this->app->messages->set_stage( $id, 'saved' );
+			$this->app->audit->record(
+				'message.received',
+				$client_case->id,
+				'message',
+				$id,
+				array( 'files' => count( array_filter( array_column( $files, 'document_id' ) ) ) ),
+				$this->app->clock->mysql()
+			);
+		}
+
+		if ( ! $this->forward( $client_case, $letter, $files, '' ) ) {
+			return self::unsent();
+		}
+
+		$this->app->messages->set_stage( $id, 'forwarded' );
 
 		return 'stored';
+	}
+
+	/**
+	 * The parts of the email the service works with.
+	 *
+	 * @param string               $provider_id Postmark's message ID.
+	 * @param array<string, mixed> $mail        Inbound JSON.
+	 * @return Letter
+	 */
+	private static function letter( string $provider_id, array $mail ): array {
+		return array(
+			'provider_id' => $provider_id,
+			'sender'      => self::sender( $mail ),
+			'subject'     => mb_substr( Text::line( self::str( $mail, 'Subject' ) ), 0, 255 ),
+			'reply'       => self::text( $mail, true ),
+			'full'        => self::text( $mail, false ),
+			'files'       => self::files( $mail['Attachments'] ?? array() ),
+		);
+	}
+
+	/**
+	 * The forward did not go out: Postmark should try the message again.
+	 *
+	 * @return WP_Error
+	 */
+	private static function unsent(): WP_Error {
+		Logger::error( 'inbound.forward_failed' );
+
+		return new WP_Error( 'dx_forward_unsent', 'The forward was not sent.' );
 	}
 
 	/**
@@ -271,65 +385,6 @@ final class InboundService {
 	}
 
 	/**
-	 * Keep a reply in its case, with its files.
-	 *
-	 * @param CaseRecord $client_case Case.
-	 * @param array      $member      Sender.
-	 * @param array      $letter      The reply.
-	 * @phpstan-param Member $member
-	 * @phpstan-param Letter $letter
-	 * @return Outcome|WP_Error What happened to each file.
-	 */
-	private function store( CaseRecord $client_case, array $member, array $letter ): array|WP_Error {
-		$outcome = array();
-
-		foreach ( $letter['files'] as $file ) {
-			$document = $member['may_add_files']
-				? $this->app->document_service->store_from_mail( $client_case, $file['name'], $file['bytes'], $member['user_id'] )
-				: new WP_Error( 'dx_forbidden' );
-
-			$outcome[] = array(
-				'name'        => $file['name'],
-				'document_id' => $document instanceof WP_Error ? null : $document->id,
-				'reason'      => $document instanceof WP_Error ? self::file_reason( $document ) : '',
-			);
-		}
-
-		$now = $this->app->clock->mysql();
-		$id  = $this->app->messages->insert(
-			array(
-				'case_id'      => $client_case->id,
-				'user_id'      => $member['user_id'],
-				'provider_id'  => $letter['provider_id'],
-				'sender_name'  => $member['name'],
-				'sender_email' => $letter['sender']['email'],
-				'subject'      => $letter['subject'],
-				'body'         => '' === $letter['reply'] ? $letter['full'] : $letter['reply'],
-				'files'        => $outcome,
-			),
-			$now
-		);
-
-		if ( 0 === $id ) {
-			Logger::error( 'inbound.store_failed', array( 'case' => $client_case->id ) );
-			return Errors::storage();
-		}
-
-		$this->app->audit->record(
-			'message.received',
-			$client_case->id,
-			'message',
-			$id,
-			array(
-				'files' => count( array_filter( array_column( $outcome, 'document_id' ) ) ),
-			),
-			$now
-		);
-
-		return $outcome;
-	}
-
-	/**
 	 * Forward the reply in full to the project manager (or the site's
 	 * administrator when there is no case), with the files that may travel.
 	 *
@@ -339,8 +394,9 @@ final class InboundService {
 	 * @param string          $reason      Why it was not kept, '' when it was.
 	 * @phpstan-param Letter  $letter
 	 * @phpstan-param Outcome $stored
+	 * @return bool Sent.
 	 */
-	private function forward( ?CaseRecord $client_case, array $letter, array $stored, string $reason ): void {
+	private function forward( ?CaseRecord $client_case, array $letter, array $stored, string $reason ): bool {
 		$manager = null === $client_case ? false : get_userdata( $client_case->manager_id );
 		$to      = $manager ? (string) $manager->user_email : (string) get_option( 'admin_email' );
 		$temp    = array();
@@ -422,6 +478,8 @@ final class InboundService {
 			),
 			$this->app->clock->mysql()
 		);
+
+		return $ok;
 	}
 
 	/**

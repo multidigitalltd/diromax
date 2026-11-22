@@ -18,12 +18,12 @@ defined( 'ABSPATH' ) || exit;
  * names of files that were not kept and why.
  *
  * @phpstan-type MessageFile array{name:string, document_id:int|null, reason:string}
- * @phpstan-type MessageRow array{id:int, case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, files:MessageFile[], received_at:string}
+ * @phpstan-type MessageRow array{id:int, case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, files:MessageFile[], stage:string, received_at:string}
  */
 final class MessageRepository {
 
 	/** Columns read back. */
-	private const COLUMNS = 'id, case_id, user_id, provider_id, sender_name, sender_email, subject, body, files, received_at';
+	private const COLUMNS = 'id, case_id, user_id, provider_id, sender_name, sender_email, subject, body, files, stage, received_at';
 
 	/**
 	 * Constructor.
@@ -33,10 +33,10 @@ final class MessageRepository {
 	public function __construct( private readonly \wpdb $db ) {}
 
 	/**
-	 * Store a message with what happened to its files.
+	 * Store a new message, before its files: stage "saving".
 	 *
-	 * @param array{case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, files:MessageFile[]} $fields Fields.
-	 * @param string                                                                                                                                              $now    UTC DATETIME.
+	 * @param array{case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string} $fields Fields.
+	 * @param string                                                                                                                         $now    UTC DATETIME.
 	 * @return int New ID; 0 when it failed or the message is already stored.
 	 */
 	public function insert( array $fields, string $now ): int {
@@ -50,7 +50,8 @@ final class MessageRepository {
 				'sender_email' => mb_substr( $fields['sender_email'], 0, 190 ),
 				'subject'      => mb_substr( $fields['subject'], 0, 255 ),
 				'body'         => $fields['body'],
-				'files'        => (string) wp_json_encode( array_values( $fields['files'] ) ),
+				'files'        => '[]',
+				'stage'        => 'saving',
 				'received_at'  => $now,
 			)
 		);
@@ -59,19 +60,42 @@ final class MessageRepository {
 	}
 
 	/**
-	 * Is a message with this provider ID stored?
+	 * Record the files handled so far.
 	 *
-	 * @param string $provider_id Provider message ID.
-	 * @return bool
+	 * @param int           $id    Message.
+	 * @param MessageFile[] $files Files, in the order of the email.
 	 */
-	public function exists( string $provider_id ): bool {
-		return null !== $this->db->get_var(
-			$this->db->prepare( 'SELECT 1 FROM %i WHERE provider_id = %s LIMIT 1', Schema::table( 'messages' ), $provider_id )
-		);
+	public function set_files( int $id, array $files ): void {
+		$this->db->update( Schema::table( 'messages' ), array( 'files' => (string) wp_json_encode( array_values( $files ) ) ), array( 'id' => $id ) );
 	}
 
 	/**
-	 * Messages of a case, newest first.
+	 * Move a message to its next stage: saved (files done) or forwarded.
+	 *
+	 * @param int    $id    Message.
+	 * @param string $stage saved or forwarded.
+	 */
+	public function set_stage( int $id, string $stage ): void {
+		$this->db->update( Schema::table( 'messages' ), array( 'stage' => $stage ), array( 'id' => $id ) );
+	}
+
+	/**
+	 * A stored message by its provider ID.
+	 *
+	 * @param string $provider_id Provider message ID.
+	 * @return MessageRow|null
+	 */
+	public function find_by_provider( string $provider_id ): ?array {
+		$row = $this->db->get_row(
+			$this->db->prepare( 'SELECT ' . self::COLUMNS . ' FROM %i WHERE provider_id = %s', Schema::table( 'messages' ), $provider_id ),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? self::map( $row ) : null;
+	}
+
+	/**
+	 * Messages of a case, newest first; one still saving its files is left out.
 	 *
 	 * @param int $case_id Case.
 	 * @param int $limit   Maximum rows, 1–500.
@@ -80,7 +104,7 @@ final class MessageRepository {
 	public function for_case( int $case_id, int $limit = 200 ): array {
 		$rows = $this->db->get_results(
 			$this->db->prepare(
-				'SELECT ' . self::COLUMNS . ' FROM %i WHERE case_id = %d ORDER BY received_at DESC, id DESC LIMIT %d',
+				'SELECT ' . self::COLUMNS . " FROM %i WHERE case_id = %d AND stage <> 'saving' ORDER BY received_at DESC, id DESC LIMIT %d",
 				Schema::table( 'messages' ),
 				$case_id,
 				max( 1, min( 500, $limit ) )
@@ -99,7 +123,7 @@ final class MessageRepository {
 	 */
 	public function count_for_case( int $case_id ): int {
 		return (int) $this->db->get_var(
-			$this->db->prepare( 'SELECT COUNT(*) FROM %i WHERE case_id = %d', Schema::table( 'messages' ), $case_id )
+			$this->db->prepare( "SELECT COUNT(*) FROM %i WHERE case_id = %d AND stage <> 'saving'", Schema::table( 'messages' ), $case_id )
 		);
 	}
 
@@ -148,6 +172,7 @@ final class MessageRepository {
 			'sender_email' => (string) $row['sender_email'],
 			'subject'      => (string) $row['subject'],
 			'body'         => (string) $row['body'],
+			'stage'        => (string) $row['stage'],
 			'files'        => array_values(
 				array_map(
 					static fn( $file ): array => array(

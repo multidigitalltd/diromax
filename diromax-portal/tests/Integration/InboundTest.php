@@ -348,6 +348,78 @@ final class InboundTest extends PortalTestCase {
 		$this->assertNotNull( $this->app->messages->for_case( $case->id )[0]['files'][0]['document_id'] );
 	}
 
+	/**
+	 * Regression (review of 1.7.0): a forward that Postmark could not send
+	 * was ignored; the message counted as handled, so a reply that is only
+	 * forwarded was lost, and a kept one never reached the manager.
+	 */
+	public function test_a_forward_that_could_not_be_sent_is_tried_again(): void {
+		[ $case ] = $this->case_with_client();
+		$manager  = (string) get_userdata( $case->manager_id )->user_email;
+		$down     = static fn( $short, array $atts ) => $manager === $atts['to'] ? false : $short;
+		$service  = new InboundService( $this->app );
+		$kept     = $this->reply( $case );
+		$stranger = $this->reply(
+			$case,
+			array(
+				'FromFull' => array(
+					'Email'       => 'someone@else.example',
+					'Name'        => 'מישהו',
+					'MailboxHash' => '',
+				),
+			)
+		);
+
+		add_filter( 'pre_wp_mail', $down, 5, 2 );
+		$this->assertInstanceOf( \WP_Error::class, $service->receive( $kept ), 'Postmark is asked to try again.' );
+		$this->assertInstanceOf( \WP_Error::class, $service->receive( $stranger ) );
+		remove_filter( 'pre_wp_mail', $down, 5 );
+
+		$this->assertCount( 1, $this->app->messages->for_case( $case->id ), 'The kept reply is saved already.' );
+		$this->assertSame( 'stored', $service->receive( $kept ) );
+		$this->assertSame( 'forwarded', $service->receive( $stranger ) );
+		$this->assertCount( 1, $this->app->messages->for_case( $case->id ), 'Saved once.' );
+		$this->assertCount( 2, $this->mails_to( $manager ), 'Each reached the manager once.' );
+		$this->assertSame( 'duplicate', $service->receive( $kept ) );
+		$this->assertSame( 'duplicate', $service->receive( $stranger ) );
+	}
+
+	/**
+	 * Regression (review of 1.7.0): when a later step failed after some
+	 * attachments were stored, the retry stored them again as new documents.
+	 */
+	public function test_a_retry_after_a_partial_save_stores_each_file_once(): void {
+		[ $case ] = $this->case_with_client();
+		$mail     = $this->reply( $case, array( 'Attachments' => array( self::pdf( 'א.pdf' ), self::pdf( 'ב.pdf' ), self::pdf( 'ג.pdf' ) ) ) );
+		$calls    = 0;
+		$crash    = static function ( bool $ok ) use ( &$calls ): bool {
+			if ( 2 === ++$calls ) {
+				throw new \RuntimeException( 'scanner down' );
+			}
+
+			return $ok;
+		};
+
+		add_filter( 'dx_portal_scan_upload', $crash );
+
+		try {
+			( new InboundService( $this->app ) )->receive( $mail );
+			$this->fail( 'The second file should have failed.' );
+		} catch ( \RuntimeException $error ) {
+			$this->assertSame( 'scanner down', $error->getMessage() );
+		} finally {
+			remove_filter( 'dx_portal_scan_upload', $crash );
+		}
+
+		$this->assertCount( 1, $this->app->documents->for_case( $case->id, false ), 'The first file was stored before the failure.' );
+		$this->assertSame( 'stored', ( new InboundService( $this->app ) )->receive( $mail ) );
+
+		$documents = $this->app->documents->for_case( $case->id, false );
+		$this->assertCount( 3, $documents, 'Three files, three documents: none twice.' );
+		$this->assertSame( array( 'א.pdf', 'ב.pdf', 'ג.pdf' ), array_column( $this->app->messages->for_case( $case->id )[0]['files'], 'name' ) );
+		$this->assertNotContains( null, array_column( $this->app->messages->for_case( $case->id )[0]['files'], 'document_id' ) );
+	}
+
 	public function test_replies_are_in_the_privacy_export_and_erased_with_the_person(): void {
 		[ $case ] = $this->case_with_client();
 		( new InboundService( $this->app ) )->receive( $this->reply( $case ) );

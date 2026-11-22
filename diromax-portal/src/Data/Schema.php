@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '4';
+	public const VERSION = '5';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
@@ -402,6 +402,7 @@ final class Schema {
   subject varchar(255) NOT NULL DEFAULT '',
   body mediumtext NOT NULL,
   files text NOT NULL,
+  stage varchar(10) NOT NULL DEFAULT 'saving',
   received_at datetime NOT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY provider_id (provider_id),
