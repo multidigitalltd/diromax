@@ -2,9 +2,11 @@
 /**
  * Cloudflare Turnstile for the site's forms (Multi Digital standard 15.3).
  *
- * The keys live in wp-config.php (DX_TURNSTILE_SITE_KEY and
- * DX_TURNSTILE_SECRET_KEY), the same pair the client portal uses, so the
- * secret never reaches the browser or the database. Without both keys the
+ * The keys come from wp-config.php (DX_TURNSTILE_SITE_KEY and
+ * DX_TURNSTILE_SECRET_KEY) or, through the dx_turnstile_site_key and
+ * dx_turnstile_secret filters, from the client-portal plugin's settings
+ * screen, which keeps the secret encrypted. It is the same pair the portal
+ * uses, and the secret never reaches the browser. Without both keys the
  * forms work as before, protected by the honeypot and the rate limit.
  *
  * @package Diromax
@@ -15,13 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Are both keys configured?
+ * Is the form protected? Both keys configured, or a saved secret that cannot
+ * be opened (then every submission is refused rather than let through).
  *
  * @return bool
  */
 function dx_turnstile_enabled() {
-	return defined( 'DX_TURNSTILE_SITE_KEY' ) && defined( 'DX_TURNSTILE_SECRET_KEY' )
-		&& '' !== (string) DX_TURNSTILE_SITE_KEY && '' !== (string) DX_TURNSTILE_SECRET_KEY;
+	// The portal plugin says when a saved secret cannot be opened: the form stays protected and refuses (fail closed).
+	return '' !== dx_turnstile_site_key() && ( '' !== dx_turnstile_secret() || (bool) apply_filters( 'dx_turnstile_required', false ) );
 }
 
 /**
@@ -30,7 +33,7 @@ function dx_turnstile_enabled() {
  * @return string
  */
 function dx_turnstile_site_key() {
-	return defined( 'DX_TURNSTILE_SITE_KEY' ) ? (string) DX_TURNSTILE_SITE_KEY : '';
+	return trim( (string) apply_filters( 'dx_turnstile_site_key', defined( 'DX_TURNSTILE_SITE_KEY' ) ? (string) DX_TURNSTILE_SITE_KEY : '' ) );
 }
 
 /**
@@ -39,7 +42,7 @@ function dx_turnstile_site_key() {
  * @return string
  */
 function dx_turnstile_secret() {
-	return defined( 'DX_TURNSTILE_SECRET_KEY' ) ? (string) DX_TURNSTILE_SECRET_KEY : '';
+	return trim( (string) apply_filters( 'dx_turnstile_secret', defined( 'DX_TURNSTILE_SECRET_KEY' ) ? (string) DX_TURNSTILE_SECRET_KEY : '' ) );
 }
 
 /**
@@ -55,6 +58,11 @@ function dx_turnstile_secret() {
  */
 function dx_turnstile_verify( $token, $action ) {
 	if ( '' === $token || strlen( $token ) > 2048 ) {
+		return false;
+	}
+
+	if ( '' === dx_turnstile_secret() ) {
+		error_log( 'diromax: turnstile secret missing or unreadable' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operational log line, no personal data.
 		return false;
 	}
 

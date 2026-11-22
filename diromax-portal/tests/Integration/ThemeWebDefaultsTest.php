@@ -196,6 +196,7 @@ final class ThemeWebDefaultsTest extends PortalTestCase {
 	 * Standard 15.3.5: success alone is not enough.
 	 */
 	public function test_turnstile_checks_success_action_and_hostname(): void {
+		add_filter( 'dx_turnstile_secret', static fn(): string => 'secret-for-tests', 20 );
 		$host  = (string) wp_parse_url( home_url(), PHP_URL_HOST );
 		$reply = static function ( array $body ): void {
 			remove_all_filters( 'pre_http_request' );

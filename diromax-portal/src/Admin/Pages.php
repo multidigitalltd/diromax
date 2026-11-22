@@ -27,7 +27,7 @@ use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Settings;
-use Diromax\Portal\Support\MailConfig;
+use Diromax\Portal\Support\Integrations;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -278,22 +278,60 @@ final class Pages {
 	}
 
 	/**
-	 * How the site sends and receives email (spec 17), for the settings screen.
+	 * How the site sends and receives email and protects its forms (spec
+	 * 17.5), for the settings screen. Secrets are reported as set or not,
+	 * never shown.
 	 *
-	 * @return array{postmark:bool, sender:string, stream:string, inbound:bool, webhook_key:bool, events_url:string, inbound_url:string}
+	 * @return array<string, mixed>
 	 */
 	public static function mail_status(): array {
-		$with_key = static fn( string $url ): string => (string) preg_replace( '#^(https?://)#', '$1postmark:KEY@', $url );
+		$with_key = static fn( string $url, string $key ): string => (string) preg_replace( '#^(https?://)#', '$1postmark:' . $key . '@', $url );
+		$fields   = array();
+
+		foreach ( array_keys( Integrations::FIELDS ) as $name ) {
+			$fields[ $name ] = array(
+				'locked'     => Integrations::locked( $name ),
+				'set'        => Integrations::is_set( $name ),
+				'unreadable' => Integrations::unreadable( $name ),
+				'value'      => in_array( $name, array( 'token', 'turnstile_secret' ), true ) ? '' : Integrations::get( $name ),
+			);
+		}
+
+		$once = self::take_new_webhook_key();
 
 		return array(
-			'postmark'    => Postmark::configured(),
-			'sender'      => sanitize_email( MailConfig::get( 'from' ) ),
-			'stream'      => '' !== sanitize_key( MailConfig::get( 'stream' ) ) ? sanitize_key( MailConfig::get( 'stream' ) ) : 'outbound',
-			'inbound'     => InboundService::enabled(),
-			'webhook_key' => Webhooks::configured(),
-			'events_url'  => $with_key( Webhooks::url( 'events' ) ),
-			'inbound_url' => $with_key( Webhooks::url( 'inbound' ) ),
+			'postmark'       => Postmark::configured(),
+			'inbound'        => InboundService::enabled(),
+			'webhook_key'    => Webhooks::configured(),
+			'webhook_locked' => Integrations::webhook_locked(),
+			'fields'         => $fields,
+			'key_ready'      => Plugin::instance()->store->is_configured(),
+			'events_url'     => $with_key( Webhooks::url( 'events' ), 'KEY' ),
+			'inbound_url'    => $with_key( Webhooks::url( 'inbound' ), 'KEY' ),
+			'new_key'        => '' === $once ? null : array(
+				'events'  => $with_key( Webhooks::url( 'events' ), $once ),
+				'inbound' => $with_key( Webhooks::url( 'inbound' ), $once ),
+			),
 		);
+	}
+
+	/**
+	 * The webhook key just made by this user, once: it is kept sealed for ten
+	 * minutes so the page after the redirect can show it, then forgotten.
+	 *
+	 * @return string '' when there is none.
+	 */
+	private static function take_new_webhook_key(): string {
+		$slot   = Actions::NEW_KEY_SLOT . get_current_user_id();
+		$sealed = get_transient( $slot );
+
+		if ( ! is_string( $sealed ) ) {
+			return '';
+		}
+
+		delete_transient( $slot );
+
+		return (string) Plugin::instance()->store->unseal( $sealed, $slot );
 	}
 
 	/**

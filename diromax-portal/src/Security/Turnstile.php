@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Security;
 
 use Diromax\Portal\Data\Logger;
+use Diromax\Portal\Support\Integrations;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -17,7 +18,8 @@ defined( 'ABSPATH' ) || exit;
  * Server-side Turnstile check for the portal's sign-in form (standard 15.3).
  *
  * Active only when both keys are defined in wp-config.php
- * (DX_TURNSTILE_SITE_KEY, DX_TURNSTILE_SECRET_KEY). The secret never reaches
+ * (from the settings screen, or DX_TURNSTILE_SITE_KEY and DX_TURNSTILE_SECRET_KEY
+ * in wp-config.php; see Integrations). The secret never reaches
  * the browser. Any failure, including Cloudflare being unreachable, rejects.
  */
 final class Turnstile {
@@ -34,7 +36,8 @@ final class Turnstile {
 	 * @return bool
 	 */
 	public static function enabled(): bool {
-		return '' !== self::site_key() && '' !== self::secret();
+		// A saved secret the site key cannot open still means "protected": fail closed (PR #14 review).
+		return '' !== self::site_key() && ( '' !== self::secret() || Integrations::unreadable( 'turnstile_secret' ) );
 	}
 
 	/**
@@ -43,7 +46,7 @@ final class Turnstile {
 	 * @return string
 	 */
 	public static function site_key(): string {
-		return defined( 'DX_TURNSTILE_SITE_KEY' ) ? (string) constant( 'DX_TURNSTILE_SITE_KEY' ) : '';
+		return Integrations::get( 'turnstile_site' );
 	}
 
 	/**
@@ -54,6 +57,11 @@ final class Turnstile {
 	 */
 	public static function verify( string $token ): bool {
 		if ( '' === $token || strlen( $token ) > 2048 ) {
+			return false;
+		}
+
+		if ( '' === self::secret() ) {
+			Logger::error( 'turnstile.secret_unreadable' );
 			return false;
 		}
 
@@ -88,6 +96,6 @@ final class Turnstile {
 	 * @return string
 	 */
 	private static function secret(): string {
-		return defined( 'DX_TURNSTILE_SECRET_KEY' ) ? (string) constant( 'DX_TURNSTILE_SECRET_KEY' ) : '';
+		return Integrations::get( 'turnstile_secret' );
 	}
 }

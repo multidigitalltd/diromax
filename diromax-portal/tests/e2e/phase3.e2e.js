@@ -244,6 +244,19 @@ function localDate(offsetDays) {
   const settingsHtml = await adminPage.content();
   check('settings show the Postmark setup and the webhook addresses, not the key', settingsHtml.includes('שליחה וקבלה של מיילים') && settingsHtml.includes('postmark:KEY@127.0.0.1:8088/wp-json/diromax-portal/v1/postmark/inbound') && !settingsHtml.includes(webhookKey));
   await axe(adminPage, 'settings with the mail section');
+  check('a webhook key from wp-config.php locks the button', !settingsHtml.includes('dx_portal_new_webhook_key') && settingsHtml.includes('wp-config.php'));
+
+  // Release 1.8.1: integrations are set on this screen. A bad value saves nothing and is shown on its field.
+  await adminPage.fill('#dxa-integrations-from', 'portal@localhost'); // Passes the browser's email check, not the server's.
+  await adminPage.click('form:has(input[value="dx_portal_save_integrations"]) [type=submit]');
+  await adminPage.waitForLoadState('load');
+  check('a bad sender address is refused on its field', (await adminPage.textContent('.notice-error')).includes('לא נשמרו') && (await adminPage.getAttribute('#dxa-integrations-from', 'aria-invalid')) === 'true');
+  await axe(adminPage, 'settings with a field error');
+  await adminPage.fill('#dxa-integrations-from', 'portal@example.org');
+  await adminPage.click('form:has(input[value="dx_portal_save_integrations"]) [type=submit]');
+  await adminPage.waitForLoadState('load');
+  check('the sender address is saved from the screen', (await adminPage.textContent('.notice-success')).includes('ההגדרות נשמרו') && (await adminPage.inputValue('#dxa-integrations-from')) === 'portal@example.org');
+  check('the token field is a password field and empty', (await adminPage.getAttribute('#dxa-integrations-token', 'type')) === 'password' && (await adminPage.inputValue('#dxa-integrations-token')) === '');
   before = mailFiles();
   await adminPage.click('form:has(input[value="dx_portal_test_mail"]) [type=submit]');
   await adminPage.waitForLoadState('load');

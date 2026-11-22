@@ -14,6 +14,7 @@ use Diromax\Portal\Portal\Webhooks;
 use Diromax\Portal\Service\Mailer;
 use Diromax\Portal\Service\MailMessage;
 use Diromax\Portal\Service\Postmark;
+use Diromax\Portal\Support\Integrations;
 use Diromax\Portal\Support\MailTrace;
 use WP_Error;
 use WP_REST_Request;
@@ -318,16 +319,26 @@ final class PostmarkTest extends PortalTestCase {
 	}
 
 	public function test_the_settings_screen_shows_the_setup_without_the_key(): void {
-		$this->config['token']       = 'server-token-for-tests';
-		$this->config['from']        = 'portal@diromax.co.il';
-		$this->config['webhook_key'] = self::KEY;
+		$this->assertSame(
+			array( 'token', 'from' ),
+			Integrations::save(
+				array(
+					'token' => 'server-token-for-tests',
+					'from'  => 'portal@diromax.co.il',
+				)
+			)
+		);
+		$key = Integrations::new_webhook_key();
 
 		$status = Pages::mail_status();
 		$this->assertTrue( $status['postmark'] );
-		$this->assertSame( 'portal@diromax.co.il', $status['sender'] );
+		$this->assertSame( 'portal@diromax.co.il', $status['fields']['from']['value'] );
+		$this->assertTrue( $status['fields']['token']['set'] );
+		$this->assertSame( '', $status['fields']['token']['value'], 'A secret is never handed to the screen.' );
+		$this->assertTrue( $status['webhook_key'] );
 		$this->assertFalse( $status['inbound'] );
 		$this->assertStringContainsString( 'postmark:KEY@', $status['inbound_url'] );
-		$this->assertStringNotContainsString( self::KEY, (string) wp_json_encode( $status ) );
+		$this->assertStringNotContainsString( $key, (string) wp_json_encode( $status ) );
 		$this->assertStringNotContainsString( 'server-token-for-tests', (string) wp_json_encode( $status ) );
 	}
 }

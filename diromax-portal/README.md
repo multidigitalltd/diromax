@@ -82,20 +82,16 @@
    2. **Servers ← השרת ← API Tokens:** מעתיקים את ה-Server API Token.
    3. **Default Inbound Stream ← Settings:** מעתיקים את כתובת הדואר הנכנס (`...@inbound.postmarkapp.com`). רשות: דומיין משנה משלכם לתשובות, למשל `reply.diromax.co.il`, עם רשומת MX אל `inbound.postmarkapp.com` בעדיפות 10, ואז הכתובת היא `reply@reply.diromax.co.il`.
 
-   **ב-wp-config.php** (לא במסד הנתונים, לא במייל ולא בצ'אט):
+   **בלוח הבקרה של התוסף:** *תיקי לקוחות ← הגדרות*, בחלק "שליחה וקבלה של מיילים". ממלאים את ה-Token, את כתובת השולח (מהדומיין המאומת) ואת כתובת הדואר הנכנס, ושומרים. רק מנהל מערכת רואה את החלק הזה.
 
-   ```php
-   define( 'DX_POSTMARK_TOKEN', 'ה-Server API Token' );
-   define( 'DX_POSTMARK_FROM', 'portal@diromax.co.il' );          // מהדומיין המאומת
-   define( 'DX_POSTMARK_INBOUND', 'abc123@inbound.postmarkapp.com' );
-   define( 'DX_POSTMARK_WEBHOOK_KEY', 'מחרוזת אקראית' );            // 32 תווים לפחות
-   ```
+   - **ה-Token נשמר מוצפן** במפתח של האתר (`DX_PORTAL_KEY`), ולא מוצג שוב, רק "שמור". שדה ריק בשמירה משאיר את הערך הקיים, והתיבה "למחוק" מוחקת אותו. אם `DX_PORTAL_KEY` לא מוגדר, אי אפשר לשמור סודות. אם המפתח הוחלף, המסך מבקש להזין את ה-Token מחדש.
+   - **מפתח ה-webhook** נוצר בכפתור "יצירת מפתח webhook". הוא מוצג **פעם אחת בלבד**, כבר בתוך שתי הכתובות להדבקה ב-Postmark. במסד נשמר רק ה-hash שלו. מפתח חדש מבטל מיד את הקודם, ולכן אחרי יצירה מעדכנים את שתי הכתובות ב-Postmark.
+   - **מי שמעדיף wp-config.php** יכול להמשיך: קבוע שמוגדר שם גובר, והשדה שלו נעול במסך. `DX_POSTMARK_TOKEN`, `DX_POSTMARK_FROM`, `DX_POSTMARK_STREAM`, `DX_POSTMARK_INBOUND`, `DX_POSTMARK_WEBHOOK_KEY` (32 תווים לפחות).
+   - כל שמירה נרשמת ביומן הביקורת, עם שמות השדות שהשתנו בלבד, בלי הערכים. החריגה רשומה כחריגה 6 ב-`EXCEPTIONS.md`.
 
-   מחרוזת אקראית ל-webhook: `php -r 'echo bin2hex( random_bytes( 24 ) );'`.
-
-   **Webhooks ב-Postmark.** הכתובות המדויקות מוצגות ב*הגדרות* של האזור האישי, בחלק "שליחה וקבלה של מיילים". שם המשתמש הוא `postmark`, והסיסמה היא הערך של `DX_POSTMARK_WEBHOOK_KEY`. הם נכתבים בתוך הכתובת, מיד אחרי `https://`, כמו שהמסך מראה (עם KEY במקום הסיסמה):
-   - **מיילים שחזרו:** בזרם היוצא (Default Transactional Stream) ← Webhooks ← Add webhook, הכתובת `/wp-json/diromax-portal/v1/postmark/events` של האתר, עם שם המשתמש והסיסמה, ומסמנים Bounce ו-Spam Complaint.
-   - **תשובות של לקוחות:** ב-Default Inbound Stream ← Settings ← Webhook, הכתובת `/wp-json/diromax-portal/v1/postmark/inbound` של האתר, עם שם המשתמש והסיסמה.
+   **Webhooks ב-Postmark.** את שתי הכתובות מעתיקים מההודעה שמופיעה אחרי יצירת המפתח. שם המשתמש בהן הוא `postmark` והסיסמה היא המפתח, כתובים מיד אחרי `https://`:
+   - **מיילים שחזרו:** בזרם היוצא (Default Transactional Stream) ← Webhooks ← Add webhook, הכתובת של `/wp-json/diromax-portal/v1/postmark/events`, ומסמנים Bounce ו-Spam Complaint.
+   - **תשובות של לקוחות:** ב-Default Inbound Stream ← Settings ← Webhook, הכתובת של `/wp-json/diromax-portal/v1/postmark/inbound`.
 
    **בדיקה:** ב*הגדרות* של האזור האישי, "שליחת מייל בדיקה אליי". ב-Postmark, כפתור הבדיקה של ה-webhook צריך לקבל 200. אם מתקבל 401 עם הסיסמה הנכונה, השרת לא מעביר ל-PHP את הכותרת `Authorization`. ב-LiteSpeed זה עובד. ב-Apache עם PHP-FPM, הקובץ `.htaccess` הרגיל של וורדפרס כבר מעביר אותה. אם הוא שונה, מחזירים את השורה `RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]`.
 
@@ -103,12 +99,9 @@
 
    אם השליחה דרך Postmark נכשלת, גם קודי הכניסה לא יוצאים: מתג החירום שבסעיף 6.
 
-9. **Turnstile (רשות, מומלץ).** כשהמפתחות מוגדרים, טופס הכניסה מוגן ב-Cloudflare Turnstile:
+9. **Turnstile (רשות, מומלץ).** ב*הגדרות*, בחלק "הגנה על טפסים (Cloudflare Turnstile)", ממלאים את ה-Site Key ואת ה-Secret Key מ-Cloudflare. מאותו רגע גם טופס הכניסה לאזור האישי וגם טופס הלידים של האתר מוגנים ב-Turnstile. ה-Secret Key נשמר מוצפן, כמו ה-Token של Postmark. גם כאן `DX_TURNSTILE_SITE_KEY` ו-`DX_TURNSTILE_SECRET_KEY` ב-wp-config.php גוברים, אם מוגדרים.
 
-   ```php
-   define( 'DX_TURNSTILE_SITE_KEY', '...' );
-   define( 'DX_TURNSTILE_SECRET_KEY', '...' );
-   ```
+   **נשארים ב-wp-config.php בלבד:** `DX_PORTAL_KEY` (מפתח ההצפנה, שמצפין גם את הסודות שבמסך), `DX_PORTAL_PRIVATE_DIR` ו-`DX_PORTAL_EMAIL_CODE_OFF` (מתג החירום). מפתח שנשמר במסד ליד מה שהוא מצפין לא מגן על כלום, ומתג חירום צריך לעבוד גם כשאי אפשר להיכנס ללוח הבקרה.
 
 ## שימוש
 

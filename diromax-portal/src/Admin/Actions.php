@@ -25,6 +25,7 @@ use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Service\UpdateService;
 use Diromax\Portal\Settings;
+use Diromax\Portal\Support\Integrations;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -75,6 +76,9 @@ final class Actions {
 		'reply_message'       => array( array(), array( 'body' ) ),
 	);
 
+	/** Transient prefix holding a new webhook key until the next page shows it. */
+	public const NEW_KEY_SLOT = 'dx_portal_new_webhook_key_';
+
 	/**
 	 * The form was posted from the dashboard: go back there after it.
 	 *
@@ -99,6 +103,8 @@ final class Actions {
 
 		add_action( 'admin_post_dx_portal_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_dx_portal_test_mail', array( $this, 'test_mail' ) );
+		add_action( 'admin_post_dx_portal_save_integrations', array( $this, 'save_integrations' ) );
+		add_action( 'admin_post_dx_portal_new_webhook_key', array( $this, 'new_webhook_key' ) );
 		add_action( 'admin_post_dx_portal_demo_case', array( $this, 'demo_case' ) );
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
@@ -582,6 +588,65 @@ final class Actions {
 		$this->app->audit->record( 'settings.updated', null, 'settings', null, array_diff_assoc( array_map( 'wp_json_encode', $after ), array_map( 'wp_json_encode', $before ) ), $this->app->clock->mysql() );
 		Flash::set( 'success', __( 'ההגדרות נשמרו.', 'diromax-portal' ) );
 		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) );
+	}
+
+	/**
+	 * Save the Postmark and Turnstile settings (spec 17.5). Secrets are
+	 * sealed before they are stored; empty secret fields keep what is saved.
+	 */
+	public function save_integrations(): void {
+		check_admin_referer( 'dx_portal_save_integrations' );
+		self::return_to_sender();
+
+		if ( ! $this->app->policy->can_manage_settings( get_current_user_id() ) ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		$raw   = isset( $_POST['integrations'] ) && is_array( $_POST['integrations'] ) ? wp_unslash( $_POST['integrations'] ) : array();
+		$input = array();
+
+		foreach ( array_keys( Integrations::FIELDS ) as $name ) {
+			// Secrets are compared and sealed as typed: sanitize_text_field() only trims and drops tags, which no valid key has.
+			$input[ $name ]            = sanitize_text_field( (string) ( $raw[ $name ] ?? '' ) );
+			$input[ $name . '_clear' ] = isset( $raw[ $name . '_clear' ] ) ? '1' : '';
+		}
+
+		$result = Integrations::save( $input );
+
+		if ( $result instanceof WP_Error ) {
+			Flash::set( 'error', __( 'ההגדרות לא נשמרו. בודקים את השדות המסומנים.', 'diromax-portal' ), Errors::fields( $result ), array_diff_key( $input, array_flip( array( 'token', 'turnstile_secret' ) ) ), 'integrations' );
+		} else {
+			// Which settings changed, never their values.
+			$this->app->audit->record( 'settings.integrations', null, 'settings', null, array( 'changed' => $result ), $this->app->clock->mysql() );
+			Flash::set( 'success', __( 'ההגדרות נשמרו.', 'diromax-portal' ) );
+		}
+
+		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) . '#dxa-mail-title' );
+	}
+
+	/**
+	 * Make a new webhook key; the next page shows it once, in the two URLs.
+	 */
+	public function new_webhook_key(): void {
+		check_admin_referer( 'dx_portal_new_webhook_key' );
+		self::return_to_sender();
+
+		$user = get_current_user_id();
+
+		if ( ! $this->app->policy->can_manage_settings( $user ) ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		if ( Integrations::webhook_locked() || ! $this->app->store->is_configured() ) {
+			Flash::set( 'error', __( 'אי אפשר ליצור מפתח כאן: המפתח קבוע ב-wp-config.php, או שמפתח ההצפנה DX_PORTAL_KEY חסר.', 'diromax-portal' ) );
+			self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) . '#dxa-mail-title' );
+		}
+
+		$key = Integrations::new_webhook_key();
+		set_transient( self::NEW_KEY_SLOT . $user, $this->app->store->seal( $key, self::NEW_KEY_SLOT . $user ), 10 * MINUTE_IN_SECONDS );
+		$this->app->audit->record( 'settings.webhook_key', null, 'settings', null, array(), $this->app->clock->mysql() );
+		Flash::set( 'success', __( 'נוצר מפתח webhook חדש. המפתח הקודם כבר לא עובד: מעדכנים את שתי הכתובות ב-Postmark.', 'diromax-portal' ) );
+		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) . '#dxa-mail-title' );
 	}
 
 	/**
