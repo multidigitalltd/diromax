@@ -404,7 +404,7 @@ final class CaseService {
 			return Errors::forbidden();
 		}
 
-		foreach ( $this->app->documents->stored_names( $client_case->id ) as $name ) {
+		foreach ( array_merge( $this->app->documents->stored_names( $client_case->id ), $this->app->photos->stored_names( $client_case->id ) ) as $name ) {
 			$this->app->store->delete( $name );
 		}
 

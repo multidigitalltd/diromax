@@ -89,7 +89,8 @@ final class DocumentService {
 			return 'ok';
 		}
 
-		if ( ! $this->app->documents->any() ) {
+		// Photos are encrypted with the same key (spec 18.2): they count too.
+		if ( ! $this->app->documents->any() && ! $this->app->photos->any() ) {
 			$this->app->store->remember_key();
 			return 'ok';
 		}
@@ -98,13 +99,18 @@ final class DocumentService {
 	}
 
 	/**
-	 * First check on a site with documents and no remembered key: adopt the
-	 * key if it opens the latest stored file it can find.
+	 * First check on a site with documents or photos and no remembered key:
+	 * adopt the key if it opens the latest stored file it can find.
 	 *
 	 * @return string ok or changed.
 	 */
 	private function adopt_if_it_opens(): string {
-		foreach ( $this->app->documents->latest_stored( DocumentStore::KEY_VERSION, 3 ) as $stored_name ) {
+		$stored = array_merge(
+			$this->app->documents->latest_stored( DocumentStore::KEY_VERSION, 3 ),
+			$this->app->photos->latest_stored( DocumentStore::KEY_VERSION, 3 )
+		);
+
+		foreach ( $stored as $stored_name ) {
 			$opens = $this->app->store->can_open( $stored_name, DocumentStore::KEY_VERSION );
 
 			if ( true === $opens ) {

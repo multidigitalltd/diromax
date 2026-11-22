@@ -143,6 +143,25 @@ final class Admin {
 	}
 
 	/**
+	 * Staff download link of a document (hidden ones too), with its nonce.
+	 *
+	 * @param int $document_id Document.
+	 * @return string
+	 */
+	public static function document_url( int $document_id ): string {
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'      => 'dx_portal_download',
+					'document_id' => $document_id,
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'dx_portal_download_' . $document_id
+		);
+	}
+
+	/**
 	 * URL of a case screen, in whichever interface the user is working in.
 	 *
 	 * @param int    $case_id Case.

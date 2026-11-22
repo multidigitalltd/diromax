@@ -21,13 +21,13 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '5';
+	public const VERSION = '6';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
 
 	/** Every table, without prefix. */
-	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages' );
+	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages', 'photos' );
 
 	/**
 	 * Full table name.
@@ -103,6 +103,7 @@ final class Schema {
 		$signreq = self::table( 'sign_requests' );
 		$signs   = self::table( 'signatures' );
 		$msgs    = self::table( 'messages' );
+		$photos  = self::table( 'photos' );
 
 		return array(
 			"CREATE TABLE {$cases} (
@@ -403,11 +404,39 @@ final class Schema {
   body mediumtext NOT NULL,
   files text NOT NULL,
   stage varchar(10) NOT NULL DEFAULT 'saving',
+  direction varchar(3) NOT NULL DEFAULT 'in',
+  channel varchar(6) NOT NULL DEFAULT 'email',
   received_at datetime NOT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY provider_id (provider_id),
   KEY case_received (case_id,received_at),
   KEY user_id (user_id)
+) {$c};",
+			"CREATE TABLE {$photos} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  public_id char(24) NOT NULL,
+  case_id bigint(20) unsigned NOT NULL,
+  stage tinyint(3) unsigned NOT NULL,
+  taken_on date NOT NULL,
+  caption varchar(300) NOT NULL DEFAULT '',
+  batch_key char(16) NOT NULL DEFAULT '',
+  stored_name varchar(64) NOT NULL,
+  thumb_name varchar(64) NOT NULL,
+  mime varchar(40) NOT NULL,
+  size int(10) unsigned NOT NULL,
+  width smallint(5) unsigned NOT NULL DEFAULT 0,
+  height smallint(5) unsigned NOT NULL DEFAULT 0,
+  thumb_width smallint(5) unsigned NOT NULL DEFAULT 0,
+  thumb_height smallint(5) unsigned NOT NULL DEFAULT 0,
+  sha256 char(64) NOT NULL,
+  key_version tinyint(3) unsigned NOT NULL,
+  visible tinyint(1) NOT NULL DEFAULT 1,
+  uploaded_by bigint(20) unsigned NOT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY public_id (public_id),
+  KEY case_stage (case_id,stage,taken_on),
+  KEY batch_key (batch_key)
 ) {$c};",
 		);
 	}
@@ -453,6 +482,7 @@ final class Schema {
 			'dx_signs_case'     => array( 'signatures', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_msgs_case'      => array( 'messages', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_msgs_user'      => array( 'messages', "FOREIGN KEY (user_id) REFERENCES {$users} (ID) ON DELETE SET NULL" ),
+			'dx_photos_case'    => array( 'photos', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 		);
 	}
 

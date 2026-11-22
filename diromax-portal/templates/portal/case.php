@@ -23,12 +23,18 @@ $tab_labels = array(
 	'decisions' => __( 'החלטות', 'diromax-portal' ),
 	'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 	'updates'   => __( 'עדכונים', 'diromax-portal' ),
+	'photos'    => __( 'יומן צילומים', 'diromax-portal' ),
+	'messages'  => __( 'הודעות', 'diromax-portal' ),
 );
 $waiting    = count( array_filter( $view['decisions'], static fn( array $d ): bool => $d['pending'] ) );
 $notice     = $view['notice'] ?? null;
 
 if ( array() === $view['decisions'] ) {
 	unset( $tab_labels['decisions'] );
+}
+
+if ( array() === $view['photos'] ) {
+	unset( $tab_labels['photos'] );
 }
 ?>
 <section class="dxp-head" aria-labelledby="dxp-case-title">
@@ -190,6 +196,9 @@ if ( array() === $view['decisions'] ) {
 		<?php foreach ( $tab_labels as $key => $label ) : ?>
 			<a class="dxp-tab" href="<?php echo esc_url( add_query_arg( 'tab', $key ) ); ?>"<?php echo $key === $current ? ' aria-current="page"' : ''; ?>>
 				<?php echo esc_html( $label ); ?>
+				<?php if ( 'messages' === $key && array() !== $view['messages'] ) : ?>
+					<span class="dxp-cnt"><?php echo esc_html( (string) count( $view['messages'] ) ); ?></span>
+				<?php endif; ?>
 				<?php if ( 'updates' === $key && array() !== $view['updates'] ) : ?>
 					<span class="dxp-cnt"><?php echo esc_html( (string) count( $view['updates'] ) ); ?></span>
 				<?php endif; ?>
@@ -209,6 +218,8 @@ if ( array() === $view['decisions'] ) {
 		'decisions' => 'decisions',
 		'documents' => 'documents',
 		'updates'   => 'updates',
+		'photos'    => 'photos',
+		'messages'  => 'messages',
 	)[ $current ] ?? 'finance';
 	require __DIR__ . '/parts/' . $panel . '.php';
 	?>

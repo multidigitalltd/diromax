@@ -49,7 +49,7 @@ final class MailItems {
 
 		foreach ( $events as $event ) {
 			$kind = $event['kind'];
-			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
+			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested', 'photos_added' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
 
 			if ( 'entry_voided' === $kind && 'entry_created' === ( $kinds[ $key ] ?? '' ) ) {
 				// Created and voided within one batch: the client never needs to hear of it.
@@ -66,6 +66,7 @@ final class MailItems {
 				'document_added'   => $this->document_card( $client_case, $event['object_id'] ),
 				'decision_created' => $this->decision_card( $client_case, $event['object_id'], $hide_amounts ),
 				'doc_requested'    => $this->doc_request_card( $client_case, $event['object_id'] ),
+				'photos_added'     => $this->photos_card( $client_case, $event['object_id'] ),
 				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
 			};
 
@@ -200,6 +201,53 @@ final class MailItems {
 			link: $this->document_link( $client_case, $document->id ),
 			/* translators: %s: document title. */
 			subject: sprintf( __( 'מסמך חדש בתיק: %s', 'diromax-portal' ), $document->title ),
+		);
+	}
+
+	/**
+	 * Card for photos added to the journal in one upload (spec 18.2): how
+	 * many are shown, of which stage, and a link to the journal.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $id          First photo of the upload.
+	 * @return MailCard|null
+	 */
+	private function photos_card( CaseRecord $client_case, int $id ): ?MailCard {
+		$first = $this->app->photos->find( $id );
+
+		if ( null === $first || $first['case_id'] !== $client_case->id ) {
+			return null;
+		}
+
+		$shown = $this->app->photos->in_batch( $first['batch_key'], true );
+
+		if ( array() === $shown ) {
+			// Hidden or deleted before the email went out.
+			return null;
+		}
+
+		$count   = count( $shown );
+		$caption = $shown[0]['caption'];
+		/* translators: %d: number of photos. */
+		$title = sprintf( _n( 'צילום %d מהשטח', '%d צילומים מהשטח', $count, 'diromax-portal' ), $count );
+
+		return new MailCard(
+			tone: 'teal',
+			badge: __( 'צילומים חדשים', 'diromax-portal' ),
+			title: $title,
+			rows: array(
+				array( __( 'שלב', 'diromax-portal' ), Stages::label( $shown[0]['stage'] ) ),
+				array( __( 'צולם', 'diromax-portal' ), Labels::date( $shown[0]['taken_on'] ) ),
+			),
+			amount: null,
+			note: $caption,
+			stage: null,
+			link: array(
+				'label' => __( 'ליומן הצילומים באזור האישי', 'diromax-portal' ),
+				'url'   => Router::case_url( $client_case, 'photos' ),
+			),
+			/* translators: %s: stage label. */
+			subject: sprintf( __( 'צילומים חדשים מהשטח: %s', 'diromax-portal' ), Stages::label( $shown[0]['stage'] ) ),
 		);
 	}
 

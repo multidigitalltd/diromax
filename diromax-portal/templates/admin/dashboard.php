@@ -147,7 +147,7 @@ $header    = array(
 	<div class="dxa-dash-grid">
 	<div class="dxa-dash-main">
 	<h2 class="dxa-section-title"><?php esc_html_e( 'דורש טיפול', 'diromax-portal' ); ?></h2>
-	<?php $attention = count( $view['overdue'] ) + count( $view['upcoming'] ) + count( $view['decisions'] ) + count( $view['actions'] ) + count( $view['stale'] ) + count( $view['quiet'] ) + count( $view['failed'] ) + count( $view['bounced'] ) + count( $view['late'] ) + count( $view['tasks'] ); ?>
+	<?php $attention = count( $view['overdue'] ) + count( $view['upcoming'] ) + count( $view['decisions'] ) + count( $view['actions'] ) + count( $view['stale'] ) + count( $view['quiet'] ) + count( $view['failed'] ) + count( $view['bounced'] ) + count( $view['late'] ) + count( $view['tasks'] ) + count( $view['awaiting'] ); ?>
 	<?php if ( 0 === $attention ) : ?>
 		<p class="dxa-allclear" role="status"><span aria-hidden="true">✓</span> <?php esc_html_e( 'אין כרגע שום דבר שמחכה לטיפול: אין דרישות באיחור או בשבוע הקרוב, אין החלטות פתוחות, וכל הלקוחות קיבלו עדכון לאחרונה.', 'diromax-portal' ); ?></p>
 	<?php endif; ?>
@@ -186,6 +186,22 @@ $header    = array(
 				</table></div>
 			<?php endif; ?>
 		</section>
+
+		<?php if ( array() !== $view['awaiting'] ) : ?>
+			<section class="dxa-card dxa-card--hot" aria-labelledby="dxa-dash-awaiting">
+				<h2 id="dxa-dash-awaiting"><?php esc_html_e( 'הודעות שממתינות לתשובה', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['awaiting'] ) ); ?></span></h2>
+				<ul>
+					<?php foreach ( $view['awaiting'] as $row ) : ?>
+						<li>
+							<a href="<?php echo esc_url( Admin::case_url( (int) $row['case_id'], 'messages' ) ); ?>"><?php echo esc_html( (string) $row['case_title'] ); ?></a>
+							· <?php echo esc_html( (string) $row['sender_name'] ); ?>
+							· <span class="dxa-muted"><?php echo esc_html( Labels::datetime( (string) $row['received_at'] ) ); ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+				<p class="description"><?php esc_html_e( 'תיקים שההודעה האחרונה בהם היא של הלקוח.', 'diromax-portal' ); ?></p>
+			</section>
+		<?php endif; ?>
 
 		<section class="dxa-card dxa-card--hot<?php echo array() === $view['overdue'] ? ' dxa-card--empty' : ''; ?>" aria-labelledby="dxa-dash-overdue">
 			<h2 id="dxa-dash-overdue"><?php esc_html_e( 'דרישות תשלום באיחור', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) $view['totals']['overdue_count'] ); ?></span></h2>
