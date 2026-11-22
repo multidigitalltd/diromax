@@ -75,7 +75,7 @@ $header = array(
 		</p>
 	<?php else : ?>
 		<div class="dxa-scroll">
-			<table class="widefat striped dxa-cases-table">
+			<div class="dxa-scroll"><table class="widefat striped dxa-cases-table">
 				<thead>
 					<tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
@@ -101,7 +101,7 @@ $header = array(
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
-			</table>
+			</table></div>
 		</div>
 
 		<?php if ( $view['pages'] > 1 ) : ?>

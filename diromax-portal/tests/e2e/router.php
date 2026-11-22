@@ -15,6 +15,18 @@ if ( is_dir( $root . $path ) && is_file( rtrim( $root . $path, '/' ) . '/index.p
 	$_SERVER['PHP_SELF'] = $path;
 }
 if ( '/' !== $path && is_file( $root . $path ) && ! str_ends_with( $path, '.php' ) ) {
+	// Text assets compressed and cached for a year, as Cloudflare and LiteSpeed serve them in
+	// production, so the performance budget (perf.e2e.js) measures what visitors download.
+	$types = array( 'css' => 'text/css', 'js' => 'text/javascript', 'svg' => 'image/svg+xml' );
+	$ext   = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+	if ( isset( $types[ $ext ] ) && str_contains( (string) ( $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '' ), 'gzip' ) ) {
+		header( 'Content-Type: ' . $types[ $ext ] . '; charset=utf-8' );
+		header( 'Content-Encoding: gzip' );
+		header( 'Vary: Accept-Encoding' );
+		header( 'Cache-Control: public, max-age=31536000, immutable' );
+		echo gzencode( (string) file_get_contents( $root . $path ), 6 );
+		return true;
+	}
 	return false;
 }
 if ( str_ends_with( $path, '.php' ) && is_file( $root . $path ) ) {

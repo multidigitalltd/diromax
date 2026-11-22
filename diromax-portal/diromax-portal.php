@@ -3,7 +3,7 @@
  * Plugin Name:       Diromax — אזור אישי ותיקי לקוחות
  * Plugin URI:        https://diromax.co.il
  * Description:       תיק דיגיטלי לכל לקוח: הסכם, תקציב, הוצאות, תשלומים ועדכונים, עם אזור אישי ללקוח ומיילים מעוצבים בכל עדכון.
- * Version:           1.7.0
+ * Version:           1.7.1
  * Requires at least: 6.8
  * Requires PHP:      8.3
  * Author:            Multi Digital
@@ -20,7 +20,7 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
-const DX_PORTAL_VERSION = '1.7.0';
+const DX_PORTAL_VERSION = '1.7.1';
 const DX_PORTAL_FILE    = __FILE__;
 define( 'DX_PORTAL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DX_PORTAL_URL', plugin_dir_url( __FILE__ ) );
