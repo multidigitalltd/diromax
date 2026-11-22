@@ -9,9 +9,11 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Service;
 
+use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Data\DocumentRecord;
 use Diromax\Portal\Data\Logger;
+use Diromax\Portal\Domain\CaseStatus;
 use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Security\DocumentStore;
@@ -38,6 +40,9 @@ final class DocumentService {
 
 	/** Content sniffing reports Office files as ZIP on some systems. */
 	private const ZIP_CONTAINERS = array( 'docx', 'xlsx' );
+
+	/** Uploads a client may make in an hour (spec 16.4). */
+	public const CLIENT_UPLOADS_PER_HOUR = 20;
 
 	/**
 	 * Constructor.
@@ -158,9 +163,10 @@ final class DocumentService {
 	 * @param int                  $actor     Acting user.
 	 * @param bool                 $notify    Email the client about it.
 	 * @param int|null             $update_id Update it belongs to.
+	 * @param bool                 $sign_required The clients are asked to sign it.
 	 * @return DocumentRecord|WP_Error
 	 */
-	public function upload( CaseRecord $client_case, array $file, string $kind, string $title, bool $visible, int $actor, bool $notify, ?int $update_id = null ): DocumentRecord|WP_Error {
+	public function upload( CaseRecord $client_case, array $file, string $kind, string $title, bool $visible, int $actor, bool $notify, ?int $update_id = null, bool $sign_required = false ): DocumentRecord|WP_Error {
 		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
 			return Errors::forbidden();
 		}
@@ -177,7 +183,78 @@ final class DocumentService {
 			return $checked;
 		}
 
-		return $this->store_file( $client_case, $checked, $kind, $title, $visible, $actor, $notify, $update_id );
+		return $this->store_file( $client_case, $checked, $kind, $title, $visible, $actor, $notify, $update_id, $sign_required && $visible );
+	}
+
+	/**
+	 * A client uploads a document to their case (spec 16.4), optionally in
+	 * answer to a document request. Owners and partners of a case that is
+	 * not closed may; 20 uploads an hour each. The project manager is told.
+	 *
+	 * @param CaseRecord           $client_case Case.
+	 * @param array<string, mixed> $file        One $_FILES item.
+	 * @param string               $title       Title.
+	 * @param int                  $user_id     Client.
+	 * @param int|null             $request_id  Document request it answers.
+	 * @return DocumentRecord|WP_Error
+	 */
+	public function upload_from_client( CaseRecord $client_case, array $file, string $title, int $user_id, ?int $request_id ): DocumentRecord|WP_Error {
+		if ( ! $this->app->policy->can_view_case( $user_id, $client_case ) || $this->app->policy->can_use_admin( $user_id ) ) {
+			return Errors::not_found();
+		}
+
+		if ( ! DecisionService::may_answer( $this->app->members->role( $client_case->id, $user_id ) ) || CaseStatus::Closed === $client_case->status ) {
+			return Errors::forbidden();
+		}
+
+		$request = null === $request_id ? null : $this->app->doc_requests->find( $request_id );
+
+		if ( null !== $request_id && ( null === $request || $request['case_id'] !== $client_case->id || 'open' !== $request['status'] ) ) {
+			return Errors::invalid( array( 'request' => 'closed' ) );
+		}
+
+		$title = Text::line( $title );
+
+		if ( '' === $title && null !== $request ) {
+			$title = $request['title'];
+		}
+
+		if ( '' === $title ) {
+			return Errors::invalid( array( 'title' => 'required' ) );
+		}
+
+		if ( ! $this->app->limiter->attempt( 'client_upload', (string) $user_id, self::CLIENT_UPLOADS_PER_HOUR, HOUR_IN_SECONDS ) ) {
+			return new WP_Error( 'dx_rate_limited', __( 'הועלו הרבה מסמכים בשעה האחרונה. אפשר להמשיך בעוד שעה.', 'diromax-portal' ) );
+		}
+
+		$blocked = $this->storage_error();
+
+		if ( null !== $blocked ) {
+			return $blocked;
+		}
+
+		$checked = $this->check_upload( $file );
+
+		if ( $checked instanceof WP_Error ) {
+			return $checked;
+		}
+
+		$document = $this->store_file( $client_case, $checked, 'client', $title, true, $user_id, false, null, false, $request_id );
+
+		if ( $document instanceof WP_Error ) {
+			return $document;
+		}
+
+		$now = $this->app->clock->mysql();
+		$this->app->audit->record( 'document.client_upload', $client_case->id, 'document', $document->id, array( 'request' => $request_id ), $now );
+
+		if ( null !== $request && $this->app->doc_requests->close( $request['id'], 'done', $document->id, $now ) ) {
+			$this->app->audit->record( 'docrequest.fulfilled', $client_case->id, 'docrequest', $request['id'], array( 'document' => $document->id ), $now );
+		}
+
+		$this->tell_manager_of_upload( $client_case, $document, $user_id, $request );
+
+		return $document;
 	}
 
 	/**
@@ -239,7 +316,30 @@ final class DocumentService {
 		}
 
 		$this->app->audit->record( 'document.downloaded', $client_case->id, 'document', $document->id, array(), $this->app->clock->mysql() );
+		$this->stream( $document );
 
+		return true;
+	}
+
+	/**
+	 * Send the document behind a signing link. The caller checked the link
+	 * (SignatureService::by_token); this is the only document it opens.
+	 *
+	 * @param CaseRecord     $client_case Case.
+	 * @param DocumentRecord $document    The link's document.
+	 * @param int            $request_id  Signing request.
+	 */
+	public function send_to_signer( CaseRecord $client_case, DocumentRecord $document, int $request_id ): void {
+		$this->app->audit->record( 'document.downloaded', $client_case->id, 'document', $document->id, array( 'sign_request' => $request_id ), $this->app->clock->mysql() );
+		$this->stream( $document );
+	}
+
+	/**
+	 * Decrypt a document to the response, with private, no-store headers.
+	 *
+	 * @param DocumentRecord $document Document.
+	 */
+	private function stream( DocumentRecord $document ): void {
 		nocache_headers();
 		header( 'Content-Type: ' . $document->mime );
 		header( 'Content-Disposition: ' . self::disposition( $document ) );
@@ -260,8 +360,6 @@ final class DocumentService {
 		if ( ! $ok ) {
 			Logger::error( 'document.decrypt_failed', array( 'document' => $document->id ) );
 		}
-
-		return true;
 	}
 
 	/**
@@ -366,9 +464,11 @@ final class DocumentService {
 	 * @param int                                                                      $actor     Acting user.
 	 * @param bool                                                                     $notify    Email the client.
 	 * @param int|null                                                                 $update_id Update.
+	 * @param bool                                                                     $sign_required The clients are asked to sign it.
+	 * @param int|null                                                                 $request_id    The document request it answers.
 	 * @return DocumentRecord|WP_Error
 	 */
-	private function store_file( CaseRecord $client_case, array $file, string $kind, string $title, bool $visible, int $actor, bool $notify, ?int $update_id ): DocumentRecord|WP_Error {
+	private function store_file( CaseRecord $client_case, array $file, string $kind, string $title, bool $visible, int $actor, bool $notify, ?int $update_id, bool $sign_required = false, ?int $request_id = null ): DocumentRecord|WP_Error {
 		$stored = $this->app->store->new_name();
 
 		try {
@@ -402,6 +502,8 @@ final class DocumentService {
 				'sha256'        => $meta['sha256'],
 				'key_version'   => DocumentStore::KEY_VERSION,
 				'visible'       => $visible,
+				'sign_required' => $sign_required,
+				'request_id'    => $request_id,
 			),
 			$actor,
 			$now
@@ -421,6 +523,37 @@ final class DocumentService {
 		}
 
 		return $document;
+	}
+
+	/**
+	 * Email the project manager about a client's upload.
+	 *
+	 * @param CaseRecord                                      $client_case Case.
+	 * @param DocumentRecord                                  $document    Document.
+	 * @param int                                             $user_id     Client.
+	 * @param array{id:int, title:string, status:string}|null $request     Request it answered.
+	 */
+	private function tell_manager_of_upload( CaseRecord $client_case, DocumentRecord $document, int $user_id, ?array $request ): void {
+		$user = get_userdata( $user_id );
+		$rows = array( array( __( 'מי העלה', 'diromax-portal' ), $user ? (string) $user->display_name : '' ) );
+
+		if ( null !== $request ) {
+			$rows[] = array( __( 'בתשובה לבקשה', 'diromax-portal' ), $request['title'] );
+		}
+
+		$card = new MailCard(
+			tone: 'teal',
+			badge: __( 'הלקוח העלה מסמך', 'diromax-portal' ),
+			title: $document->title,
+			rows: $rows,
+			amount: null,
+			note: '',
+			stage: null,
+			link: null,
+			subject: __( 'מסמך חדש מהלקוח', 'diromax-portal' ),
+		);
+
+		$this->app->notifier->send_to_manager( $client_case, $this->app->renderer->manager_notice( $client_case, $card, Admin::case_url( $client_case->id, 'documents' ) ) );
 	}
 
 	/**

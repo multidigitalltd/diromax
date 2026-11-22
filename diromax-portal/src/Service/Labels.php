@@ -232,6 +232,7 @@ final class Labels {
 			'signature.cancelled'     => __( 'בקשת חתימה בוטלה', 'diromax-portal' ),
 			'signature.code_sent'     => __( 'נשלח קוד חתימה', 'diromax-portal' ),
 			'signature.signed'        => __( 'מסמך נחתם', 'diromax-portal' ),
+			'signature.viewed'        => __( 'נפתח אישור חתימה', 'diromax-portal' ),
 		);
 	}
 

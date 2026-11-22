@@ -15,12 +15,15 @@ use Diromax\Portal\Data\BudgetRepository;
 use Diromax\Portal\Data\CaseRepository;
 use Diromax\Portal\Data\DashboardRepository;
 use Diromax\Portal\Data\DecisionRepository;
+use Diromax\Portal\Data\DocRequestRepository;
 use Diromax\Portal\Data\DocumentRepository;
 use Diromax\Portal\Data\EventRepository;
 use Diromax\Portal\Data\LedgerRepository;
 use Diromax\Portal\Data\MailLog;
 use Diromax\Portal\Data\MemberRepository;
 use Diromax\Portal\Data\Schema;
+use Diromax\Portal\Data\SignatureRepository;
+use Diromax\Portal\Data\SignRequestRepository;
 use Diromax\Portal\Data\TaskRepository;
 use Diromax\Portal\Data\TokenRepository;
 use Diromax\Portal\Data\UpdateRepository;
@@ -138,6 +141,24 @@ final class Plugin {
 	 */
 	public readonly AcknowledgementRepository $acknowledgements;
 	/**
+	 * Document requests.
+	 *
+	 * @var DocRequestRepository
+	 */
+	public readonly DocRequestRepository $doc_requests;
+	/**
+	 * Signatures.
+	 *
+	 * @var SignatureRepository
+	 */
+	public readonly SignatureRepository $signatures;
+	/**
+	 * Signature requests.
+	 *
+	 * @var SignRequestRepository
+	 */
+	public readonly SignRequestRepository $sign_requests;
+	/**
 	 * Team tasks.
 	 *
 	 * @var TaskRepository
@@ -228,6 +249,9 @@ final class Plugin {
 		$this->acknowledgements = new AcknowledgementRepository( $wpdb );
 		$this->dashboard        = new DashboardRepository( $wpdb );
 		$this->tasks            = new TaskRepository( $wpdb );
+		$this->doc_requests     = new DocRequestRepository( $wpdb );
+		$this->signatures       = new SignatureRepository( $wpdb );
+		$this->sign_requests    = new SignRequestRepository( $wpdb );
 		$this->policy           = new AccessPolicy( $this->members, $clock );
 		$this->store            = new DocumentStore();
 		$this->limiter          = new RateLimiter( $clock );

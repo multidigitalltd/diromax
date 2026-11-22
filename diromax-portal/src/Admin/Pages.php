@@ -18,6 +18,7 @@ use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
 use Diromax\Portal\Service\MorningSummary;
+use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Settings;
@@ -395,6 +396,10 @@ final class Pages {
 			'documents' => array(
 				'documents' => $this->app->documents->for_case( $client_case->id, false ),
 				'kinds'     => Labels::document_kinds(),
+				'requests'  => $this->app->doc_requests->for_case( $client_case->id, false ),
+				'signed'    => $this->signatures_by_document( $client_case ),
+				'signing'   => $this->app->sign_requests->for_case( $client_case->id ),
+				'now'       => $this->app->clock->mysql(),
 				'key_ready' => $this->app->store->is_configured(),
 				'acks'      => $this->app->acknowledgements->for_case( $client_case->id ),
 			),
@@ -477,6 +482,27 @@ final class Pages {
 			'members'   => count( $this->app->members->for_case( $client_case->id ) ),
 			'tasks'     => $this->app->tasks->open_count( $client_case->id ),
 		);
+	}
+
+	/**
+	 * Valid signatures of each document of the case.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return array<int, array<int, array<string, mixed>>> Document ID => signatures.
+	 */
+	private function signatures_by_document( CaseRecord $client_case ): array {
+		$service = new SignatureService( $this->app );
+		$list    = array();
+
+		foreach ( $this->app->documents->for_case( $client_case->id, false ) as $document ) {
+			$signed = $service->of_document( $document );
+
+			if ( array() !== $signed ) {
+				$list[ $document->id ] = $signed;
+			}
+		}
+
+		return $list;
 	}
 
 	/**

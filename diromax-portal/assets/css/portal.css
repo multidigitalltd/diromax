@@ -265,8 +265,58 @@
 .dxp-card p { margin: 0 0 6px; color: var(--p-body); }
 .dxp-card__meta { font-size: 14px; color: var(--p-muted) !important; }
 
+/* signing, uploads, requests (spec 16.4, 16.6) */
+.dxp-btn--line { background: var(--p-white); }
+.dxp-field__err { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: var(--p-orange-text); }
+.dxp-field input[aria-invalid="true"] { border-color: var(--p-orange-text); box-shadow: 0 0 0 1px var(--p-orange-text); }
+.dxp-sign { margin: 12px 0 4px; }
+.dxp-sign > summary { list-style: none; width: fit-content; }
+.dxp-sign > summary::-webkit-details-marker { display: none; }
+.dxp-sign__form, .dxp-upload { display: grid; gap: 14px; margin-top: 14px; padding: 16px; background: var(--p-white); border: 2px solid var(--p-ink); }
+.dxp-pad__label { margin: 0 0 6px; font-size: 14px; font-weight: 700; color: var(--p-ink); }
+.dxp-pad__canvas { display: block; width: 100%; max-width: 600px; aspect-ratio: 3 / 1; height: auto; background: var(--p-white); border: 2px dashed var(--p-ink); touch-action: none; cursor: crosshair; }
+.dxp-pad__tools { margin: 8px 0 0; }
+.dxp-dec__sign { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--p-line); }
+.dxp-dec__sign legend { padding: 0 6px; font-weight: 800; color: var(--p-ink); }
+.dxp-dec__sign > * + * { margin-top: 10px; }
+.dxp-asks { margin: 0 0 28px; padding: 18px; background: var(--p-white); border: 2px solid var(--p-ink); border-inline-start: 7px solid var(--p-orange); }
+.dxp-asks h3 { margin: 0 0 10px; }
+.dxp-asks ul { margin: 0; padding: 0; list-style: none; }
+.dxp-ask + .dxp-ask { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--p-line); }
+.dxp-ask__t { margin: 0; font-weight: 800; color: var(--p-ink); }
+.dxp-ask__n { margin: 4px 0 0; color: var(--p-body); }
+.dxp-ask .dxp-upload { padding: 12px; border-width: 1px; }
+
+/* report page (spec 16.5) */
+.dxr { margin: 0; background: var(--p-bg); color: var(--p-body); font-family: 'Heebo', system-ui, sans-serif; font-size: 15px; line-height: 1.55; }
+.dxr-page { max-width: 960px; margin: 0 auto; padding: 24px var(--p-gut) 48px; background: var(--p-white); }
+.dxr-tools { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin: 0 0 24px; }
+.dxr-head { padding-bottom: 16px; border-bottom: 3px solid var(--p-ink); }
+.dxr-brand { margin: 0; font-family: var(--p-font-num); font-weight: 800; letter-spacing: .2em; color: var(--p-blue-text); }
+.dxr h1 { margin: 6px 0; font-family: var(--p-font-head); font-size: clamp(24px, 3vw, 34px); line-height: 1.15; color: var(--p-ink); }
+.dxr h2 { margin: 28px 0 10px; font-family: var(--p-font-head); font-size: 20px; color: var(--p-ink); }
+.dxr-meta { margin: 0; color: var(--p-muted); }
+.dxr-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.dxr-table th, .dxr-table td { padding: 7px 8px; text-align: start; vertical-align: top; border-bottom: 1px solid var(--p-line); }
+.dxr-table th { color: var(--p-ink); border-bottom: 2px solid var(--p-ink); }
+.dxr-table small { display: block; color: var(--p-muted); }
+.dxr-table .is-void td { color: var(--p-muted); text-decoration: line-through; }
+.dxr-num { text-align: end !important; white-space: nowrap; }
+.dxr-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 0; }
+.dxr-kpis div { padding: 10px 12px; border: 1px solid var(--p-line); }
+.dxr-kpis dt { font-size: 13px; color: var(--p-muted); }
+.dxr-kpis dd { margin: 2px 0 0; font-size: 18px; color: var(--p-ink); }
+.dxr-kpis small { display: block; font-size: 12px; color: var(--p-muted); }
+.dxr-hash { font-family: ui-monospace, monospace; }
+.dxr-foot { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--p-line); font-size: 13px; color: var(--p-muted); }
+
 @media print {
-  .dx-header, .dx-topstrip, .dx-footer, .dx-sticky, .dx-a11y, .dxp-pm__btns, .dxp-tabs, .dxp-tools, .dxp-account, .dxp-req .dxp-btn, .dxp-preview { display: none !important; }
+  .dx-header, .dx-topstrip, .dx-footer, .dx-sticky, .dx-a11y, .dxp-pm__btns, .dxp-tabs, .dxp-tools, .dxp-account, .dxp-req .dxp-btn, .dxp-preview, .dxr-tools { display: none !important; }
+  @page { size: A4; margin: 14mm; }
+  .dxr { background: #fff; }
+  .dxr-page { max-width: none; padding: 0; }
+  .dxr-table thead { display: table-header-group; }
+  .dxr-table tr { break-inside: avoid; }
   .dx-portal-page { background: #fff; }
   .dxp-table { overflow: visible; }
 }

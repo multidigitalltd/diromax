@@ -10,7 +10,9 @@
 
 declare( strict_types = 1 );
 
+use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Admin\Form;
+use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Labels;
 
 defined( 'ABSPATH' ) || exit;
@@ -30,7 +32,7 @@ $form = new Form( $view['flash'], 'document' );
 		<p class="dxa-field">
 			<label for="<?php echo esc_attr( $form->id( 'kind' ) ); ?>"><?php esc_html_e( 'סוג המסמך', 'diromax-portal' ); ?></label>
 			<select <?php echo $form->attrs( 'kind' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
-				<?php foreach ( $view['kinds'] as $key => $label ) : ?>
+				<?php foreach ( array_diff_key( $view['kinds'], array( 'client' => '' ) ) as $key => $label ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>"<?php selected( $form->old( 'kind', 'agreement' ), $key ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
@@ -50,11 +52,14 @@ $form = new Form( $view['flash'], 'document' );
 			<legend class="screen-reader-text"><?php esc_html_e( 'נראות ועדכון הלקוח', 'diromax-portal' ); ?></legend>
 			<span><input type="checkbox" id="dxa-document-visible" name="visible" value="1" checked> <label for="dxa-document-visible"><?php esc_html_e( 'גלוי ללקוח', 'diromax-portal' ); ?></label></span>
 			<span><input type="checkbox" id="dxa-document-notify" name="notify" value="1" checked> <label for="dxa-document-notify"><?php esc_html_e( 'לעדכן את הלקוח במייל', 'diromax-portal' ); ?></label></span>
+			<span><input type="checkbox" id="dxa-document-sign" name="sign_required" value="1"<?php checked( '1', $form->old( 'sign_required' ) ); ?>> <label for="dxa-document-sign"><?php esc_html_e( 'לחתימת הלקוח (הסכם תמיד נחתם)', 'diromax-portal' ); ?></label></span>
 		</fieldset>
 		<p class="submit"><button type="submit" class="button button-primary"><?php esc_html_e( 'העלאה', 'diromax-portal' ); ?></button></p>
 	</form>
 </details>
 <?php endif; ?>
+
+<?php require __DIR__ . '/../parts/doc-requests.php'; ?>
 
 <h2><?php esc_html_e( 'מסמכי התיק', 'diromax-portal' ); ?></h2>
 <?php if ( array() === $view['documents'] ) : ?>
@@ -93,11 +98,34 @@ $form = new Form( $view['flash'], 'document' );
 				</td>
 				<td>
 					<?php echo esc_html( $view['kinds'][ $document->kind ] ?? '' ); ?>
-					<?php if ( 'agreement' === $document->kind && $document->visible ) : ?>
+					<?php $signed = $view['signed'][ $document->id ] ?? array(); ?>
+					<?php if ( array() !== $signed ) : ?>
+						<br><span class="dxa-signed">
+							<?php
+							echo esc_html(
+								implode(
+									' · ',
+									array_map(
+										/* translators: 1: name, 2: date and time. */
+										static fn( array $sig ): string => sprintf( __( 'נחתם על ידי %1$s, %2$s', 'diromax-portal' ), $sig['signer_name'], Labels::datetime( $sig['signed_at'] ) ),
+										$signed
+									)
+								)
+							);
+							?>
+						</span>
+						<br><a href="<?php echo esc_url( Admin::certificate_url( $case->id, 'document', $document->id ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'אישור חתימה', 'diromax-portal' ); ?><span class="screen-reader-text"><?php esc_html_e( '(נפתח בחלון חדש)', 'diromax-portal' ); ?></span></a>
+					<?php elseif ( SignatureService::is_signable( $document ) ) : ?>
+						<br><span class="dxa-muted"><?php esc_html_e( 'ממתין לחתימת הלקוח', 'diromax-portal' ); ?></span>
+					<?php endif; ?>
+					<?php if ( 'client' === $document->kind ) : ?>
+						<br><span class="dxa-muted"><?php echo esc_html( sprintf( /* translators: %s: name. */ __( 'הועלה על ידי %s', 'diromax-portal' ), (string) ( get_userdata( $document->uploaded_by )->display_name ?? '' ) ) ); ?></span>
+					<?php endif; ?>
+					<?php if ( 'agreement' === $document->kind && $document->visible && array() === $signed ) : ?>
 						<?php $confirmed = $view['acks'][ $document->id ] ?? array(); ?>
 						<br><span class="dxa-muted">
 							<?php if ( array() === $confirmed ) : ?>
-								<?php esc_html_e( 'הלקוח עוד לא אישר שקרא', 'diromax-portal' ); ?>
+								<?php esc_html_e( 'אין אישור קריאה מהגרסה הקודמת', 'diromax-portal' ); ?>
 							<?php else : ?>
 								<?php
 								echo esc_html(
@@ -139,3 +167,5 @@ $form = new Form( $view['flash'], 'document' );
 	</tbody>
 </table>
 <?php endif; ?>
+
+<?php require __DIR__ . '/../parts/sign-requests.php'; ?>

@@ -49,7 +49,7 @@ final class MailItems {
 
 		foreach ( $events as $event ) {
 			$kind = $event['kind'];
-			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
+			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
 
 			if ( 'entry_voided' === $kind && 'entry_created' === ( $kinds[ $key ] ?? '' ) ) {
 				// Created and voided within one batch: the client never needs to hear of it.
@@ -65,6 +65,7 @@ final class MailItems {
 				'update_published' => $this->update_card( $client_case, $event['object_id'] ),
 				'document_added'   => $this->document_card( $client_case, $event['object_id'] ),
 				'decision_created' => $this->decision_card( $client_case, $event['object_id'], $hide_amounts ),
+				'doc_requested'    => $this->doc_request_card( $client_case, $event['object_id'] ),
 				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
 			};
 
@@ -237,6 +238,37 @@ final class MailItems {
 			),
 			/* translators: %s: decision title. */
 			subject: sprintf( __( 'מבקשים את אישורך: %s', 'diromax-portal' ), $decision->title ),
+		);
+	}
+
+	/**
+	 * Card for a document request, while it is still open.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $id          Request.
+	 * @return MailCard|null
+	 */
+	private function doc_request_card( CaseRecord $client_case, int $id ): ?MailCard {
+		$request = $this->app->doc_requests->find( $id );
+
+		if ( null === $request || $request['case_id'] !== $client_case->id || 'open' !== $request['status'] ) {
+			return null;
+		}
+
+		return new MailCard(
+			tone: 'orange',
+			badge: __( 'מבקשים ממך מסמך', 'diromax-portal' ),
+			title: $request['title'],
+			rows: array(),
+			amount: null,
+			note: $request['note'],
+			stage: null,
+			link: array(
+				'label' => __( 'להעלאת המסמך באזור האישי', 'diromax-portal' ),
+				'url'   => Router::case_url( $client_case, 'documents' ),
+			),
+			/* translators: %s: what is requested. */
+			subject: sprintf( __( 'מבקשים ממך מסמך: %s', 'diromax-portal' ), $request['title'] ),
 		);
 	}
 

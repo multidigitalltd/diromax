@@ -120,15 +120,16 @@ final class DecisionService {
 	 * Only an owner or partner of the case may answer; a viewer and the staff
 	 * previewing the portal may not. The first answer wins.
 	 *
-	 * @param CaseRecord $client_case Case.
-	 * @param int        $id          Decision.
-	 * @param int        $user_id     Answering user.
-	 * @param string     $answer      approve or decline.
-	 * @param string     $note        Optional note.
-	 * @param bool       $confirmed   The "I have read the details" box, required to approve.
+	 * @param CaseRecord            $client_case Case.
+	 * @param int                   $id          Decision.
+	 * @param int                   $user_id     Answering user.
+	 * @param string                $answer      approve or decline.
+	 * @param string                $note        Optional note.
+	 * @param bool                  $confirmed   The "I have read the details" box, required to approve.
+	 * @param array<string, string> $signature   name, image, no_draw: approving is signing (spec 16.6).
 	 * @return true|WP_Error
 	 */
-	public function answer( CaseRecord $client_case, int $id, int $user_id, string $answer, string $note, bool $confirmed ): bool|WP_Error {
+	public function answer( CaseRecord $client_case, int $id, int $user_id, string $answer, string $note, bool $confirmed, array $signature = array() ): bool|WP_Error {
 		$decision = $this->app->decisions->find( $id );
 
 		if ( null === $decision || $decision->case_id !== $client_case->id || ! $this->app->policy->can_view_case( $user_id, $client_case ) ) {
@@ -154,13 +155,31 @@ final class DecisionService {
 			return Errors::invalid( array( 'confirm' => 'required' ) );
 		}
 
-		$now = $this->app->clock->mysql();
+		$signatures = new SignatureService( $this->app );
+		$signed     = $signatures->check_portal( array( 'confirm' => '1' ) + $signature );
 
-		if ( ! $this->app->decisions->answer( $id, $status, $note, $user_id, $this->fingerprint( $decision ), $now ) ) {
+		if ( DecisionStatus::Approved === $status && $signed['errors'] ) {
+			return Errors::invalid( $signed['errors'] );
+		}
+
+		if ( DecisionStatus::Approved === $status && '' !== $signed['image'] && ! $this->app->store->is_configured() ) {
+			// The drawing is stored encrypted: without the key, nothing is answered.
+			return Errors::storage();
+		}
+
+		$now         = $this->app->clock->mysql();
+		$fingerprint = $this->fingerprint( $decision );
+
+		if ( ! $this->app->decisions->answer( $id, $status, $note, $user_id, $fingerprint, $now ) ) {
 			return self::not_pending();
 		}
 
 		$this->app->audit->record( 'decision.answered', $client_case->id, 'decision', $id, array( 'status' => $status->value ), $now );
+
+		if ( DecisionStatus::Approved === $status ) {
+			$user = get_userdata( $user_id );
+			$signatures->record( $client_case, 'decision', $id, $fingerprint, $signed, $user_id, $user ? (string) $user->user_email : '', 'portal', null, null );
+		}
 		$this->tell_manager( $client_case, $decision, $status, $note, $user_id );
 
 		return true;

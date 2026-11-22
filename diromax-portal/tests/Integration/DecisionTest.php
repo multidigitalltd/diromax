@@ -19,6 +19,12 @@ use WP_Error;
 
 final class DecisionTest extends PortalTestCase {
 
+	/** A portal signature by someone who cannot draw: the typed name signs. */
+	private const SIGNATURE = array(
+		'name'    => 'משפחת כהן',
+		'no_draw' => '1',
+	);
+
 	private DecisionService $decisions;
 
 	public function set_up(): void {
@@ -77,7 +83,7 @@ final class DecisionTest extends PortalTestCase {
 		$quote                      = $this->add_document( $case, $manager, 'quote' );
 		$id                         = $this->decisions->create( $case, self::fields( array( 'document_id' => (string) $quote->id ) ), $manager );
 
-		$this->assertTrue( $this->decisions->answer( $case, $id, $owner, 'approve', 'מאשרים, תודה', true ) );
+		$this->assertTrue( $this->decisions->answer( $case, $id, $owner, 'approve', 'מאשרים, תודה', true, self::SIGNATURE ) );
 
 		$decision = $this->app->decisions->find( $id );
 		$this->assertSame( DecisionStatus::Approved, $decision->status );
@@ -110,7 +116,7 @@ final class DecisionTest extends PortalTestCase {
 		$this->app->members->upsert( $case->id, $partner, MemberRole::Partner, true, $this->clock->mysql() );
 		$id = $this->decisions->create( $case, self::fields(), $manager );
 
-		$this->assertTrue( $this->decisions->answer( $case, $id, $owner, 'approve', '', true ) );
+		$this->assertTrue( $this->decisions->answer( $case, $id, $owner, 'approve', '', true, self::SIGNATURE ) );
 		$again = $this->decisions->answer( $case, $id, $partner, 'decline', '', false );
 
 		$this->assertInstanceOf( WP_Error::class, $again );
@@ -124,9 +130,9 @@ final class DecisionTest extends PortalTestCase {
 		$this->app->members->upsert( $case->id, $viewer, MemberRole::Viewer, true, $this->clock->mysql() );
 		$id = $this->decisions->create( $case, self::fields(), $manager );
 
-		$this->assertSame( 'dx_forbidden', $this->decisions->answer( $case, $id, $viewer, 'approve', '', true )->get_error_code() );
-		$this->assertSame( 'dx_forbidden', $this->decisions->answer( $case, $id, $manager, 'approve', '', true )->get_error_code(), 'Staff previewing the portal do not answer for the client.' );
-		$this->assertSame( 'dx_not_found', $this->decisions->answer( $case, $id, $this->client(), 'approve', '', true )->get_error_code() );
+		$this->assertSame( 'dx_forbidden', $this->decisions->answer( $case, $id, $viewer, 'approve', '', true, self::SIGNATURE )->get_error_code() );
+		$this->assertSame( 'dx_forbidden', $this->decisions->answer( $case, $id, $manager, 'approve', '', true, self::SIGNATURE )->get_error_code(), 'Staff previewing the portal do not answer for the client.' );
+		$this->assertSame( 'dx_not_found', $this->decisions->answer( $case, $id, $this->client(), 'approve', '', true, self::SIGNATURE )->get_error_code() );
 		$this->assertTrue( $this->app->decisions->find( $id )->is_pending() );
 	}
 
@@ -138,8 +144,8 @@ final class DecisionTest extends PortalTestCase {
 		[ $manager_b, $case_b ]         = $this->case_with_owner();
 		$id                             = $this->decisions->create( $case_b, self::fields(), $manager_b );
 
-		$through_own_case = $this->decisions->answer( $case_a, $id, $owner_a, 'approve', '', true );
-		$directly         = $this->decisions->answer( $case_b, $id, $owner_a, 'approve', '', true );
+		$through_own_case = $this->decisions->answer( $case_a, $id, $owner_a, 'approve', '', true, self::SIGNATURE );
+		$directly         = $this->decisions->answer( $case_b, $id, $owner_a, 'approve', '', true, self::SIGNATURE );
 
 		$this->assertSame( 'dx_not_found', $through_own_case->get_error_code() );
 		$this->assertSame( 'dx_not_found', $directly->get_error_code() );
@@ -154,7 +160,7 @@ final class DecisionTest extends PortalTestCase {
 		$this->assertInstanceOf( WP_Error::class, $this->decisions->withdraw( $case, $id, '', $manager ) );
 		$this->assertTrue( $this->decisions->withdraw( $case, $id, 'השתנו התנאים', $manager ) );
 
-		$this->assertSame( 'dx_not_pending', $this->decisions->answer( $case, $id, $owner, 'approve', '', true )->get_error_code() );
+		$this->assertSame( 'dx_not_pending', $this->decisions->answer( $case, $id, $owner, 'approve', '', true, self::SIGNATURE )->get_error_code() );
 		$this->assertSame( 'dx_not_pending', $this->decisions->withdraw( $case, $id, 'שוב', $manager )->get_error_code() );
 	}
 
@@ -266,5 +272,24 @@ final class DecisionTest extends PortalTestCase {
 			),
 			$overrides
 		);
+	}
+
+	public function test_approving_is_signing(): void {
+		[ $manager, $case, $owner ] = $this->case_with_owner();
+		$id                         = $this->decisions->create( $case, self::fields(), $manager );
+
+		$unsigned = $this->decisions->answer( $case, $id, $owner, 'approve', '', true );
+		$this->assertInstanceOf( WP_Error::class, $unsigned );
+		$this->assertSame( array( 'name', 'image' ), array_keys( $unsigned->get_error_data()['fields'] ), 'A name, and a drawing or the "cannot draw" box.' );
+		$this->assertTrue( $this->app->decisions->find( $id )->is_pending(), 'Nothing is answered without the signature.' );
+
+		$this->assertTrue( $this->decisions->answer( $case, $id, $owner, 'approve', '', true, self::SIGNATURE ) );
+
+		$signed = $this->app->signatures->for_subject( $case->id, 'decision', $id );
+		$this->assertCount( 1, $signed );
+		$this->assertSame( $owner, $signed[0]['user_id'] );
+		$this->assertSame( 'משפחת כהן', $signed[0]['signer_name'] );
+		$this->assertSame( $this->app->decisions->find( $id )->fingerprint, $signed[0]['sha256'], 'Bound to what was shown.' );
+		$this->assertSame( 'portal', $signed[0]['method'] );
 	}
 }

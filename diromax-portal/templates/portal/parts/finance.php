@@ -44,6 +44,7 @@ $entries = $view['entries'];
 			<p class="dxp-tools__btns">
 				<button class="dxp-btn" type="button" data-dxp-print hidden><?php esc_html_e( 'הדפסה / PDF', 'diromax-portal' ); ?></button>
 				<a class="dxp-btn" href="<?php echo esc_url( (string) $view['export'] ); ?>" download><?php esc_html_e( 'הורדה ל-Excel (CSV)', 'diromax-portal' ); ?></a>
+				<a class="dxp-btn" href="<?php echo esc_url( (string) $view['report'] ); ?>"><?php esc_html_e( 'דוח מלא לשמירה כ-PDF', 'diromax-portal' ); ?></a>
 			</p>
 		</div>
 

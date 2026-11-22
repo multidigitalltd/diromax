@@ -350,6 +350,7 @@
 .dxa-task.is-done .dxa-task__t { text-decoration: line-through; color: var(--a-muted); }
 .dxa-task__m { grid-column: 1; font-size: 13px; color: var(--a-muted); }
 .dxa-task__a { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.dxa-signed { color: var(--a-teal-deep); font-weight: 700; }
 
 /* ---------- Small screens and motion ---------- */
 @media (max-width: 1180px) {

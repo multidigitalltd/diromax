@@ -10,7 +10,9 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Portal;
 
 use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Data\DocumentRecord;
 use Diromax\Portal\Data\LedgerRow;
+use Diromax\Portal\Domain\CaseStatus;
 use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
@@ -18,10 +20,10 @@ use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Domain\StageStatus;
 use Diromax\Portal\Plugin;
-use Diromax\Portal\Service\AgreementService;
 use Diromax\Portal\Service\Contact;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Settings;
 
@@ -71,8 +73,10 @@ final class CaseView {
 	 * @return array<string, mixed>
 	 */
 	public function build( CaseRecord $client_case, int $viewer, string $tab ): array {
-		$rows    = $this->app->ledger->for_case( $client_case->id, true );
-		$summary = $this->app->case_service->summary( $client_case, true );
+		$rows       = $this->app->ledger->for_case( $client_case->id, true );
+		$summary    = $this->app->case_service->summary( $client_case, true );
+		$signatures = new SignatureService( $this->app );
+		$signer     = $signatures->may_sign( $client_case, $viewer );
 
 		return array(
 			'case'       => array(
@@ -102,13 +106,25 @@ final class CaseView {
 			'agreement'  => $this->agreement( $client_case, $viewer ),
 			'decisions'  => $this->decisions( $client_case ),
 			'can_answer' => DecisionService::may_answer( $this->app->members->role( $client_case->id, $viewer ) ),
-			'to_confirm' => array_map(
-				static fn( $document ): array => array(
+			'to_sign'    => array_map(
+				static fn( DocumentRecord $document ): array => array(
+					'id'    => $document->id,
 					'title' => $document->title,
-					'url'   => Router::document_url( $document ),
 				),
-				( new AgreementService( $this->app ) )->waiting_for( $client_case, $viewer )
+				$signatures->waiting_for( $client_case, $viewer )
 			),
+			'requests'   => $signer ? array_map(
+				static fn( array $request ): array => array(
+					'id'    => $request['id'],
+					'title' => $request['title'],
+					'note'  => $request['note'],
+				),
+				$this->app->doc_requests->for_case( $client_case->id, true )
+			) : array(),
+			'can_upload' => $signer && CaseStatus::Closed !== $client_case->status,
+			'signing'    => $this->signing( $client_case, $viewer, $signatures ),
+			'report'     => Router::report_url( $client_case ),
+			'case_id'    => $client_case->id,
 			'documents'  => $this->documents( $client_case ),
 			'updates'    => $this->updates( $client_case ),
 			'tab'        => in_array( $tab, array( 'finance', 'documents', 'updates', 'decisions' ), true ) ? $tab : 'finance',
@@ -391,6 +407,87 @@ final class CaseView {
 	}
 
 	/**
+	 * The printable report: the case page's data, every tab at once, and the
+	 * signatures on visible documents and on decisions.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $viewer      Viewing user.
+	 * @return array<string, mixed>
+	 */
+	public function report( CaseRecord $client_case, int $viewer ): array {
+		$view      = $this->build( $client_case, $viewer, 'finance' );
+		$visible   = array();
+		$decisions = array();
+		$signed    = array();
+
+		foreach ( $this->app->documents->for_case( $client_case->id, true ) as $document ) {
+			$visible[ $document->id ] = $document;
+		}
+
+		foreach ( $this->app->decisions->for_case( $client_case->id ) as $decision ) {
+			$decisions[ $decision->id ] = $decision;
+		}
+
+		foreach ( $this->app->signatures->for_case( $client_case->id ) as $signature ) {
+			$document = 'document' === $signature['subject_type'] ? ( $visible[ $signature['subject_id'] ] ?? null ) : null;
+			$decision = 'decision' === $signature['subject_type'] ? ( $decisions[ $signature['subject_id'] ] ?? null ) : null;
+			$valid    = null !== $document ? hash_equals( $document->sha256, $signature['sha256'] ) : null !== $decision;
+
+			if ( ! $valid ) {
+				continue;
+			}
+
+			$signed[] = array(
+				'what'   => null !== $document ? $document->title : (string) $decision?->title,
+				'kind'   => null !== $document ? __( 'מסמך', 'diromax-portal' ) : __( 'החלטה', 'diromax-portal' ),
+				'signer' => $signature['signer_name'],
+				'when'   => Labels::datetime( $signature['signed_at'] ),
+				'how'    => 'link' === $signature['method'] ? __( 'קישור במייל וקוד', 'diromax-portal' ) : __( 'אזור אישי', 'diromax-portal' ),
+				'sha256' => $signature['sha256'],
+			);
+		}
+
+		$view['signed']  = $signed;
+		$view['summary'] = Stages::summary( $client_case->stages );
+
+		return $view;
+	}
+
+	/**
+	 * Signing state of each signable document, for the documents tab.
+	 *
+	 * @param CaseRecord       $client_case Case.
+	 * @param int              $viewer      Viewing user.
+	 * @param SignatureService $signatures  Service.
+	 * @return array<int, array{signed:string, can_sign:bool}> Document ID => state.
+	 */
+	private function signing( CaseRecord $client_case, int $viewer, SignatureService $signatures ): array {
+		$may   = $signatures->may_sign( $client_case, $viewer );
+		$state = array();
+
+		foreach ( $this->app->documents->for_case( $client_case->id, true ) as $document ) {
+			if ( ! SignatureService::is_signable( $document ) ) {
+				continue;
+			}
+
+			$mine = '';
+
+			foreach ( $signatures->of_document( $document ) as $signature ) {
+				if ( $signature['user_id'] === $viewer ) {
+					$mine = Labels::datetime( (string) $signature['signed_at'] );
+				}
+			}
+
+			$state[ $document->id ] = array(
+				'signed'   => $mine,
+				'can_sign' => $may && '' === $mine,
+			);
+		}
+
+		return $state;
+	}
+
+	/**
 	 * Decisions of the case for the portal.
 	 *
 	 * @param CaseRecord $client_case Case.
@@ -431,7 +528,7 @@ final class CaseView {
 	 * Visible documents grouped by kind.
 	 *
 	 * @param CaseRecord $client_case Case.
-	 * @return array<string, array<int, array{title:string, url:string, date:string, meta:string}>>
+	 * @return array<string, array<int, array{id:int, title:string, url:string, date:string, meta:string}>>
 	 */
 	private function documents( CaseRecord $client_case ): array {
 		$kinds  = Labels::document_kinds();
@@ -440,6 +537,7 @@ final class CaseView {
 		foreach ( $this->app->documents->for_case( $client_case->id, true ) as $document ) {
 			$label              = $kinds[ $document->kind ] ?? $kinds['other'];
 			$groups[ $label ][] = array(
+				'id'    => $document->id,
 				'title' => $document->title,
 				'url'   => Router::document_url( $document ),
 				'date'  => Labels::date( $document->created_at ),

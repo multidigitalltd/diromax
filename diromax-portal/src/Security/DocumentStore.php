@@ -298,6 +298,75 @@ final class DocumentStore {
 	}
 
 	/**
+	 * Encrypt a small secret for a database column: a signature image, an ID
+	 * number. The context is authenticated with it, so a value sealed for
+	 * one field and record does not open as another.
+	 *
+	 * @param string $plain   Secret.
+	 * @param string $context What and whose it is, e.g. "signature-image|case:3".
+	 * @return string "version:base64(nonce + ciphertext)".
+	 * @throws \RuntimeException Without a key.
+	 */
+	public function seal( string $plain, string $context ): string {
+		$nonce  = random_bytes( SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES );
+		$cipher = sodium_crypto_aead_xchacha20poly1305_ietf_encrypt( $plain, $context, $nonce, $this->field_key( $context, self::KEY_VERSION ) );
+
+		return self::KEY_VERSION . ':' . base64_encode( $nonce . $cipher ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Stores ciphertext as text; no code is involved.
+	}
+
+	/**
+	 * Decrypt a value from seal().
+	 *
+	 * @param string $sealed  Value from seal().
+	 * @param string $context The same context.
+	 * @return string|null Null when it is missing, tampered with, or the key is gone.
+	 */
+	public function unseal( string $sealed, string $context ): ?string {
+		$parts = explode( ':', $sealed, 2 );
+
+		if ( 2 !== count( $parts ) || ! ctype_digit( $parts[0] ) ) {
+			return null;
+		}
+
+		$raw = base64_decode( $parts[1], true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Reads ciphertext stored by seal(); no code is involved.
+
+		if ( ! is_string( $raw ) || strlen( $raw ) <= SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES ) {
+			return null;
+		}
+
+		try {
+			$plain = sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
+				substr( $raw, SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES ),
+				$context,
+				substr( $raw, 0, SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES ),
+				$this->field_key( $context, (int) $parts[0] )
+			);
+		} catch ( \RuntimeException | \SodiumException ) {
+			return null;
+		}
+
+		return is_string( $plain ) ? $plain : null;
+	}
+
+	/**
+	 * Key for sealed fields, derived from the master key.
+	 *
+	 * @param string $context Context.
+	 * @param int    $version Key version.
+	 * @return string
+	 * @throws \RuntimeException Without a key.
+	 */
+	private function field_key( string $context, int $version ): string {
+		$master = $this->master_key( $version );
+
+		if ( null === $master ) {
+			throw new \RuntimeException( 'document_store.no_key' );
+		}
+
+		return sodium_crypto_generichash( 'dx-portal-field|' . $context, $master, SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_KEYBYTES );
+	}
+
+	/**
 	 * The master key for a version, decoded and length-checked.
 	 *
 	 * Version 1 is DX_PORTAL_KEY. A later rotation adds DX_PORTAL_KEY_V2 and
