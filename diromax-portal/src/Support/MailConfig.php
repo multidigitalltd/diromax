@@ -12,38 +12,31 @@ namespace Diromax\Portal\Support;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The Postmark settings (spec 17), read from constants in wp-config.php so
- * no key is kept in the database (standard 4.6):
+ * The Postmark settings (spec 17), as Integrations holds them: set on the
+ * plugin's settings screen, or fixed in wp-config.php, which wins.
  *
- *   DX_POSTMARK_TOKEN        Server API token.
- *   DX_POSTMARK_FROM         Sender address on a verified domain.
- *   DX_POSTMARK_STREAM       Outbound message stream (default "outbound").
- *   DX_POSTMARK_INBOUND      The server's inbound address.
- *   DX_POSTMARK_WEBHOOK_KEY  Password the webhooks must carry.
+ * Settings: token, the server API token (DX_POSTMARK_TOKEN), a secret kept
+ * sealed; from, the sender address on a verified domain (DX_POSTMARK_FROM);
+ * stream, default "outbound" (DX_POSTMARK_STREAM); inbound, the server's
+ * inbound address (DX_POSTMARK_INBOUND).
  *
- * The dx_portal_mail_config filter can supply them instead (tests, or a
+ * The webhook key is only ever compared as a hash: Integrations::webhook_hash().
+ * The dx_portal_mail_config filter can supply a value instead (tests, or a
  * host that injects secrets another way).
  */
 final class MailConfig {
 
-	/** Setting name => constant. */
-	private const CONSTANTS = array(
-		'token'       => 'DX_POSTMARK_TOKEN',
-		'from'        => 'DX_POSTMARK_FROM',
-		'stream'      => 'DX_POSTMARK_STREAM',
-		'inbound'     => 'DX_POSTMARK_INBOUND',
-		'webhook_key' => 'DX_POSTMARK_WEBHOOK_KEY',
-	);
+	/** Settings read through here. */
+	private const NAMES = array( 'token', 'from', 'stream', 'inbound' );
 
 	/**
 	 * One setting, trimmed; '' when not set.
 	 *
-	 * @param string $name token, from, stream, inbound or webhook_key.
+	 * @param string $name token, from, stream or inbound.
 	 * @return string
 	 */
 	public static function get( string $name ): string {
-		$constant = self::CONSTANTS[ $name ] ?? '';
-		$value    = '' !== $constant && defined( $constant ) ? (string) constant( $constant ) : '';
+		$value = in_array( $name, self::NAMES, true ) ? Integrations::get( $name ) : '';
 
 		return trim( (string) apply_filters( 'dx_portal_mail_config', $value, $name ) );
 	}

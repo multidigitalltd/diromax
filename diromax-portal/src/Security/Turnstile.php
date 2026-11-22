@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Security;
 
 use Diromax\Portal\Data\Logger;
+use Diromax\Portal\Support\Integrations;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -17,7 +18,8 @@ defined( 'ABSPATH' ) || exit;
  * Server-side Turnstile check for the portal's sign-in form (standard 15.3).
  *
  * Active only when both keys are defined in wp-config.php
- * (DX_TURNSTILE_SITE_KEY, DX_TURNSTILE_SECRET_KEY). The secret never reaches
+ * (from the settings screen, or DX_TURNSTILE_SITE_KEY and DX_TURNSTILE_SECRET_KEY
+ * in wp-config.php; see Integrations). The secret never reaches
  * the browser. Any failure, including Cloudflare being unreachable, rejects.
  */
 final class Turnstile {
@@ -43,7 +45,7 @@ final class Turnstile {
 	 * @return string
 	 */
 	public static function site_key(): string {
-		return defined( 'DX_TURNSTILE_SITE_KEY' ) ? (string) constant( 'DX_TURNSTILE_SITE_KEY' ) : '';
+		return Integrations::get( 'turnstile_site' );
 	}
 
 	/**
@@ -88,6 +90,6 @@ final class Turnstile {
 	 * @return string
 	 */
 	private static function secret(): string {
-		return defined( 'DX_TURNSTILE_SECRET_KEY' ) ? (string) constant( 'DX_TURNSTILE_SECRET_KEY' ) : '';
+		return Integrations::get( 'turnstile_secret' );
 	}
 }

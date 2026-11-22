@@ -13,7 +13,7 @@ use Diromax\Portal\Data\Logger;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Security\RateLimiter;
 use Diromax\Portal\Service\InboundService;
-use Diromax\Portal\Support\MailConfig;
+use Diromax\Portal\Support\Integrations;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -27,8 +27,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * Postmark does not sign its requests, so each one must carry HTTP Basic
  * credentials, written into the webhook URL in Postmark: user name
- * "postmark", password DX_POSTMARK_WEBHOOK_KEY from wp-config.php, at
- * least 32 characters.
+ * "postmark", password the webhook key. The plugin makes the key on the
+ * settings screen and keeps only its hash; DX_POSTMARK_WEBHOOK_KEY in
+ * wp-config.php (at least 32 characters) wins when set.
  * Without the key the endpoints refuse everything. Failed attempts are rate
  * limited per address. The endpoints never sign in a WordPress user.
  */
@@ -36,9 +37,6 @@ final class Webhooks {
 
 	/** REST namespace. */
 	public const NAMESPACE = 'diromax-portal/v1';
-
-	/** Shortest accepted key. */
-	public const MIN_KEY = 32;
 
 	/** Failed attempts per address per window. */
 	private const FAILURES = 20;
@@ -104,7 +102,7 @@ final class Webhooks {
 	 * @return bool
 	 */
 	public static function configured(): bool {
-		return '' !== self::key();
+		return '' !== Integrations::webhook_hash();
 	}
 
 	/**
@@ -130,14 +128,15 @@ final class Webhooks {
 			return new WP_Error( 'dx_rate_limited', 'Too many attempts.', array( 'status' => 429 ) );
 		}
 
-		$key = self::key();
+		// Only the key's hash is kept (it is shown once when made): compare hashes.
+		$hash = Integrations::webhook_hash();
 
-		if ( '' !== $key && hash_equals( $key, self::password( $request ) ) ) {
+		if ( '' !== $hash && hash_equals( $hash, hash( 'sha256', self::password( $request ) ) ) ) {
 			return true;
 		}
 
 		$this->app->limiter->attempt( 'webhook_fail', $ip, PHP_INT_MAX, self::WINDOW );
-		Logger::warning( 'webhook.refused', array( 'configured' => '' !== $key ) );
+		Logger::warning( 'webhook.refused', array( 'configured' => '' !== $hash ) );
 
 		return new WP_Error( 'dx_unauthorized', 'Unauthorized.', array( 'status' => 401 ) );
 	}
@@ -265,16 +264,5 @@ final class Webhooks {
 		}
 
 		return isset( $_SERVER['PHP_AUTH_PW'] ) ? (string) wp_unslash( $_SERVER['PHP_AUTH_PW'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compared with hash_equals only; sanitizing would change the secret.
-	}
-
-	/**
-	 * The configured key, '' when missing or too short.
-	 *
-	 * @return string
-	 */
-	private static function key(): string {
-		$key = MailConfig::get( 'webhook_key' );
-
-		return strlen( $key ) >= self::MIN_KEY ? $key : '';
 	}
 }

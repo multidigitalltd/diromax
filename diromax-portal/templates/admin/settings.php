@@ -147,48 +147,123 @@ $header   = array(
 		<?php submit_button( __( 'שמירת ההגדרות', 'diromax-portal' ) ); ?>
 	</form>
 
-	<?php $mail = $view['mail']; ?>
-	<h2 id="dxa-mail-title"><?php esc_html_e( 'שליחה וקבלה של מיילים (Postmark)', 'diromax-portal' ); ?></h2>
-	<p><?php esc_html_e( 'ההגדרות האלה נקבעות בקובץ wp-config.php בלבד, כדי שמפתחות לא יישמרו במסד הנתונים. ההוראות ב-README של התוסף, "Postmark".', 'diromax-portal' ); ?></p>
-	<table class="form-table" role="presentation" aria-labelledby="dxa-mail-title">
+	<?php
+	$mail      = $view['mail'];
+	$dx_fields = $mail['fields'];
+	$dx_form   = new \Diromax\Portal\Admin\Form( $view['flash'], 'integrations' );
+	$dx_locked = __( 'קבוע ב-wp-config.php, ולכן לא נערך כאן.', 'diromax-portal' );
+	$dx_input  = static function ( string $name, string $label, string $type, string $help ) use ( $dx_fields, $dx_form, $dx_locked, $mail ): void {
+		$field  = $dx_fields[ $name ];
+		$id     = 'dxa-integrations-' . $name;
+		$secret = 'password' === $type;
+		$error  = $dx_form->error( $name );
+		$notes  = array_filter( array( $help, $field['locked'] ? $dx_locked : '', $secret && ! $mail['key_ready'] ? __( 'כדי לשמור מפתח צריך קודם את מפתח ההצפנה DX_PORTAL_KEY ב-wp-config.php.', 'diromax-portal' ) : '' ) );
+		?>
 		<tr>
-			<th scope="row"><?php esc_html_e( 'שליחה', 'diromax-portal' ); ?></th>
+			<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>
 			<td>
-				<?php if ( $mail['postmark'] ) : ?>
-					<strong><?php esc_html_e( 'פעיל: כל המיילים של האתר יוצאים דרך Postmark.', 'diromax-portal' ); ?></strong>
-					<p class="description">
-						<?php esc_html_e( 'כתובת השולח:', 'diromax-portal' ); ?>
-						<span dir="ltr"><?php echo esc_html( '' !== $mail['sender'] ? $mail['sender'] : __( 'ברירת המחדל של האתר', 'diromax-portal' ) ); ?></span>
-						· <?php esc_html_e( 'זרם:', 'diromax-portal' ); ?> <code dir="ltr"><?php echo esc_html( $mail['stream'] ); ?></code>
-					</p>
-				<?php else : ?>
-					<strong><?php esc_html_e( 'לא מוגדר: המיילים יוצאים בדרך הרגילה של האתר.', 'diromax-portal' ); ?></strong>
+				<input type="<?php echo esc_attr( $type ); ?>" id="<?php echo esc_attr( $id ); ?>" name="integrations[<?php echo esc_attr( $name ); ?>]" class="regular-text" dir="ltr" autocomplete="off" spellcheck="false"
+					value="<?php echo esc_attr( $secret ? '' : $dx_form->old( $name, (string) $field['value'] ) ); ?>"
+					<?php echo $secret && $field['set'] ? 'placeholder="' . esc_attr__( '•••••••• (שמור. ריק: בלי שינוי)', 'diromax-portal' ) . '"' : ''; ?>
+					<?php disabled( $field['locked'] || ( $secret && ! $mail['key_ready'] ) ); ?>
+					<?php echo '' !== $error ? ' aria-invalid="true"' : ''; ?>
+					aria-describedby="<?php echo esc_attr( $id . '-help' ); ?>">
+				<?php if ( $secret && $field['set'] && ! $field['locked'] ) : ?>
+					<label><input type="checkbox" name="integrations[<?php echo esc_attr( $name ); ?>_clear]" value="1"> <?php esc_html_e( 'למחוק', 'diromax-portal' ); ?></label>
 				<?php endif; ?>
+				<p class="description" id="<?php echo esc_attr( $id . '-help' ); ?>">
+					<?php if ( $field['unreadable'] ) : ?>
+						<strong><?php esc_html_e( 'המפתח השמור הוצפן במפתח הצפנה אחר ולא נפתח. מזינים אותו מחדש.', 'diromax-portal' ); ?></strong>
+					<?php endif; ?>
+					<?php if ( '' !== $error ) : ?>
+						<strong class="dxa-error"><?php echo esc_html( $error ); ?></strong>
+					<?php endif; ?>
+					<?php echo esc_html( implode( ' ', $notes ) ); ?>
+				</p>
 			</td>
 		</tr>
+		<?php
+	};
+	?>
+	<h2 id="dxa-mail-title"><?php esc_html_e( 'שליחה וקבלה של מיילים (Postmark)', 'diromax-portal' ); ?></h2>
+	<p>
+		<?php
+		if ( $mail['postmark'] ) {
+			esc_html_e( 'פעיל: כל המיילים של האתר יוצאים דרך Postmark.', 'diromax-portal' );
+		} else {
+			esc_html_e( 'לא מוגדר: המיילים יוצאים בדרך הרגילה של האתר. מזינים את ה-Server API Token מ-Postmark כדי להפעיל.', 'diromax-portal' );
+		}
+		?>
+		<?php esc_html_e( 'מפתחות נשמרים מוצפנים ולא מוצגים שוב אחרי השמירה. הגדרה שקבועה ב-wp-config.php גוברת על מה שכאן.', 'diromax-portal' ); ?>
+	</p>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<input type="hidden" name="action" value="dx_portal_save_integrations">
+		<?php wp_nonce_field( 'dx_portal_save_integrations' ); ?>
+		<table class="form-table" role="presentation">
+			<?php
+			$dx_input( 'token', __( 'Server API Token', 'diromax-portal' ), 'password', __( 'ב-Postmark: Servers ← השרת ← API Tokens.', 'diromax-portal' ) );
+			$dx_input( 'from', __( 'כתובת השולח', 'diromax-portal' ), 'email', __( 'מהדומיין שאומת ב-Postmark. ריק: הכתובת הרגילה של האתר.', 'diromax-portal' ) );
+			$dx_input( 'stream', __( 'זרם השליחה', 'diromax-portal' ), 'text', __( 'ריק: outbound.', 'diromax-portal' ) );
+			$dx_input( 'inbound', __( 'כתובת הדואר הנכנס', 'diromax-portal' ), 'email', __( 'מ-Default Inbound Stream ← Settings. ריק: תשובות של לקוחות מגיעות ישירות למנהל הפרויקט.', 'diromax-portal' ) );
+			?>
+		</table>
+
+		<h2 id="dxa-turnstile-title"><?php esc_html_e( 'הגנה על טפסים (Cloudflare Turnstile)', 'diromax-portal' ); ?></h2>
+		<p><?php esc_html_e( 'אותם מפתחות משמשים את טופס הכניסה לאזור האישי ואת טופס יצירת הקשר באתר. בלי שני המפתחות הטפסים עובדים כרגיל, עם ההגנות הקיימות.', 'diromax-portal' ); ?></p>
+		<table class="form-table" role="presentation">
+			<?php
+			$dx_input( 'turnstile_site', __( 'Site Key', 'diromax-portal' ), 'text', __( 'המפתח הציבורי מ-Cloudflare ← Turnstile.', 'diromax-portal' ) );
+			$dx_input( 'turnstile_secret', __( 'Secret Key', 'diromax-portal' ), 'password', __( 'המפתח הסודי מאותו מסך.', 'diromax-portal' ) );
+			?>
+		</table>
+		<?php submit_button( __( 'שמירת ההגדרות', 'diromax-portal' ) ); ?>
+	</form>
+
+	<h2 id="dxa-webhooks-title"><?php esc_html_e( 'כתובות ה-webhook ב-Postmark', 'diromax-portal' ); ?></h2>
+	<table class="form-table" role="presentation">
 		<tr>
 			<th scope="row"><?php esc_html_e( 'תשובות של לקוחות לתוך התיק', 'diromax-portal' ); ?></th>
 			<td>
 				<?php if ( $mail['inbound'] && $mail['webhook_key'] ) : ?>
 					<strong><?php esc_html_e( 'פעיל: תשובה של לקוח נשמרת בתיק ומועברת למנהל הפרויקט.', 'diromax-portal' ); ?></strong>
 				<?php elseif ( $mail['inbound'] ) : ?>
-					<strong><?php esc_html_e( 'חסר מפתח ה-webhook (DX_POSTMARK_WEBHOOK_KEY): התשובות לא יתקבלו.', 'diromax-portal' ); ?></strong>
+					<strong><?php esc_html_e( 'חסר מפתח webhook: התשובות לא יתקבלו. יוצרים מפתח כאן למטה.', 'diromax-portal' ); ?></strong>
 				<?php else : ?>
 					<?php esc_html_e( 'לא מוגדר: תשובות של לקוחות מגיעות ישירות למייל של מנהל הפרויקט.', 'diromax-portal' ); ?>
 				<?php endif; ?>
 			</td>
 		</tr>
 		<tr>
-			<th scope="row"><?php esc_html_e( 'כתובות ה-webhook ב-Postmark', 'diromax-portal' ); ?></th>
+			<th scope="row"><?php esc_html_e( 'הכתובות', 'diromax-portal' ); ?></th>
 			<td>
-				<p><?php esc_html_e( 'מיילים שחזרו וסימוני ספאם (Bounce, Spam Complaint):', 'diromax-portal' ); ?><br><code dir="ltr"><?php echo esc_html( $mail['events_url'] ); ?></code></p>
-				<p><?php esc_html_e( 'דואר נכנס (Inbound):', 'diromax-portal' ); ?><br><code dir="ltr"><?php echo esc_html( $mail['inbound_url'] ); ?></code></p>
-				<p class="description">
-					<?php esc_html_e( 'במקום KEY כותבים את הערך של DX_POSTMARK_WEBHOOK_KEY.', 'diromax-portal' ); ?>
-					<?php if ( ! $mail['webhook_key'] ) : ?>
-						<strong><?php esc_html_e( 'המפתח עדיין לא מוגדר (לפחות 32 תווים).', 'diromax-portal' ); ?></strong>
-					<?php endif; ?>
-				</p>
+				<?php if ( null !== $mail['new_key'] ) : ?>
+					<div class="notice notice-warning inline" role="status">
+						<p><strong><?php esc_html_e( 'המפתח החדש מוצג עכשיו פעם אחת בלבד.', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'מעתיקים את שתי הכתובות ל-Postmark עכשיו. אחרי שעוזבים את העמוד אפשר רק ליצור מפתח חדש.', 'diromax-portal' ); ?></p>
+						<p><?php esc_html_e( 'מיילים שחזרו וסימוני ספאם (Bounce, Spam Complaint):', 'diromax-portal' ); ?><br><code dir="ltr" class="dxa-copy"><?php echo esc_html( $mail['new_key']['events'] ); ?></code></p>
+						<p><?php esc_html_e( 'דואר נכנס (Inbound):', 'diromax-portal' ); ?><br><code dir="ltr" class="dxa-copy"><?php echo esc_html( $mail['new_key']['inbound'] ); ?></code></p>
+					</div>
+				<?php else : ?>
+					<p><?php esc_html_e( 'מיילים שחזרו וסימוני ספאם (Bounce, Spam Complaint):', 'diromax-portal' ); ?><br><code dir="ltr"><?php echo esc_html( $mail['events_url'] ); ?></code></p>
+					<p><?php esc_html_e( 'דואר נכנס (Inbound):', 'diromax-portal' ); ?><br><code dir="ltr"><?php echo esc_html( $mail['inbound_url'] ); ?></code></p>
+					<p class="description">
+						<?php
+						if ( $mail['webhook_key'] ) {
+							esc_html_e( 'KEY הוא מפתח ה-webhook. הוא נשמר רק כטביעת אצבע, ולכן לא מוצג שוב. אם הוא אבד, יוצרים חדש ומעדכנים את Postmark.', 'diromax-portal' );
+						} else {
+							esc_html_e( 'עדיין אין מפתח webhook. יוצרים אחד, והכתובות המלאות יוצגו פעם אחת.', 'diromax-portal' );
+						}
+						?>
+					</p>
+				<?php endif; ?>
+				<?php if ( $mail['webhook_locked'] ) : ?>
+					<p class="description"><?php echo esc_html( $dx_locked ); ?></p>
+				<?php elseif ( $mail['key_ready'] ) : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="dx_portal_new_webhook_key">
+						<?php wp_nonce_field( 'dx_portal_new_webhook_key' ); ?>
+						<button type="submit" class="button"<?php echo $mail['webhook_key'] ? ' data-dxa-confirm="' . esc_attr__( 'ליצור מפתח חדש? המפתח הנוכחי יפסיק לעבוד מיד, וצריך לעדכן את Postmark.', 'diromax-portal' ) . '"' : ''; ?>><?php echo esc_html( $mail['webhook_key'] ? __( 'יצירת מפתח webhook חדש', 'diromax-portal' ) : __( 'יצירת מפתח webhook', 'diromax-portal' ) ); ?></button>
+					</form>
+				<?php endif; ?>
 			</td>
 		</tr>
 	</table>
