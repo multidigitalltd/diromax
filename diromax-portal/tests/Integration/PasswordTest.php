@@ -43,7 +43,10 @@ final class PasswordTest extends PortalTestCase {
 		$this->assertStringContainsString( 'הסיסמה לאזור האישי עודכנה', $this->mails[0]['subject'] );
 
 		wp_set_current_user( 0 );
-		$this->assertSame( $client, $this->passwords->sign_in( 'Ronit@Example.org ', self::GOOD, false ) );
+		$checked = $this->passwords->check( 'Ronit@Example.org ', self::GOOD );
+		$this->assertInstanceOf( \WP_User::class, $checked );
+		$this->assertSame( 0, get_current_user_id(), 'The password alone signs no one in: the email code comes first.' );
+		$this->assertSame( $client, $this->passwords->complete( $checked, false ) );
 		$this->assertSame( $client, get_current_user_id() );
 	}
 
@@ -151,9 +154,9 @@ final class PasswordTest extends PortalTestCase {
 		$token  = $this->session( $client );
 		$this->passwords->change( $client, $token, self::GOOD, '' );
 
-		$wrong   = $this->passwords->sign_in( 'known@example.org', 'לא הסיסמה הזאת', false );
-		$unknown = $this->passwords->sign_in( 'nobody@example.org', self::GOOD, false );
-		$empty   = $this->passwords->sign_in( 'known@example.org', '', false );
+		$wrong   = $this->passwords->check( 'known@example.org', 'לא הסיסמה הזאת' );
+		$unknown = $this->passwords->check( 'nobody@example.org', self::GOOD );
+		$empty   = $this->passwords->check( 'known@example.org', '' );
 
 		foreach ( array( $wrong, $unknown, $empty ) as $result ) {
 			$this->assertInstanceOf( WP_Error::class, $result );
@@ -171,15 +174,15 @@ final class PasswordTest extends PortalTestCase {
 		$this->passwords->change( $client, $token, self::GOOD, '' );
 
 		for ( $i = 0; $i < 5; $i++ ) {
-			$this->passwords->sign_in( 'rate@example.org', 'טעות ' . $i . ' טעות', false );
+			$this->passwords->check( 'rate@example.org', 'טעות ' . $i . ' טעות' );
 		}
 
-		$blocked = $this->passwords->sign_in( 'rate@example.org', self::GOOD, false );
+		$blocked = $this->passwords->check( 'rate@example.org', self::GOOD );
 		$this->assertInstanceOf( WP_Error::class, $blocked );
 		$this->assertSame( 'dx_login_failed', $blocked->get_error_code() );
 
 		$this->clock->advance( 16 * MINUTE_IN_SECONDS );
-		$this->assertSame( $client, $this->passwords->sign_in( 'rate@example.org', self::GOOD, false ) );
+		$this->assertSame( $client, $this->passwords->check( 'rate@example.org', self::GOOD )->ID );
 	}
 
 	/**
@@ -194,7 +197,7 @@ final class PasswordTest extends PortalTestCase {
 			)
 		);
 
-		$this->assertSame( 'dx_login_failed', $this->passwords->sign_in( 'staff@example.org', self::GOOD, false )->get_error_code() );
+		$this->assertSame( 'dx_login_failed', $this->passwords->check( 'staff@example.org', self::GOOD )->get_error_code() );
 		$this->assertSame( 'dx_forbidden', $this->passwords->change( $manager, $this->session( $manager ), 'סיסמה חדשה לגמרי', self::GOOD )->get_error_code() );
 	}
 
@@ -204,7 +207,7 @@ final class PasswordTest extends PortalTestCase {
 		$this->passwords->change( $client, $token, self::GOOD, '' );
 		$this->app->members->remove_user( $client );
 
-		$this->assertSame( 'dx_login_failed', $this->passwords->sign_in( 'former@example.org', self::GOOD, false )->get_error_code() );
+		$this->assertSame( 'dx_login_failed', $this->passwords->check( 'former@example.org', self::GOOD )->get_error_code() );
 	}
 
 	public function test_a_link_sign_in_counts_as_recent(): void {

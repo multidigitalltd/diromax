@@ -14,6 +14,7 @@ use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Service\Contact;
 use Diromax\Portal\Service\LeadLink;
+use Diromax\Portal\Service\LoginCodeService;
 use Diromax\Portal\Support\AssetFile;
 
 defined( 'ABSPATH' ) || exit;
@@ -287,12 +288,10 @@ final class Admin {
 			$notices[] = array( 'error', __( 'מפתח ההצפנה ב-wp-config.php השתנה, ומסמכים שהועלו עם המפתח הקודם לא ייפתחו. החזירו את המפתח הקודם מהעותק השמור. העלאת מסמכים חסומה עד אז, כדי שלא יתערבבו שני מפתחות.', 'diromax-portal' ) );
 		}
 
-		$two_factor = self::two_factor_status( $user );
-
-		if ( 'none' === $two_factor ) {
-			$notices[] = array( 'warning', __( 'תקן Multi Digital מחייב אימות דו-שלבי לכל מנהל. מתקינים את התוסף Two Factor (קוד במייל או אפליקציית אימות), או מפעילים את מודול האימות הדו-שלבי של All-In-One Security. אחד מהם, לא שניהם.', 'diromax-portal' ) );
-		} elseif ( 'off' === $two_factor ) {
-			$notices[] = array( 'warning', __( 'החשבון שלך עדיין בלי אימות דו-שלבי. מפעילים אותו בעמוד הפרופיל בלוח וורדפרס (עם Two Factor), או תחת Two Factor Auth (עם All-In-One Security).', 'diromax-portal' ) );
+		if ( ! LoginCodeService::enabled() ) {
+			$notices[] = array( 'error', __( 'הקוד במייל בכניסה כבוי במתג החירום (DX_PORTAL_EMAIL_CODE_OFF ב-wp-config.php). כל כניסה עם סיסמה עוברת עכשיו בלי אימות נוסף. מסירים את השורה ברגע שהמייל עובד.', 'diromax-portal' ) );
+		} elseif ( 'other' === self::two_factor_status( $user ) ) {
+			$notices[] = array( 'info', __( 'קוד במייל בכל כניסה מובנה בתוסף. אפשר להשבית את Two Factor או את האימות הדו-שלבי של All-In-One Security, כדי שלא יתבקשו שני אימותים.', 'diromax-portal' ) );
 		}
 
 		$failed = $this->app->events->failed_count();
@@ -311,25 +310,19 @@ final class Admin {
 	}
 
 	/**
-	 * Two-factor sign-in for a staff user, from whichever plugin provides it:
-	 * Two Factor, or the Two-Factor Authentication module of All-In-One
-	 * Security (AIOS). The site uses one of them, not both.
+	 * The second sign-in step a staff user has: the built-in email code
+	 * (decision 16), or another plugin's (Two Factor, or the two-factor
+	 * module of All-In-One Security) on top of it.
 	 *
 	 * @param int $user User.
-	 * @return string none (no 2FA plugin), off (not set up for this user) or on.
+	 * @return string email (built-in code), other (another plugin's too) or off (emergency switch).
 	 */
 	public static function two_factor_status( int $user ): string {
-		if ( class_exists( 'Two_Factor_Core' ) ) {
-			return \Two_Factor_Core::is_user_using_two_factor( $user ) ? 'on' : 'off';
-		}
+		$aios  = $GLOBALS['simba_two_factor_authentication'] ?? null;
+		$other = ( class_exists( 'Two_Factor_Core' ) && \Two_Factor_Core::is_user_using_two_factor( $user ) )
+			|| ( is_object( $aios ) && method_exists( $aios, 'is_activated_for_user' ) && method_exists( $aios, 'is_activated_by_user' ) && $aios->is_activated_for_user( $user ) && $aios->is_activated_by_user( $user ) );
 
-		$aios = $GLOBALS['simba_two_factor_authentication'] ?? null;
-
-		if ( is_object( $aios ) && method_exists( $aios, 'is_activated_for_user' ) && method_exists( $aios, 'is_activated_by_user' ) ) {
-			return $aios->is_activated_for_user( $user ) && $aios->is_activated_by_user( $user ) ? 'on' : 'off';
-		}
-
-		return 'none';
+		return $other ? 'other' : ( LoginCodeService::enabled() ? 'email' : 'off' );
 	}
 
 	/**

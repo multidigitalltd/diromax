@@ -61,32 +61,30 @@ final class ReleaseTest extends PortalTestCase {
 		$this->assertNotSame( dx_asset_version( 'style.min.css', 'style.css' ), dx_asset_version( 'assets/js/privacy.min.js', 'assets/js/privacy.js' ) );
 	}
 
-	public function test_two_factor_from_either_plugin_is_recognised(): void {
+	public function test_the_built_in_email_code_is_the_second_step_and_other_plugins_are_flagged(): void {
 		$manager = $this->manager();
 
-		$this->assertSame( 'none', Admin::two_factor_status( $manager ) );
+		$this->assertSame( 'email', Admin::two_factor_status( $manager ), 'Built in: no plugin needed.' );
+		$this->assertNotContains( 'warning', array_column( ( new Admin( $this->app ) )->config_notices( $manager ), 0 ) );
 
 		$GLOBALS['simba_two_factor_authentication'] = new class() {
-			/**
-			 * Users who turned it on.
-			 *
-			 * @var int[]
-			 */
-			public array $on = array();
-
 			public function is_activated_for_user( int $user_id ): bool {
 				return $user_id > 0;
 			}
 
 			public function is_activated_by_user( int $user_id ): bool {
-				return in_array( $user_id, $this->on, true );
+				return $user_id > 0;
 			}
 		};
 
-		$this->assertSame( 'off', Admin::two_factor_status( $manager ), 'AIOS active, not set up by this user yet.' );
-		$GLOBALS['simba_two_factor_authentication']->on[] = $manager;
-		$this->assertSame( 'on', Admin::two_factor_status( $manager ) );
-		$this->assertNotContains( 'warning', array_column( ( new Admin( $this->app ) )->config_notices( $manager ), 0 ) );
+		$this->assertSame( 'other', Admin::two_factor_status( $manager ), 'AIOS two-factor on top: suggest turning it off.' );
+		$this->assertContains( 'info', array_column( ( new Admin( $this->app ) )->config_notices( $manager ), 0 ) );
+		unset( $GLOBALS['simba_two_factor_authentication'] );
+
+		add_filter( 'dx_portal_email_code_enabled', '__return_false' );
+		$this->assertSame( 'off', Admin::two_factor_status( $manager ) );
+		$this->assertContains( 'error', array_column( ( new Admin( $this->app ) )->config_notices( $manager ), 0 ), 'The emergency switch is loud.' );
+		remove_filter( 'dx_portal_email_code_enabled', '__return_false' );
 	}
 
 	public function test_the_lead_form_route_stays_open_under_the_aios_rest_lockdown(): void {

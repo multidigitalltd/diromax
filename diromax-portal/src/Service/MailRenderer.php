@@ -264,6 +264,32 @@ final class MailRenderer {
 	}
 
 	/**
+	 * The one-time sign-in code.
+	 *
+	 * @param string $name Recipient's name.
+	 * @param string $code 6 digits.
+	 * @return MailMessage
+	 */
+	public function login_code( string $name, string $code ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => __( 'הקוד תקף ל-10 דקות.', 'diromax-portal' ),
+				'eyebrow'   => __( 'כניסה מאובטחת', 'diromax-portal' ),
+				/* translators: %s: code. */
+				'headline'  => sprintf( __( 'קוד הכניסה: %s', 'diromax-portal' ), $code ),
+				'greeting'  => $name,
+				'intro'     => __( 'מקלידים את הקוד במסך הכניסה כדי להשלים את הכניסה. הוא תקף ל-10 דקות ולכניסה אחת.', 'diromax-portal' ),
+				'body'      => 'notice',
+				'notice'    => __( 'לא ניסית להיכנס? מישהו הקליד את הסיסמה שלך. אל תמסור את הקוד לאף אחד, והחלף את הסיסמה.', 'diromax-portal' ),
+			)
+		);
+
+		/* translators: %s: code. */
+		return $this->message( sprintf( __( 'קוד כניסה: %s · דירומקס', 'diromax-portal' ), $code ), $view );
+	}
+
+	/**
 	 * Security notice after a password was set or changed.
 	 *
 	 * @param string $name Recipient's name.

@@ -44,6 +44,35 @@ $signed_out = isset( $_GET['out'] );
 				<button type="submit" class="dxp-btn dxp-btn--orange"><?php esc_html_e( 'כניסה', 'diromax-portal' ); ?></button>
 			</form>
 
+		<?php elseif ( 'code' === $state ) : ?>
+			<h1 id="dxp-auth-title"><?php esc_html_e( 'קוד הכניסה מהמייל', 'diromax-portal' ); ?></h1>
+			<?php if ( '' !== (string) ( $view['code_error'] ?? '' ) ) : ?>
+				<p class="dxp-alert" role="alert" id="dxp-code-err"><?php echo esc_html( (string) $view['code_error'] ); ?></p>
+			<?php else : ?>
+				<p class="dxp-lead" role="status">
+					<?php
+					/* translators: %s: masked email address. */
+					echo esc_html( sprintf( __( 'הסיסמה נכונה. לאבטחה, שלחנו קוד בן 6 ספרות אל %s. הוא תקף ל-10 דקות.', 'diromax-portal' ), (string) ( $view['masked'] ?? '' ) ) );
+					?>
+				</p>
+			<?php endif; ?>
+			<form class="dxp-form" method="post" action="<?php echo esc_url( Router::login_url() ); ?>">
+				<input type="hidden" name="dx_step" value="code">
+				<input type="hidden" name="dx_challenge" value="<?php echo esc_attr( (string) $view['challenge'] ); ?>">
+				<?php wp_nonce_field( 'dx_portal_login_code', '_dx_nonce', false ); ?>
+				<p class="dxp-field">
+					<label for="dxp-code"><?php esc_html_e( 'הקוד', 'diromax-portal' ); ?></label>
+					<input type="text" id="dxp-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" dir="ltr" required<?php echo '' !== (string) ( $view['code_error'] ?? '' ) ? ' aria-invalid="true" aria-describedby="dxp-code-err"' : ''; ?>>
+				</p>
+				<button type="submit" class="dxp-btn dxp-btn--orange"><?php esc_html_e( 'כניסה', 'diromax-portal' ); ?></button>
+			</form>
+			<form method="post" action="<?php echo esc_url( Router::login_url() ); ?>">
+				<input type="hidden" name="dx_step" value="code_resend">
+				<input type="hidden" name="dx_challenge" value="<?php echo esc_attr( (string) $view['challenge'] ); ?>">
+				<?php wp_nonce_field( 'dx_portal_login_code', '_dx_nonce', false ); ?>
+				<p class="dxp-note"><button type="submit" class="dxp-linkbtn"><?php esc_html_e( 'לא הגיע? שליחת קוד חדש', 'diromax-portal' ); ?></button></p>
+			</form>
+
 		<?php else : ?>
 			<h1 id="dxp-auth-title"><?php esc_html_e( 'כניסה לאזור האישי', 'diromax-portal' ); ?></h1>
 
@@ -53,6 +82,8 @@ $signed_out = isset( $_GET['out'] );
 				<p class="dxp-alert" role="alert"><?php esc_html_e( 'הקישור פג תוקף או שכבר נעשה בו שימוש. אפשר לבקש קישור חדש כאן.', 'diromax-portal' ); ?></p>
 			<?php elseif ( 'expired' === $state ) : ?>
 				<p class="dxp-alert" role="alert"><?php esc_html_e( 'פג תוקף הטופס. אפשר לנסות שוב.', 'diromax-portal' ); ?></p>
+			<?php elseif ( 'code_expired' === $state ) : ?>
+				<p class="dxp-alert" role="alert"><?php esc_html_e( 'הקוד פג או שהוזן שגוי יותר מדי פעמים. נכנסים שוב, ונשלח קוד חדש.', 'diromax-portal' ); ?></p>
 			<?php elseif ( 'captcha' === $state ) : ?>
 				<p class="dxp-alert" role="alert"><?php esc_html_e( 'לא הצלחנו לאמת שהבקשה נשלחה מדפדפן. אפשר לנסות שוב.', 'diromax-portal' ); ?></p>
 			<?php elseif ( $signed_out ) : ?>

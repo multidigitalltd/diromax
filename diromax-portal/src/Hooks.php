@@ -12,6 +12,7 @@ namespace Diromax\Portal;
 use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Portal\Controller;
 use Diromax\Portal\Portal\Router;
+use Diromax\Portal\Security\LoginGate;
 use Diromax\Portal\Security\ClientGuard;
 use Diromax\Portal\Service\DailyJobs;
 use Diromax\Portal\Service\PasswordService;
@@ -56,6 +57,7 @@ final class Hooks {
 		add_filter( 'wp_privacy_personal_data_exporters', array( $retention, 'register_exporter' ) );
 		add_filter( 'wp_privacy_personal_data_erasers', array( $retention, 'register_eraser' ) );
 
+		( new LoginGate( $app ) )->register();
 		add_filter( 'dx_nav_links', array( self::class, 'nav_link' ), 10, 2 );
 		add_filter(
 			'attach_session_information',
