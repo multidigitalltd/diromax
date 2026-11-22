@@ -1,13 +1,15 @@
 {
   "name": "diromax-portal-e2e",
   "private": true,
-  "description": "End-to-end checks of the client portal in Chromium, with axe-core.",
+  "description": "End-to-end checks of the client portal in Chromium, with axe-core, and the Lighthouse performance budget.",
   "scripts": {
     "client": "node client.e2e.js",
-    "manager": "node manager.e2e.js"
+    "manager": "node manager.e2e.js",
+    "perf": "node perf.e2e.js"
   },
   "devDependencies": {
     "axe-core": "4.10.3",
+    "lighthouse": "13.6.0",
     "playwright": "1.63.0"
   }
 }

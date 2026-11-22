@@ -26,17 +26,17 @@
 	} );
 
 	// Wide tables scroll sideways on a small screen instead of widening the page.
+	// The templates wrap them already (no layout shift); this wraps any other,
+	// and lets the keyboard reach a box that really scrolls.
 	Array.prototype.forEach.call( document.querySelectorAll( '.dxa table.widefat' ), function ( table ) {
-		var box;
+		var box = table.parentNode;
 
-		if ( table.parentNode.classList.contains( 'dxa-scroll' ) ) {
-			return;
+		if ( ! box.classList.contains( 'dxa-scroll' ) ) {
+			box           = document.createElement( 'div' );
+			box.className = 'dxa-scroll';
+			table.parentNode.insertBefore( box, table );
+			box.appendChild( table );
 		}
-
-		box           = document.createElement( 'div' );
-		box.className = 'dxa-scroll';
-		table.parentNode.insertBefore( box, table );
-		box.appendChild( table );
 
 		if ( box.scrollWidth > box.clientWidth ) {
 			box.tabIndex = 0;

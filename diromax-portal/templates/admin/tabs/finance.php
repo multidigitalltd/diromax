@@ -68,7 +68,7 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 	</p>
 	<p class="dxa-muted dxa-filterbar__count" data-dxa-filter-count aria-live="polite"></p>
 </div>
-<table class="widefat dxa-table dxa-ledger" id="dxa-ledger-table">
+<div class="dxa-scroll"><table class="widefat dxa-table dxa-ledger" id="dxa-ledger-table">
 	<caption class="screen-reader-text"><?php esc_html_e( 'תנועות התיק', 'diromax-portal' ); ?></caption>
 	<thead><tr>
 		<th scope="col"><?php esc_html_e( 'תאריך', 'diromax-portal' ); ?></th>
@@ -236,7 +236,7 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 		</tr>
 	<?php endforeach; ?>
 	</tbody>
-</table>
+</table></div>
 <?php endif; ?>
 <p class="dxa-inline">
 	<a href="<?php echo esc_url( Admin::case_url( $case->id, 'budget' ) ); ?>"><?php esc_html_e( 'עריכת התקציב', 'diromax-portal' ); ?></a>

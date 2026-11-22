@@ -28,7 +28,9 @@ composer install                      # dev tools
 composer lint                         # PHPCS — WordPress-Extra, WordPress-Docs, PHPCompatibilityWP (plugin: phpcs.xml.dist, theme: phpcs-theme.xml.dist)
 composer analyse                      # PHPStan level 8 (plugin: phpstan.neon.dist, theme: phpstan-theme.neon.dist)
 composer test                         # PHPUnit: unit + WordPress integration (needs a MySQL test DB, see phpunit.xml.dist)
-bash diromax-portal/tests/e2e/setup.sh /tmp/dx-e2e   # throwaway WordPress for the browser tests (client, manager, phase2 scripts)
+bash diromax-portal/tests/e2e/setup.sh /tmp/dx-e2e   # throwaway WordPress for the browser tests
+# then, from diromax-portal/tests/e2e, in this order (each builds on the last):
+#   node client.e2e.js /tmp/dx-e2e; manager; phase2; theme; manage; phase3; and last perf.e2e.js
 php bin/build-assets.php              # minified CSS/JS for the theme and the plugin
 bash bin/build-zip.sh                 # dist/diromax.zip (theme)
 bash bin/build-plugin-zip.sh          # dist/diromax-portal.zip (plugin, without tests)
@@ -71,4 +73,6 @@ php bin/build-icons.php               # app icons for the management app, from t
 - All site mail goes through Postmark when `DX_POSTMARK_TOKEN` is set (`Service\Postmark` on `pre_wp_mail`). Read Postmark settings only through `Support\MailConfig`, never `constant()`.
 - Webhooks: `Portal\Webhooks` (`/wp-json/diromax-portal/v1/postmark/events|inbound`), HTTP Basic with `DX_POSTMARK_WEBHOOK_KEY`; they never sign in a WordPress user. Client replies are sorted by `Service\InboundService` and kept in `dx_messages`.
 - `wp_tempnam()` and other `wp-admin/includes` functions are missing on the portal and in REST requests: use `Support\TempFile`.
+- Performance budget (standard 9.1–9.2): `tests/e2e/perf.e2e.js` runs Lighthouse on the key pages (home, portal sign-in, client case and documents, management dashboard and case), phone and desktop, and fails CI over budget: score 90 / 95, LCP 2.5 s, CLS 0.1, TBT 200 ms (lab stand-in for INP), TTFB 800 ms, 200 KB of JavaScript. It reuses the sessions phase3 saves (sign-ins are rate limited: 5 per address per 15 minutes). The E2E router gzips CSS/JS/SVG like production; HTML is measured uncompressed, which is stricter.
+- Never insert content above existing content after load (layout shift): wide tables are wrapped in `.dxa-scroll` in the templates, not by script.
 - Every portal form posts back with a nonce bound to the object and answers a foreign case with 404, exactly like a missing one.

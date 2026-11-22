@@ -31,6 +31,7 @@ defined( 'ABSPATH' ) || exit;
 	<meta name="apple-mobile-web-app-title" content="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
 	<link rel="apple-touch-icon" href="<?php echo esc_url( \Diromax\Portal\Support\AssetFile::url( 'assets/img/app-icon-180.png' ) ); ?>">
 	<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( \Diromax\Portal\Support\AssetFile::url( 'assets/img/app-icon-192.png' ) ); ?>">
+	<?php echo \Diromax\Portal\Admin\Admin::font_preloads(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped URLs and fixed attributes. ?>
 	<?php wp_print_styles( array( 'dx-portal-admin', 'dx-portal-manage' ) ); ?>
 </head>
 <body class="dxa-screen dxa-front">

@@ -206,6 +206,7 @@ async function signIn(page, user, pass, redirect) {
   const icon = await anon.request.get(manifest.icons ? manifest.icons[1].src : BASE + '/none');
   check('its 512px icon is served as PNG', icon.status() === 200 && icon.headers()['content-type'] === 'image/png');
   check('the app page links the manifest and an iPhone icon', (await page.locator('link[rel="manifest"]').count()) === 1 && (await page.locator('link[rel="apple-touch-icon"]').count()) === 1);
+  check('the app page preloads its two first fonts (no late font swap)', (await page.locator('link[rel="preload"][as="font"]').count()) === 2);
   await anon.close();
 
   // ---------- Phones ----------

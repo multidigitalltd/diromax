@@ -251,6 +251,10 @@ function localDate(offsetDays) {
 
   check('no script errors or failed assets', errors.length === 0, errors.join(' | '));
   fs.writeFileSync(out('phase3-results.json'), JSON.stringify(results, null, 2));
+  // The performance budget (perf.e2e.js) measures as these two, without signing in again:
+  // sign-ins are rate limited per address, and earlier journeys used them.
+  await mctx.storageState({ path: path.join(S, 'staff-state.json') });
+  await cctx.storageState({ path: path.join(S, 'client-state.json') });
   await browser.close();
   process.exit(results.every(r => r.ok) ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(2); });

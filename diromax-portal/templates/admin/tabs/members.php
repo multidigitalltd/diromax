@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 $form = new Form( $view['flash'], 'member' );
 ?>
 <?php if ( array() !== $view['members'] ) : ?>
-<table class="widefat striped dxa-table">
+<div class="dxa-scroll"><table class="widefat striped dxa-table">
 	<caption class="screen-reader-text"><?php esc_html_e( 'לקוחות בתיק', 'diromax-portal' ); ?></caption>
 	<thead><tr>
 		<th scope="col"><?php esc_html_e( 'שם', 'diromax-portal' ); ?></th>
@@ -74,7 +74,7 @@ $form = new Form( $view['flash'], 'member' );
 			</tr>
 		<?php endforeach; ?>
 	</tbody>
-</table>
+</table></div>
 <?php endif; ?>
 
 <h2 id="form-member"><?php esc_html_e( 'הוספת לקוח לתיק', 'diromax-portal' ); ?></h2>

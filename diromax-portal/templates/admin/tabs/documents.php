@@ -65,7 +65,7 @@ $form = new Form( $view['flash'], 'document' );
 <?php if ( array() === $view['documents'] ) : ?>
 	<p><?php esc_html_e( 'עדיין אין מסמכים.', 'diromax-portal' ); ?></p>
 <?php else : ?>
-<table class="widefat striped dxa-table">
+<div class="dxa-scroll"><table class="widefat striped dxa-table">
 	<caption class="screen-reader-text"><?php esc_html_e( 'מסמכי התיק', 'diromax-portal' ); ?></caption>
 	<thead><tr>
 		<th scope="col"><?php esc_html_e( 'מסמך', 'diromax-portal' ); ?></th>
@@ -165,7 +165,7 @@ $form = new Form( $view['flash'], 'document' );
 			</tr>
 		<?php endforeach; ?>
 	</tbody>
-</table>
+</table></div>
 <?php endif; ?>
 
 <?php require __DIR__ . '/../parts/sign-requests.php'; ?>

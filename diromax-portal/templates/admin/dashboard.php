@@ -158,7 +158,7 @@ $header    = array(
 			<?php if ( array() === $view['tasks'] ) : ?>
 				<p><?php esc_html_e( 'אין משימות פתוחות שהוטלו עליך.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'משימה', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'עד', 'diromax-portal' ); ?></th>
@@ -183,7 +183,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
@@ -192,7 +192,7 @@ $header    = array(
 			<?php if ( array() === $view['overdue'] ) : ?>
 				<p><?php esc_html_e( 'אין דרישות באיחור.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'דרישה', 'diromax-portal' ); ?></th>
@@ -219,7 +219,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
@@ -228,7 +228,7 @@ $header    = array(
 			<?php if ( array() === $view['upcoming'] ) : ?>
 				<p><?php esc_html_e( 'אין דרישות שמועדן מתקרב.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'דרישה', 'diromax-portal' ); ?></th>
@@ -247,7 +247,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
@@ -256,7 +256,7 @@ $header    = array(
 			<?php if ( array() === $view['late'] ) : ?>
 				<p><?php esc_html_e( 'כל השלבים עומדים ביעד, או שלא נקבע להם יעד.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'שלב', 'diromax-portal' ); ?></th>
@@ -276,7 +276,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
@@ -285,7 +285,7 @@ $header    = array(
 			<?php if ( array() === $view['decisions'] ) : ?>
 				<p><?php esc_html_e( 'אין החלטות פתוחות.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'החלטה', 'diromax-portal' ); ?></th>
@@ -302,7 +302,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
@@ -311,7 +311,7 @@ $header    = array(
 			<?php if ( array() === $view['actions'] ) : ?>
 				<p><?php esc_html_e( 'לקוחות לא ענו על החלטות ולא אישרו הסכמים השבוע.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'מה', 'diromax-portal' ); ?></th>
@@ -336,7 +336,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
@@ -351,7 +351,7 @@ $header    = array(
 			<?php if ( array() === $view['stale'] ) : ?>
 				<p><?php esc_html_e( 'כל התיקים הפעילים קיבלו עדכון לאחרונה.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'עדכון אחרון', 'diromax-portal' ); ?></th>
@@ -364,7 +364,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
@@ -373,7 +373,7 @@ $header    = array(
 			<?php if ( array() === $view['quiet'] ) : ?>
 				<p><?php esc_html_e( 'כל מי שהוזמן לפני יותר מ-3 ימים כבר נכנס.', 'diromax-portal' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<div class="dxa-scroll"><table class="widefat striped">
 					<thead><tr>
 						<th scope="col"><?php esc_html_e( 'תיק', 'diromax-portal' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'לקוח', 'diromax-portal' ); ?></th>
@@ -388,7 +388,7 @@ $header    = array(
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
-				</table>
+				</table></div>
 			<?php endif; ?>
 		</section>
 
