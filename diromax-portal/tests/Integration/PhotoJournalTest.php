@@ -225,4 +225,35 @@ final class PhotoJournalTest extends PortalTestCase {
 
 		$this->assertSame( array(), ( new MailItems( $this->app ) )->build( $case, $this->app->events->pending_for_case( $case->id ), false ) );
 	}
+
+	/**
+	 * Regression (PR #13 review): the upload's email card hung on its first
+	 * photo; deleting that one before the email went dropped the card for
+	 * the photos that remained.
+	 */
+	public function test_deleting_the_first_photo_keeps_the_card_for_the_rest(): void {
+		$case = $this->case_for( $this->manager(), $this->client() );
+		$this->upload( $case, array( $this->jpeg(), $this->jpeg() ) );
+		$first = $this->app->photos->for_case( $case->id, false )[0];
+
+		( new PhotoService( $this->app ) )->delete( $case, $first['id'], $case->manager_id );
+
+		$cards = ( new MailItems( $this->app ) )->build( $case, $this->app->events->pending_for_case( $case->id ), false );
+		$this->assertCount( 1, $cards );
+		$this->assertSame( 'צילום 1 מהשטח', $cards[0]->title );
+	}
+
+	/**
+	 * Regression (PR #13 review): the key guard looked at documents only, so
+	 * a site with photos and no documents silently adopted a replaced key.
+	 */
+	public function test_a_changed_key_is_caught_when_only_photos_are_stored(): void {
+		$case = $this->case_for( $this->manager() );
+		$this->upload( $case, array( $this->jpeg() ) );
+		$this->assertFalse( $this->app->documents->any() );
+		update_option( \Diromax\Portal\Security\DocumentStore::FINGERPRINT_OPTION, '000000000000' );
+
+		$this->assertSame( 'changed', $this->app->document_service->key_status() );
+		$this->assertSame( 'dx_key_changed', $this->upload( $case, array( $this->jpeg() ) )->get_error_code(), 'No more photos under a second key.' );
+	}
 }

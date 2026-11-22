@@ -80,6 +80,26 @@ final class EventRepository {
 	}
 
 	/**
+	 * Point events of a kind from one object to another (pending and sent
+	 * alike, since the daily digest reads sent ones too). Used when the
+	 * object an event names is deleted but what it stands for remains.
+	 *
+	 * @param string $kind Event kind.
+	 * @param int    $from Object the events name now.
+	 * @param int    $to   Object they should name.
+	 */
+	public function repoint( string $kind, int $from, int $to ): void {
+		$this->db->update(
+			Schema::table( 'events' ),
+			array( 'object_id' => $to ),
+			array(
+				'kind'      => $kind,
+				'object_id' => $from,
+			)
+		);
+	}
+
+	/**
 	 * A case's batched events in a time window, for a daily digest.
 	 *
 	 * Immediate events are left out: digest members received them at once.

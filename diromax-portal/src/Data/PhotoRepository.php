@@ -98,6 +98,36 @@ final class PhotoRepository {
 	}
 
 	/**
+	 * Are any photos stored (for the encryption-key guard)?
+	 *
+	 * @return bool
+	 */
+	public function any(): bool {
+		return null !== $this->db->get_var( $this->db->prepare( 'SELECT id FROM %i LIMIT 1', Schema::table( 'photos' ) ) );
+	}
+
+	/**
+	 * Stored names of the latest photos under a key version, to test a key on.
+	 *
+	 * @param int $key_version Key version.
+	 * @param int $limit       Maximum names, 1–10.
+	 * @return string[]
+	 */
+	public function latest_stored( int $key_version, int $limit ): array {
+		return array_map(
+			'strval',
+			(array) $this->db->get_col(
+				$this->db->prepare(
+					'SELECT stored_name FROM %i WHERE key_version = %d ORDER BY id DESC LIMIT %d',
+					Schema::table( 'photos' ),
+					$key_version,
+					max( 1, min( 10, $limit ) )
+				)
+			)
+		);
+	}
+
+	/**
 	 * Photos uploaded together.
 	 *
 	 * @param string $batch_key Batch.

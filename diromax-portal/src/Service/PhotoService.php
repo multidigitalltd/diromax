@@ -171,6 +171,13 @@ final class PhotoService {
 			return $photo;
 		}
 
+		// The upload's email card names its first photo: hand it to one that stays.
+		$rest = array_values( array_filter( $this->app->photos->in_batch( $photo['batch_key'], false ), static fn( array $other ): bool => $other['id'] !== $photo['id'] ) );
+
+		if ( array() !== $rest ) {
+			$this->app->events->repoint( 'photos_added', $photo['id'], $rest[0]['id'] );
+		}
+
 		$this->app->store->delete( $photo['stored_name'] );
 		$this->app->store->delete( $photo['thumb_name'] );
 		$this->app->photos->delete( $photo['id'] );
