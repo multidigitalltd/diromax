@@ -17,6 +17,7 @@ use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\DemoCase;
 use Diromax\Portal\Service\DocRequestService;
 use Diromax\Portal\Service\Errors;
+use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\ReminderService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\TaskService;
@@ -91,6 +92,7 @@ final class Actions {
 		}
 
 		add_action( 'admin_post_dx_portal_save_settings', array( $this, 'save_settings' ) );
+		add_action( 'admin_post_dx_portal_test_mail', array( $this, 'test_mail' ) );
 		add_action( 'admin_post_dx_portal_demo_case', array( $this, 'demo_case' ) );
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
@@ -542,6 +544,36 @@ final class Actions {
 
 		$this->app->audit->record( 'settings.updated', null, 'settings', null, array_diff_assoc( array_map( 'wp_json_encode', $after ), array_map( 'wp_json_encode', $before ) ), $this->app->clock->mysql() );
 		Flash::set( 'success', __( 'ההגדרות נשמרו.', 'diromax-portal' ) );
+		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) );
+	}
+
+	/**
+	 * Send a test email to the signed-in administrator (spec 17.1).
+	 */
+	public function test_mail(): void {
+		check_admin_referer( 'dx_portal_test_mail' );
+		self::return_to_sender();
+
+		$user = wp_get_current_user();
+
+		if ( ! $this->app->policy->can_manage_settings( (int) $user->ID ) ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		if ( ! $this->app->limiter->attempt( 'test_mail', (string) $user->ID, 5, HOUR_IN_SECONDS ) ) {
+			Flash::set( 'error', __( 'נשלחו כבר כמה מיילי בדיקה בשעה האחרונה. אפשר לנסות שוב מאוחר יותר.', 'diromax-portal' ) );
+			self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) );
+		}
+
+		$ok = $this->app->notifier->send_to_staff( (int) $user->ID, (string) $user->user_email, $this->app->renderer->test_mail( (string) $user->display_name, Postmark::configured() ), 'test' );
+
+		Flash::set(
+			$ok ? 'success' : 'error',
+			$ok
+				/* translators: %s: email address. */
+				? sprintf( __( 'מייל בדיקה נשלח אל %s. אם לא הגיע תוך כמה דקות, בודקים בתיקיית הספאם וביומן של Postmark.', 'diromax-portal' ), (string) $user->user_email )
+				: __( 'השליחה נכשלה. הפרטים ביומן השגיאות של האתר (mail.postmark_failed).', 'diromax-portal' )
+		);
 		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) );
 	}
 

@@ -52,7 +52,7 @@ composer.json             כלי פיתוח בלבד (PHPCS, PHPStan, PHPUnit). 
 
 תוסף נפרד, `diromax-portal`. לכל לקוח תיק דיגיטלי עם ההסכם, התקציב, ההוצאות, התשלומים, דרישות התשלום, המסמכים והעדכונים. הלקוח רואה את התיק בכתובת `/portal/`, ומקבל מייל מעוצב על כל עדכון.
 
-- **רמת סיכון 3** (מידע פיננסי). המסמכים נשמרים מוצפנים, ונדרש אימות דו-שלבי למנהלים.
+- **רמת סיכון 3** (מידע פיננסי). המסמכים נשמרים מוצפנים, וכל כניסה עם סיסמה מאומתת בקוד חד-פעמי במייל. המיילים יוצאים דרך Postmark, ותשובות של לקוחות נשמרות בתיק.
 - **התקנה, הגדרות `wp-config.php` ומיפוי מידע:** [`diromax-portal/README.md`](diromax-portal/README.md)
 - **אפיון:** [`docs/client-portal/spec.md`](docs/client-portal/spec.md) · **בדיקה:** [`docs/client-portal/verification.md`](docs/client-portal/verification.md)
 

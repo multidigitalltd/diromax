@@ -9,8 +9,10 @@ const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const out = (n) => path.join(S, 'e2e', n);
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? '  — ' + detail : '')); };
-const mailFiles = () => fs.readdirSync(path.join(S, 'mails')).sort();
-const mailsSince = (n) => mailFiles().slice(n).map(f => JSON.parse(fs.readFileSync(path.join(S, 'mails', f), 'utf8')));
+// Mail files are named by the second; several in one second do not sort in order, so compare sets.
+const mailFiles = () => new Set(fs.readdirSync(path.join(S, 'mails')));
+const mailsSince = (seen) => [...mailFiles()].filter(f => !seen.has(f)).sort().map(f => JSON.parse(fs.readFileSync(path.join(S, 'mails', f), 'utf8')));
+const { wpSignIn, codeFor } = require('./signin');
 const PASSWORD = 'גג חדש בקריית אונו 2026';
 
 async function axe(page, label, scope) {
@@ -43,10 +45,7 @@ async function dismissPrivacy(page) {
   // ---------- Project manager ----------
   const admin = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   watch(admin);
-  await admin.goto(BASE + '/wp-login.php');
-  await admin.fill('#user_login', 'daniel');
-  await admin.fill('#user_pass', 'Manager-Dev-Pass-2026!');
-  await admin.click('#wp-submit');
+  await wpSignIn(admin, S, BASE, { user: 'daniel', pass: 'Manager-Dev-Pass-2026!', email: 'daniel@example.org' });
   await admin.waitForLoadState('networkidle');
 
   await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
@@ -79,7 +78,7 @@ async function dismissPrivacy(page) {
   }
   await admin.goto(tab('finance'));
 
-  let before = mailFiles().length;
+  let before = mailFiles();
   const row = admin.locator('tr', { hasText: 'מקדמה לקבלן הגג' });
   await row.locator('button:has-text("שליחת תזכורת עכשיו")').click();
   await admin.waitForLoadState('networkidle');
@@ -98,7 +97,7 @@ async function dismissPrivacy(page) {
   await admin.fill('#dxa-decision-title', 'אישור הצעת המחיר של הקבלן');
   await admin.fill('#dxa-decision-body', 'שלד ובנייה של יחידת הגג לפי התוכנית המאושרת, כולל איטום.');
   await admin.fill('#dxa-decision-amount', '84,000');
-  before = mailFiles().length;
+  before = mailFiles();
   await admin.click('#form-decision button[type=submit]');
   await admin.waitForLoadState('networkidle');
   const asked = mailsSince(before);
@@ -124,7 +123,7 @@ async function dismissPrivacy(page) {
   watch(page);
   await page.goto(BASE + '/portal/login/');
   await dismissPrivacy(page);
-  before = mailFiles().length;
+  before = mailFiles();
   await page.fill('#dxp-email', 'cohen@example.org');
   await page.click('form:has(#dxp-email) button[type=submit]');
   await page.waitForTimeout(300);
@@ -143,7 +142,7 @@ async function dismissPrivacy(page) {
   await page.waitForLoadState('networkidle');
   check('approve without the confirmation box → explained, nothing saved', (await page.textContent('.dxp-notice--error')).includes('צריך לסמן') && await page.isVisible('button[value=approve]'));
   check('approving shows the signature pad (drawing needs the script)', await page.isVisible('.dxp-dec__form canvas'));
-  before = mailFiles().length;
+  before = mailFiles();
   await page.check('input[name=confirm]');
   await page.fill('textarea[name=note]', 'מאשרים, תודה');
   const pad = await page.locator('.dxp-dec__form canvas').boundingBox();
@@ -192,7 +191,7 @@ async function dismissPrivacy(page) {
   await page.click('form:has(#dxp-password) button[type=submit]');
   await page.waitForLoadState('networkidle');
   check('short password refused on the server too', (await page.textContent('.dxp-notice--error')).includes('15 תווים'));
-  before = mailFiles().length;
+  before = mailFiles();
   await page.fill('#dxp-password', PASSWORD);
   await page.click('[data-dxp-reveal="dxp-password"]');
   check('"show password" reveals the field and says so', (await page.getAttribute('#dxp-password', 'type')) === 'text' && (await page.getAttribute('[data-dxp-reveal="dxp-password"]', 'aria-pressed')) === 'true');
@@ -212,9 +211,20 @@ async function dismissPrivacy(page) {
   await page.waitForLoadState('networkidle');
   check('wrong password → one generic message', (await page.textContent('.dxp-alert')).includes('כתובת המייל או הסיסמה לא נכונות'));
   await page.fill('#dxp-pw', PASSWORD);
+  const seenBeforeCode = mailFiles();
   await page.click('.dxp-alt button[type=submit]');
   await page.waitForLoadState('networkidle');
-  check('right password → signed in to the case', /\/portal\/case\/[a-f0-9]{24}\//.test(page.url()), page.url());
+  const portalCode = await codeFor(S, seenBeforeCode, 'cohen@example.org');
+  check('right password → the email code step, with the address mostly hidden', (await page.locator('#dxp-code').count()) === 1 && (await page.textContent('.dxp-lead')).includes('co•••@example.org') && page.url().includes('/portal/login/'), page.url());
+  await axe(page, 'portal code step');
+  await page.fill('#dxp-code', portalCode === '000000' ? '111111' : '000000');
+  await page.click('form:has(#dxp-code) button[type=submit]');
+  await page.waitForLoadState('networkidle');
+  check('a wrong code is refused, the step stays', (await page.textContent('.dxp-alert')).includes('הקוד לא נכון') && (await page.getAttribute('#dxp-code', 'aria-invalid')) === 'true');
+  await page.fill('#dxp-code', portalCode);
+  await page.click('form:has(#dxp-code) button[type=submit]');
+  await page.waitForLoadState('networkidle');
+  check('right code → signed in to the case', /\/portal\/case\/[a-f0-9]{24}\//.test(page.url()), page.url());
 
   const staff = await (await browser.newContext()).newPage();
   await staff.goto(BASE + '/portal/login/');
@@ -238,7 +248,7 @@ async function dismissPrivacy(page) {
 
   // The sample case, from the dashboard: a full case, and no email at all.
   await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
-  const mailsBeforeDemo = mailFiles().length;
+  const mailsBeforeDemo = mailFiles();
   await admin.click('form:has(input[value="dx_portal_demo_case"]) button[type=submit]');
   await admin.waitForLoadState('networkidle');
   check('sample case opens on its overview with a notice', (await admin.textContent('h1')).includes('תיק לדוגמה') && (await admin.textContent('.notice-success')).includes('נוצר תיק לדוגמה'));
@@ -251,7 +261,7 @@ async function dismissPrivacy(page) {
   check('dashboard: recent activity across the manager\'s cases', (await admin.locator('.dxa-feed li').count()) > 0);
   await axe(admin, 'dashboard with totals and activity', '.dxa');
   await admin.screenshot({ path: out('36-admin-dashboard-upgraded.png'), fullPage: true });
-  check('the sample case sent no email', mailFiles().length === mailsBeforeDemo);
+  check('the sample case sent no email', mailFiles().size === mailsBeforeDemo.size);
 
   check('no script errors or failed assets', errors.length === 0, errors.join(' | '));
   fs.writeFileSync(out('phase2-results.json'), JSON.stringify(results, null, 2));

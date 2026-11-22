@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Data;
 
 use Diromax\Portal\Support\Db;
+use Diromax\Portal\Support\MailTrace;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -33,11 +34,37 @@ final class MailLog {
 	 * @param string                                                                                                                                      $now UTC DATETIME.
 	 */
 	public function add( array $row, string $now ): void {
-		$row['subject']    = mb_substr( $row['subject'], 0, 255 );
-		$row['error']      = mb_substr( $row['error'], 0, 255 );
-		$row['created_at'] = $now;
+		$row['subject']     = mb_substr( $row['subject'], 0, 255 );
+		$row['error']       = mb_substr( $row['error'], 0, 255 );
+		$row['created_at']  = $now;
+		$row['provider_id'] = MailTrace::take_id();
 
 		$this->db->insert( Schema::table( 'mail_log' ), $row );
+	}
+
+	/**
+	 * Mark the email a provider reports as bounced or as spam.
+	 *
+	 * @param string $provider_id Provider message ID.
+	 * @param string $status      bounced or complaint.
+	 * @param string $reason      Provider's description.
+	 * @return int Rows marked.
+	 */
+	public function mark( string $provider_id, string $status, string $reason ): int {
+		if ( '' === $provider_id ) {
+			return 0;
+		}
+
+		$changed = $this->db->update(
+			Schema::table( 'mail_log' ),
+			array(
+				'status' => $status,
+				'error'  => mb_substr( $reason, 0, 255 ),
+			),
+			array( 'provider_id' => $provider_id )
+		);
+
+		return false === $changed ? 0 : (int) $changed;
 	}
 
 	/**

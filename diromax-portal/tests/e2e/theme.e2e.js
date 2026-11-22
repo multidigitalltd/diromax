@@ -10,8 +10,10 @@ const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const out = (n) => path.join(S, 'e2e', n);
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? '  — ' + detail : '')); };
-const mailFiles = () => fs.readdirSync(path.join(S, 'mails')).sort();
-const mailsSince = (n) => mailFiles().slice(n).map(f => JSON.parse(fs.readFileSync(path.join(S, 'mails', f), 'utf8')));
+// Mail files are named by the second; several in one second do not sort in order, so compare sets.
+const mailFiles = () => new Set(fs.readdirSync(path.join(S, 'mails')));
+const mailsSince = (seen) => [...mailFiles()].filter(f => !seen.has(f)).sort().map(f => JSON.parse(fs.readFileSync(path.join(S, 'mails', f), 'utf8')));
+const { wpSignIn } = require('./signin');
 
 async function axe(page, label) {
   await page.addScriptTag({ content: AXE });
@@ -60,7 +62,7 @@ async function axe(page, label) {
   // ---------- A lead with its campaign ----------
   const form = page.locator('form.dx-lead-form').first();
   check('the form carries the campaign from the landing URL', (await form.locator('[data-dx-utm]').inputValue()) === 'google / cpc / roof');
-  let before = mailFiles().length;
+  let before = mailFiles();
   await form.locator('input[name=dx_name]').fill('יעל לוי');
   await form.locator('input[name=dx_phone]').fill('052-7654321');
   await form.locator('input[name=dx_address]').fill('רח׳ הגפן 3, רחובות');
@@ -73,10 +75,7 @@ async function axe(page, label) {
   // ---------- Leads CRM in the admin ----------
   const admin = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   admin.on('pageerror', e => errors.push(e.message));
-  await admin.goto(BASE + '/wp-login.php');
-  await admin.fill('#user_login', 'daniel');
-  await admin.fill('#user_pass', 'Manager-Dev-Pass-2026!');
-  await admin.click('#wp-submit');
+  await wpSignIn(admin, S, BASE, { user: 'daniel', pass: 'Manager-Dev-Pass-2026!', email: 'daniel@example.org' });
   await admin.waitForLoadState('networkidle');
 
   await admin.goto(BASE + '/wp-admin/edit.php?post_type=dx_lead');

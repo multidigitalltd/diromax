@@ -18,6 +18,7 @@ use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Security\DocumentStore;
 use Diromax\Portal\Support\Ids;
+use Diromax\Portal\Support\TempFile;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -375,8 +376,18 @@ final class DocumentService {
 			return $problem;
 		}
 
-		$path      = (string) $file['tmp_name'];
-		$name      = sanitize_file_name( (string) $file['name'] );
+		return $this->prepare( (string) $file['tmp_name'], sanitize_file_name( (string) $file['name'] ), false );
+	}
+
+	/**
+	 * Re-encode and scan a file whose type was already checked.
+	 *
+	 * @param string $path      Path.
+	 * @param string $name      Sanitized file name with an allowed extension.
+	 * @param bool   $temporary The path is ours to delete.
+	 * @return array{path:string, name:string, ext:string, mime:string, temporary:bool}|WP_Error
+	 */
+	private function prepare( string $path, string $name, bool $temporary ): array|WP_Error {
 		$ext       = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
 		$mime      = self::TYPES[ $ext ];
 		$file_info = array(
@@ -384,11 +395,17 @@ final class DocumentService {
 			'name'      => $name,
 			'ext'       => $ext,
 			'mime'      => $mime,
-			'temporary' => false,
+			'temporary' => $temporary,
 		);
 
 		if ( str_starts_with( $mime, 'image/' ) ) {
-			$file_info = $this->reencode_image( $file_info );
+			$encoded = $this->reencode_image( $file_info );
+
+			if ( $temporary ) {
+				wp_delete_file( $path );
+			}
+
+			$file_info = $encoded;
 		}
 
 		if ( $file_info instanceof WP_Error ) {
@@ -396,10 +413,65 @@ final class DocumentService {
 		}
 
 		if ( ! apply_filters( 'dx_portal_scan_upload', true, $file_info['path'] ) ) {
+			if ( $file_info['temporary'] ) {
+				wp_delete_file( $file_info['path'] );
+			}
+
 			return Errors::invalid( array( 'file' => 'rejected' ) );
 		}
 
 		return $file_info;
+	}
+
+	/**
+	 * Store a file a client attached to an email reply (spec 17.3): the same
+	 * type, content, size and scan checks as an upload, kind "client",
+	 * visible to the case's clients, encrypted like every document.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param string     $name        File name from the email.
+	 * @param string     $bytes       Content.
+	 * @param int        $user_id     Client who sent it.
+	 * @return DocumentRecord|WP_Error
+	 */
+	public function store_from_mail( CaseRecord $client_case, string $name, string $bytes, int $user_id ): DocumentRecord|WP_Error {
+		$blocked = $this->storage_error();
+
+		if ( null !== $blocked ) {
+			return $blocked;
+		}
+
+		$name = sanitize_file_name( $name );
+		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		$mime = self::TYPES[ $ext ] ?? null;
+		$size = strlen( $bytes );
+
+		if ( $size <= 0 || $size > DocumentStore::MAX_BYTES ) {
+			return Errors::invalid( array( 'file' => 'too_large' ) );
+		}
+
+		if ( null === $mime ) {
+			return Errors::invalid( array( 'file' => 'type' ) );
+		}
+
+		$path = TempFile::create( 'dx-portal-mail' );
+
+		if ( '' === $path || false === file_put_contents( $path, $bytes ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- A private temporary file, encrypted into the store and deleted.
+			return Errors::storage();
+		}
+
+		if ( ! $this->content_matches( $path, $name, $ext, $mime ) ) {
+			wp_delete_file( $path );
+			return Errors::invalid( array( 'file' => 'type' ) );
+		}
+
+		$checked = $this->prepare( $path, $name, true );
+
+		if ( $checked instanceof WP_Error ) {
+			return $checked;
+		}
+
+		return $this->store_file( $client_case, $checked, 'client', pathinfo( $name, PATHINFO_FILENAME ), true, $user_id, false, null );
 	}
 
 	/**
@@ -440,7 +512,7 @@ final class DocumentService {
 			return Errors::invalid( array( 'file' => 'type' ) );
 		}
 
-		$target = wp_tempnam( 'dx-portal-image' ) . '.' . $file['ext'];
+		$target = TempFile::create( 'dx-portal-image' ) . '.' . $file['ext'];
 		$saved  = $editor->save( $target, $file['mime'] );
 
 		if ( $saved instanceof WP_Error || ! is_array( $saved ) || ! isset( $saved['path'] ) ) {

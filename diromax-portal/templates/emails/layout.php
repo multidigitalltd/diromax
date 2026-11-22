@@ -91,7 +91,7 @@ a{text-decoration:none;}
 	</td></tr>
 
 	<?php
-	$part = 'case-update' === ( $view['body'] ?? '' ) ? 'case-update' : 'notice';
+	$part = in_array( $view['body'] ?? '', array( 'case-update', 'message' ), true ) ? (string) $view['body'] : 'notice';
 	require __DIR__ . '/parts/' . $part . '.php';
 	?>
 
@@ -120,7 +120,15 @@ a{text-decoration:none;}
 					<?php endif; ?>
 				</p>
 				<?php endif; ?>
-				<p class="dx-body" style="margin:0;font-size:15px;line-height:1.55;color:#3a3d44;"><?php esc_html_e( 'יש שאלה? אפשר פשוט להשיב למייל הזה. התשובה מגיעה ישירות למנהל הפרויקט.', 'diromax-portal' ); ?></p>
+				<p class="dx-body" style="margin:0;font-size:15px;line-height:1.55;color:#3a3d44;">
+				<?php
+				if ( ! empty( $view['into_case'] ) ) {
+					esc_html_e( 'יש שאלה? אפשר פשוט להשיב למייל הזה. התשובה נשמרת בתיק ומגיעה למנהל הפרויקט.', 'diromax-portal' );
+				} else {
+					esc_html_e( 'יש שאלה? אפשר פשוט להשיב למייל הזה. התשובה מגיעה ישירות למנהל הפרויקט.', 'diromax-portal' );
+				}
+				?>
+				</p>
 			</td>
 		</tr></table>
 	</td></tr>

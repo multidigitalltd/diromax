@@ -74,14 +74,15 @@ final class PasswordService {
 	public function __construct( private readonly Plugin $app ) {}
 
 	/**
-	 * Sign a client in with email and password.
+	 * Check a client's email and password. Nobody is signed in yet: the
+	 * caller asks for the email code first (LoginCodeService), then calls
+	 * complete().
 	 *
 	 * @param string $email    Address.
 	 * @param string $password Password.
-	 * @param bool   $remember Long session.
-	 * @return int|WP_Error User ID.
+	 * @return \WP_User|WP_Error
 	 */
-	public function sign_in( string $email, string $password, bool $remember ): int|WP_Error {
+	public function check( string $email, string $password ): \WP_User|WP_Error {
 		$email = strtolower( trim( $email ) );
 
 		$allowed = $this->app->limiter->attempt( 'password-email', $email, self::PER_EMAIL, self::WINDOW )
@@ -102,6 +103,18 @@ final class PasswordService {
 			return self::failed();
 		}
 
+		return $user;
+	}
+
+	/**
+	 * Sign in a client who passed both steps (or the password alone, while
+	 * the emergency switch turns codes off).
+	 *
+	 * @param \WP_User $user     Client.
+	 * @param bool     $remember Long session.
+	 * @return int User ID.
+	 */
+	public function complete( \WP_User $user, bool $remember ): int {
 		wp_set_current_user( $user->ID );
 		wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
 		do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core hook, fired so security plugins see the sign-in.

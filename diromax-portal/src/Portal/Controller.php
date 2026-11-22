@@ -16,6 +16,7 @@ use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\LoginCodeService;
 use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Security\Turnstile;
@@ -93,6 +94,11 @@ final class Controller {
 
 		if ( 'post' === $method && 'password' === $step ) {
 			$this->password_sign_in();
+			return;
+		}
+
+		if ( 'post' === $method && in_array( $step, array( 'code', 'code_resend' ), true ) ) {
+			$this->password_code( 'code_resend' === $step );
 			return;
 		}
 
@@ -192,7 +198,8 @@ final class Controller {
 			return;
 		}
 
-		$result = ( new PasswordService( $this->app ) )->sign_in( $email, $password, $remember );
+		$passwords = new PasswordService( $this->app );
+		$result    = $passwords->check( $email, $password );
 
 		if ( is_wp_error( $result ) ) {
 			$this->render(
@@ -206,6 +213,96 @@ final class Controller {
 			return;
 		}
 
+		if ( ! LoginCodeService::enabled() ) {
+			LoginCodeService::log_bypass( $result, 'portal' );
+			$passwords->complete( $result, $remember );
+			$this->redirect( Router::portal_url() );
+			return;
+		}
+
+		$codes     = new LoginCodeService( $this->app );
+		$challenge = $codes->start( $result, $remember, Router::portal_url(), 'portal' );
+
+		if ( $challenge instanceof WP_Error ) {
+			$this->render(
+				'login',
+				array(
+					'state' => 'code_expired',
+					'email' => $email,
+				),
+				__( 'כניסה לאזור האישי', 'diromax-portal' )
+			);
+			return;
+		}
+
+		$this->render(
+			'login',
+			array(
+				'state'     => 'code',
+				'challenge' => $challenge,
+				'masked'    => $codes->masked_email( $challenge ),
+			),
+			__( 'קוד כניסה', 'diromax-portal' )
+		);
+	}
+
+	/**
+	 * The second step of a password sign-in: the code from the email, or a
+	 * new code.
+	 *
+	 * @param bool $resend Send a new code instead.
+	 */
+	private function password_code( bool $resend ): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified on the first line below.
+		$nonce     = isset( $_POST['_dx_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_dx_nonce'] ) ) : '';
+		$challenge = isset( $_POST['dx_challenge'] ) ? sanitize_text_field( wp_unslash( $_POST['dx_challenge'] ) ) : '';
+		$code      = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
+		// phpcs:enable
+		$title = __( 'קוד כניסה', 'diromax-portal' );
+
+		if ( ! wp_verify_nonce( $nonce, 'dx_portal_login_code' ) ) {
+			$this->render( 'login', array( 'state' => 'expired' ), $title );
+			return;
+		}
+
+		$codes  = new LoginCodeService( $this->app );
+		$result = $resend ? $codes->resend( $challenge ) : $codes->verify( $challenge, $code );
+
+		if ( true === $result ) {
+			$this->render(
+				'login',
+				array(
+					'state'     => 'code',
+					'challenge' => $challenge,
+					'masked'    => $codes->masked_email( $challenge ),
+				),
+				$title
+			);
+			return;
+		}
+
+		if ( $result instanceof WP_Error ) {
+			$again = in_array( $result->get_error_code(), array( 'dx_code_wrong', 'dx_rate_limited', 'dx_code_unsent' ), true );
+
+			$this->render(
+				'login',
+				$again ? array(
+					'state'      => 'code',
+					'challenge'  => $challenge,
+					'code_error' => $result->get_error_message(),
+				) : array( 'state' => 'code_expired' ),
+				$title
+			);
+			return;
+		}
+
+		if ( 'portal' !== $result['via'] ) {
+			// A challenge finishes where it started.
+			$this->render( 'login', array( 'state' => 'code_expired' ), $title );
+			return;
+		}
+
+		( new PasswordService( $this->app ) )->complete( $result['user'], $result['remember'] );
 		$this->redirect( Router::portal_url() );
 	}
 

@@ -21,6 +21,7 @@ use Diromax\Portal\Data\EventRepository;
 use Diromax\Portal\Data\LedgerRepository;
 use Diromax\Portal\Data\MailLog;
 use Diromax\Portal\Data\MemberRepository;
+use Diromax\Portal\Data\MessageRepository;
 use Diromax\Portal\Data\Schema;
 use Diromax\Portal\Data\SignatureRepository;
 use Diromax\Portal\Data\SignRequestRepository;
@@ -159,6 +160,12 @@ final class Plugin {
 	 */
 	public readonly SignRequestRepository $sign_requests;
 	/**
+	 * Client replies by email.
+	 *
+	 * @var MessageRepository
+	 */
+	public readonly MessageRepository $messages;
+	/**
 	 * Team tasks.
 	 *
 	 * @var TaskRepository
@@ -252,6 +259,7 @@ final class Plugin {
 		$this->doc_requests     = new DocRequestRepository( $wpdb );
 		$this->signatures       = new SignatureRepository( $wpdb );
 		$this->sign_requests    = new SignRequestRepository( $wpdb );
+		$this->messages         = new MessageRepository( $wpdb );
 		$this->policy           = new AccessPolicy( $this->members, $clock );
 		$this->store            = new DocumentStore();
 		$this->limiter          = new RateLimiter( $clock );

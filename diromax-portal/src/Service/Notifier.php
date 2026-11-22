@@ -394,7 +394,7 @@ final class Notifier {
 	 */
 	private function send_logged( ?int $case_id, int $user_id, string $email, string $template, MailMessage $message, ?CaseRecord $client_case, string $batch_key = '' ): bool {
 		$manager = null === $client_case ? null : get_userdata( $client_case->manager_id );
-		$ok      = Mailer::send( $email, $message, $manager ? $manager : null );
+		$ok      = Mailer::send( $email, $message, $manager ? $manager : null, self::reply_options( $client_case ) );
 
 		$this->app->mail_log->add(
 			array(
@@ -411,6 +411,19 @@ final class Notifier {
 		);
 
 		return $ok;
+	}
+
+	/**
+	 * Mail options that send a case email's replies into the case, when
+	 * replies are received (spec 17.3).
+	 *
+	 * @param CaseRecord|null $client_case Case.
+	 * @return array{reply_to?:string}
+	 */
+	public static function reply_options( ?CaseRecord $client_case ): array {
+		$address = null === $client_case ? '' : InboundService::reply_address( $client_case );
+
+		return '' === $address ? array() : array( 'reply_to' => $address );
 	}
 
 	/**

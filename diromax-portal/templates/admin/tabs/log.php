@@ -30,7 +30,20 @@ defined( 'ABSPATH' ) || exit;
 						<strong><?php echo esc_html( $mail['subject'] ); ?></strong>
 						<span class="dxa-muted"><?php echo esc_html( Labels::datetime( $mail['created_at'] ) ); ?> · <span dir="ltr"><?php echo esc_html( $mail['recipient'] ); ?></span></span>
 						<?php if ( 'sent' !== $mail['status'] ) : ?>
-							<span class="dxa-badge dxa-badge--late"><?php esc_html_e( 'השליחה נכשלה', 'diromax-portal' ); ?></span>
+							<span class="dxa-badge dxa-badge--late">
+								<?php
+								echo esc_html(
+									match ( $mail['status'] ) {
+										'bounced'   => __( 'המייל חזר', 'diromax-portal' ),
+										'complaint' => __( 'סומן כספאם', 'diromax-portal' ),
+										default     => __( 'השליחה נכשלה', 'diromax-portal' ),
+									}
+								);
+								?>
+							</span>
+							<?php if ( in_array( $mail['status'], array( 'bounced', 'complaint' ), true ) && '' !== $mail['error'] ) : ?>
+								<span class="dxa-muted" dir="ltr"><?php echo esc_html( $mail['error'] ); ?></span>
+							<?php endif; ?>
 						<?php endif; ?>
 					</li>
 				<?php endforeach; ?>

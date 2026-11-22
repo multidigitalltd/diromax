@@ -144,6 +144,60 @@ final class MailRenderer {
 	}
 
 	/**
+	 * A client's email reply, forwarded in full to the project manager
+	 * (spec 17.3). With a reason, it was not kept in the case and the
+	 * manager is warned.
+	 *
+	 * @param CaseRecord|null                                                                                                                                          $client_case Case, null when the address had none.
+	 * @param array{name:string, email:string, subject:string, text:string, files:array<int, array{name:string, attached:bool, kept:bool}>, reason:string, url:string} $reply       The reply.
+	 * @return MailMessage
+	 */
+	public function inbound( ?CaseRecord $client_case, array $reply ): MailMessage {
+		$who     = '' !== $reply['name'] ? $reply['name'] : $reply['email'];
+		$warning = match ( $reply['reason'] ) {
+			''           => '',
+			'closed'     => __( 'התיק סגור, ולכן ההודעה לא נשמרה בו.', 'diromax-portal' ),
+			/* translators: %s: sender address. */
+			'not_member' => sprintf( __( 'הכתובת %s אינה של אחד הלקוחות בתיק, ולכן ההודעה לא נשמרה בתיק.', 'diromax-portal' ), $reply['email'] ),
+			/* translators: %s: sender address. */
+			'unverified' => sprintf( __( 'לא הצלחנו לוודא שההודעה באמת נשלחה מהכתובת %s, ולכן היא לא נשמרה בתיק. לא פותחים קבצים או קישורים לפני שמוודאים מול הלקוח.', 'diromax-portal' ), $reply['email'] ),
+			default      => __( 'ההודעה הגיעה לכתובת התשובות בלי סימון תיק תקין, ולכן לא נשמרה באף תיק.', 'diromax-portal' ),
+		};
+
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => '' !== $reply['subject'] ? $reply['subject'] : $who,
+				'eyebrow'   => null === $client_case
+					? __( 'הודעה לכתובת התשובות', 'diromax-portal' )
+					/* translators: 1: case number, 2: case address. */
+					: sprintf( __( 'תיק %1$s · %2$s', 'diromax-portal' ), $client_case->number, $client_case->title ),
+				/* translators: %s: sender name. */
+				'headline'  => '' === $warning ? sprintf( __( 'הודעה חדשה מ%s', 'diromax-portal' ), $who ) : __( 'הודעה לבדיקה', 'diromax-portal' ),
+				'greeting'  => '',
+				'intro'     => '' === $warning
+					? __( 'התקבלה תשובה למייל מהאזור האישי. ההודעה נשמרה בתיק, בלשונית „הודעות”. כדי לענות ללקוח, משיבים למייל הזה.', 'diromax-portal' )
+					: __( 'התקבלה הודעה לכתובת התשובות של האזור האישי.', 'diromax-portal' ),
+				'body'      => 'message',
+				'warning'   => $warning,
+				'reply'     => $reply,
+				'cta'       => '' === $reply['url'] || '' !== $warning ? null : array(
+					'label' => __( 'להודעות בתיק', 'diromax-portal' ),
+					'url'   => $reply['url'],
+				),
+			)
+		);
+
+		$subject = '' === $warning
+			/* translators: 1: sender name, 2: case address. */
+			? sprintf( __( 'הודעה מ%1$s · %2$s', 'diromax-portal' ), $who, null === $client_case ? '' : $client_case->title )
+			/* translators: %s: sender address. */
+			: sprintf( __( 'לבדיקה: הודעה מ-%s', 'diromax-portal' ), $reply['email'] ) . ( null === $client_case ? '' : ' · ' . $client_case->title );
+
+		return $this->message( $subject, $view );
+	}
+
+	/**
 	 * The staff morning summary.
 	 *
 	 * @param string     $name  Recipient's name.
@@ -261,6 +315,58 @@ final class MailRenderer {
 
 		/* translators: %s: document title. */
 		return $this->message( sprintf( __( 'החתימה התקבלה: %s · דירומקס', 'diromax-portal' ), $title ), $view );
+	}
+
+	/**
+	 * The one-time sign-in code.
+	 *
+	 * @param string $name Recipient's name.
+	 * @param string $code 6 digits.
+	 * @return MailMessage
+	 */
+	public function login_code( string $name, string $code ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => __( 'הקוד תקף ל-10 דקות.', 'diromax-portal' ),
+				'eyebrow'   => __( 'כניסה מאובטחת', 'diromax-portal' ),
+				/* translators: %s: code. */
+				'headline'  => sprintf( __( 'קוד הכניסה: %s', 'diromax-portal' ), $code ),
+				'greeting'  => $name,
+				'intro'     => __( 'מקלידים את הקוד במסך הכניסה כדי להשלים את הכניסה. הוא תקף ל-10 דקות ולכניסה אחת.', 'diromax-portal' ),
+				'body'      => 'notice',
+				'notice'    => __( 'לא ניסית להיכנס? מישהו הקליד את הסיסמה שלך. אל תמסור את הקוד לאף אחד, והחלף את הסיסמה.', 'diromax-portal' ),
+			)
+		);
+
+		/* translators: %s: code. */
+		return $this->message( sprintf( __( 'קוד כניסה: %s · דירומקס', 'diromax-portal' ), $code ), $view );
+	}
+
+	/**
+	 * A test email from the settings screen.
+	 *
+	 * @param string $name     Recipient's name.
+	 * @param bool   $postmark Sent through Postmark.
+	 * @return MailMessage
+	 */
+	public function test_mail( string $name, bool $postmark ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => __( 'בדיקת שליחת מיילים מהאתר.', 'diromax-portal' ),
+				'eyebrow'   => __( 'הגדרות האזור האישי', 'diromax-portal' ),
+				'headline'  => __( 'מייל בדיקה', 'diromax-portal' ),
+				'greeting'  => $name,
+				'intro'     => $postmark
+					? __( 'המייל הזה יצא דרך Postmark. אם הוא הגיע לתיבה הראשית, השליחה מוגדרת נכון.', 'diromax-portal' )
+					: __( 'המייל הזה יצא בדרך הרגילה של האתר, כי Postmark עדיין לא מוגדר.', 'diromax-portal' ),
+				'body'      => 'notice',
+				'notice'    => __( 'אין צורך להשיב למייל הזה.', 'diromax-portal' ),
+			)
+		);
+
+		return $this->message( __( 'מייל בדיקה · דירומקס', 'diromax-portal' ), $view );
 	}
 
 	/**
@@ -416,6 +522,7 @@ final class MailRenderer {
 				'portal'    => Router::portal_url(),
 				'manager'   => null === $client_case ? null : Contact::manager( $client_case->manager_id ),
 				'case'      => $client_case?->title,
+				'into_case' => InboundService::enabled(),
 			),
 			$view
 		);

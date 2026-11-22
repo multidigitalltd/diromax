@@ -21,13 +21,13 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '3';
+	public const VERSION = '5';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
 
 	/** Every table, without prefix. */
-	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures' );
+	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages' );
 
 	/**
 	 * Full table name.
@@ -102,6 +102,7 @@ final class Schema {
 		$asks    = self::table( 'doc_requests' );
 		$signreq = self::table( 'sign_requests' );
 		$signs   = self::table( 'signatures' );
+		$msgs    = self::table( 'messages' );
 
 		return array(
 			"CREATE TABLE {$cases} (
@@ -266,10 +267,13 @@ final class Schema {
   batch_key char(40) NOT NULL DEFAULT '',
   status varchar(10) NOT NULL,
   error varchar(255) NOT NULL DEFAULT '',
+  provider_id varchar(64) NOT NULL DEFAULT '',
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
   KEY case_created (case_id,created_at),
   KEY batch_user (batch_key,user_id),
+  KEY provider_id (provider_id),
+  KEY status_created (status,created_at),
   KEY created_at (created_at)
 ) {$c};",
 			"CREATE TABLE {$tokens} (
@@ -388,6 +392,23 @@ final class Schema {
   KEY case_subject (case_id,subject_type,subject_id),
   KEY user_id (user_id)
 ) {$c};",
+			"CREATE TABLE {$msgs} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  user_id bigint(20) unsigned DEFAULT NULL,
+  provider_id varchar(64) NOT NULL,
+  sender_name varchar(100) NOT NULL DEFAULT '',
+  sender_email varchar(190) NOT NULL,
+  subject varchar(255) NOT NULL DEFAULT '',
+  body mediumtext NOT NULL,
+  files text NOT NULL,
+  stage varchar(10) NOT NULL DEFAULT 'saving',
+  received_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY provider_id (provider_id),
+  KEY case_received (case_id,received_at),
+  KEY user_id (user_id)
+) {$c};",
 		);
 	}
 
@@ -430,6 +451,8 @@ final class Schema {
 			'dx_signreq_case'   => array( 'sign_requests', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_signreq_doc'    => array( 'sign_requests', 'FOREIGN KEY (document_id) REFERENCES ' . self::table( 'documents' ) . ' (id) ON DELETE CASCADE' ),
 			'dx_signs_case'     => array( 'signatures', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_msgs_case'      => array( 'messages', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_msgs_user'      => array( 'messages', "FOREIGN KEY (user_id) REFERENCES {$users} (ID) ON DELETE SET NULL" ),
 		);
 	}
 

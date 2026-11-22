@@ -251,7 +251,7 @@ final class SignatureService {
 		$manager = get_userdata( $client_case->manager_id );
 		$message = $this->app->renderer->sign_request( $name, $client_case, $document->title, Router::sign_url( $token ), $manager ? (string) $manager->display_name : '' );
 
-		$this->log_mail( $client_case->id, $member, $email, 'sign_request', $message->subject, Mailer::send( $email, $message, $manager ? $manager : null ) );
+		$this->log_mail( $client_case->id, $member, $email, 'sign_request', $message->subject, Mailer::send( $email, $message, $manager ? $manager : null, Notifier::reply_options( $client_case ) ) );
 
 		return $id;
 	}

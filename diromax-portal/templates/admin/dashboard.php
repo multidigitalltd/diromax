@@ -147,7 +147,7 @@ $header    = array(
 	<div class="dxa-dash-grid">
 	<div class="dxa-dash-main">
 	<h2 class="dxa-section-title"><?php esc_html_e( 'דורש טיפול', 'diromax-portal' ); ?></h2>
-	<?php $attention = count( $view['overdue'] ) + count( $view['upcoming'] ) + count( $view['decisions'] ) + count( $view['actions'] ) + count( $view['stale'] ) + count( $view['quiet'] ) + count( $view['failed'] ) + count( $view['late'] ) + count( $view['tasks'] ); ?>
+	<?php $attention = count( $view['overdue'] ) + count( $view['upcoming'] ) + count( $view['decisions'] ) + count( $view['actions'] ) + count( $view['stale'] ) + count( $view['quiet'] ) + count( $view['failed'] ) + count( $view['bounced'] ) + count( $view['late'] ) + count( $view['tasks'] ); ?>
 	<?php if ( 0 === $attention ) : ?>
 		<p class="dxa-allclear" role="status"><span aria-hidden="true">✓</span> <?php esc_html_e( 'אין כרגע שום דבר שמחכה לטיפול: אין דרישות באיחור או בשבוע הקרוב, אין החלטות פתוחות, וכל הלקוחות קיבלו עדכון לאחרונה.', 'diromax-portal' ); ?></p>
 	<?php endif; ?>
@@ -407,6 +407,22 @@ $header    = array(
 					<?php endforeach; ?>
 				</ul>
 				<p class="description"><?php esc_html_e( 'בדרך כלל בעיה בהגדרות המייל של האתר. היומן של כל תיק מראה מה נכשל.', 'diromax-portal' ); ?></p>
+			</section>
+		<?php endif; ?>
+
+		<?php if ( array() !== $view['bounced'] ) : ?>
+			<section class="dxa-card dxa-card--hot" aria-labelledby="dxa-dash-bounced">
+				<h2 id="dxa-dash-bounced"><?php esc_html_e( 'מיילים שחזרו', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['bounced'] ) ); ?></span></h2>
+				<ul>
+					<?php foreach ( $view['bounced'] as $row ) : ?>
+						<li>
+							<a href="<?php echo esc_url( Admin::case_url( (int) $row['case_id'], 'log' ) ); ?>"><?php echo esc_html( (string) $row['case_title'] ); ?></a>
+							· <span dir="ltr"><?php echo esc_html( (string) $row['recipient'] ); ?></span>
+							· <?php echo esc_html( 'complaint' === $row['status'] ? __( 'סומן כספאם', 'diromax-portal' ) : __( 'המייל חזר', 'diromax-portal' ) ); ?>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+				<p class="description"><?php esc_html_e( 'ב-30 הימים האחרונים. בדרך כלל כתובת שגויה: בודקים מול הלקוח ומעדכנים בלשונית „לקוחות”.', 'diromax-portal' ); ?></p>
 			</section>
 		<?php endif; ?>
 	</div>

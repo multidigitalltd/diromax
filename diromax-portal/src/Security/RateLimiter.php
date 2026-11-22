@@ -39,7 +39,7 @@ final class RateLimiter {
 	 * @return bool True when allowed.
 	 */
 	public function attempt( string $bucket, string $subject, int $limit, int $window ): bool {
-		$key   = 'dx_portal_rl_' . substr( wp_hash( $bucket . '|' . strtolower( $subject ), 'nonce' ), 0, 32 );
+		$key   = self::key( $bucket, $subject );
 		$state = get_transient( $key );
 		$now   = $this->clock->now();
 
@@ -58,6 +58,32 @@ final class RateLimiter {
 		set_transient( $key, $state, max( 1, (int) $state['until'] - $now ) );
 
 		return true;
+	}
+
+	/**
+	 * Has the subject used up the bucket, without counting a new attempt?
+	 * For buckets that count failures only.
+	 *
+	 * @param string $bucket  Action name.
+	 * @param string $subject Who.
+	 * @param int    $limit   Attempts allowed in the window.
+	 * @return bool
+	 */
+	public function exhausted( string $bucket, string $subject, int $limit ): bool {
+		$state = get_transient( self::key( $bucket, $subject ) );
+
+		return is_array( $state ) && (int) ( $state['count'] ?? 0 ) >= $limit && (int) ( $state['until'] ?? 0 ) > $this->clock->now();
+	}
+
+	/**
+	 * Transient key of a bucket and subject.
+	 *
+	 * @param string $bucket  Action name.
+	 * @param string $subject Who.
+	 * @return string
+	 */
+	private static function key( string $bucket, string $subject ): string {
+		return 'dx_portal_rl_' . substr( wp_hash( $bucket . '|' . strtolower( $subject ), 'nonce' ), 0, 32 );
 	}
 
 	/**
