@@ -19,6 +19,7 @@ use Diromax\Portal\Portal\Webhooks;
 use Diromax\Portal\Service\InboundService;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
+use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\MorningSummary;
 use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\Postmark;
@@ -118,6 +119,7 @@ final class Pages {
 			'quiet'      => $repo->never_signed_in( $manager, $this->app->clock->mysql_in( -3 * DAY_IN_SECONDS ) ),
 			'failed'     => $repo->failed_mail( $manager ),
 			'bounced'    => $repo->bounced_mail( $manager, $this->app->clock->mysql_in( -30 * DAY_IN_SECONDS ) ),
+			'awaiting'   => $this->app->messages->awaiting_reply( $manager ),
 			'late'       => ( new MorningSummary( $this->app ) )->late_stages( $scope ),
 			'tasks'      => $this->app->tasks->open_for( $user, 0 === $manager, null, 20 ),
 		);
@@ -441,7 +443,7 @@ final class Pages {
 				'key_ready' => $this->app->store->is_configured(),
 			),
 			'messages'  => array(
-				'messages' => $this->app->messages->for_case( $client_case->id ),
+				'messages' => ( new MessageService( $this->app ) )->thread( $client_case, get_current_user_id(), true ),
 				'enabled'  => InboundService::enabled(),
 			),
 			'log'       => array(

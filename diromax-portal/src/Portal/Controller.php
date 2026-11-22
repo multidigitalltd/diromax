@@ -17,6 +17,7 @@ use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LoginCodeService;
+use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\SignatureService;
@@ -524,6 +525,7 @@ final class Controller {
 			'confirm' => $ok ? '1' : '',
 		);
 		$title  = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$body   = isset( $_POST['body'] ) ? sanitize_textarea_field( wp_unslash( $_POST['body'] ) ) : '';
 		// phpcs:enable
 
 		[ $tab, $result ] = match ( $step ) {
@@ -531,6 +533,7 @@ final class Controller {
 			'acknowledge' => array( 'documents', ! wp_verify_nonce( $nonce, 'dx_portal_ack_' . $object ) ? 'expired' : ( $ok ? ( new AgreementService( $this->app ) )->acknowledge( $client_case, $object, $user ) : 'confirm' ) ),
 			'sign'        => array( 'documents', wp_verify_nonce( $nonce, 'dx_portal_sign_doc_' . $object ) ? ( new SignatureService( $this->app ) )->sign_document( $client_case, $object, $user, $sign ) : 'expired' ),
 			'upload'      => array( 'documents', wp_verify_nonce( $nonce, 'dx_portal_upload_' . $client_case->id ) ? $this->client_upload( $client_case, $user, $title, $object ) : 'expired' ),
+			'message'     => array( 'messages', wp_verify_nonce( $nonce, 'dx_portal_message_' . $client_case->id ) ? self::sent( ( new MessageService( $this->app ) )->post( $client_case, $user, $body ) ) : 'expired' ),
 			default       => array( 'finance', 'failed' ),
 		};
 
@@ -542,9 +545,13 @@ final class Controller {
 		$code = match ( true ) {
 			true === $result && 'sign' === $step     => 'signed',
 			true === $result && 'upload' === $step   => 'uploaded',
+			true === $result && 'message' === $step  => 'message_sent',
 			true === $result && 'documents' === $tab => 'acknowledged',
 			true === $result                         => 'approve' === $answer ? 'approved' : 'declined',
 			is_string( $result )                     => $result,
+			'message' === $step && 'dx_rate_limited' === $result->get_error_code() => 'too_many_messages',
+			'message' === $step && 'too_long' === ( Errors::fields( $result )['body'] ?? '' ) => 'message_long',
+			'message' === $step && isset( Errors::fields( $result )['body'] ) => 'message_empty',
 			'dx_not_pending' === $result->get_error_code() => 'closed',
 			'dx_rate_limited' === $result->get_error_code() => 'too_many',
 			isset( Errors::fields( $result )['file'] )     => 'file',
@@ -556,6 +563,16 @@ final class Controller {
 		};
 
 		$this->redirect( add_query_arg( 'done', $code, Router::case_url( $client_case, $tab ) ) );
+	}
+
+	/**
+	 * A message was saved (its ID), or why not.
+	 *
+	 * @param int|WP_Error $result MessageService::post().
+	 * @return true|WP_Error
+	 */
+	private static function sent( int|WP_Error $result ): bool|WP_Error {
+		return $result instanceof WP_Error ? $result : true;
 	}
 
 	/**
@@ -611,23 +628,28 @@ final class Controller {
 			'acknowledged' => __( 'תודה. אישור הקריאה נרשם.', 'diromax-portal' ),
 			'signed'       => __( 'תודה. החתימה נשמרה, ומנהל הפרויקט קיבל הודעה.', 'diromax-portal' ),
 			'uploaded'     => __( 'המסמך הועלה ונשמר מוצפן. מנהל הפרויקט קיבל הודעה.', 'diromax-portal' ),
+			'message_sent' => __( 'ההודעה נשלחה למנהל הפרויקט, ונשמרה כאן בשיחה.', 'diromax-portal' ),
 			'saved'        => __( 'השינויים נשמרו.', 'diromax-portal' ),
 			'password_set' => __( 'הסיסמה נשמרה. שאר החיבורים לחשבון נותקו, ונשלח אליך מייל אישור.', 'diromax-portal' ),
 		);
 		$no = array(
-			'confirm'        => __( 'כדי לאשר צריך לסמן שקראת את הפרטים.', 'diromax-portal' ),
-			'signature'      => __( 'כדי לחתום צריך שם מלא, וציור חתימה או סימון שאין אפשרות לצייר.', 'diromax-portal' ),
-			'file'           => __( 'הקובץ לא התקבל: צריך PDF, JPG, PNG, WEBP, DOCX או XLSX עד 20MB.', 'diromax-portal' ),
-			'title'          => __( 'צריך לכתוב מה המסמך.', 'diromax-portal' ),
-			'request_closed' => __( 'הבקשה למסמך הזה כבר טופלה או בוטלה.', 'diromax-portal' ),
-			'too_many'       => __( 'הועלו הרבה מסמכים בשעה האחרונה. אפשר להמשיך בעוד שעה.', 'diromax-portal' ),
-			'closed'         => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
-			'expired'        => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
-			'failed'         => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
-			'mismatch'       => __( 'שתי הסיסמאות לא זהות. אפשר להקליד שוב.', 'diromax-portal' ),
+			'confirm'           => __( 'כדי לאשר צריך לסמן שקראת את הפרטים.', 'diromax-portal' ),
+			'signature'         => __( 'כדי לחתום צריך שם מלא, וציור חתימה או סימון שאין אפשרות לצייר.', 'diromax-portal' ),
+			'file'              => __( 'הקובץ לא התקבל: צריך PDF, JPG, PNG, WEBP, DOCX או XLSX עד 20MB.', 'diromax-portal' ),
+			'title'             => __( 'צריך לכתוב מה המסמך.', 'diromax-portal' ),
+			'request_closed'    => __( 'הבקשה למסמך הזה כבר טופלה או בוטלה.', 'diromax-portal' ),
+			'too_many'          => __( 'הועלו הרבה מסמכים בשעה האחרונה. אפשר להמשיך בעוד שעה.', 'diromax-portal' ),
+			'too_many_messages' => __( 'נשלחו הרבה הודעות בשעה האחרונה. אפשר להמשיך בעוד שעה.', 'diromax-portal' ),
+			/* translators: %d: maximum length. */
+			'message_long'      => sprintf( __( 'ההודעה ארוכה מדי: עד %d תווים.', 'diromax-portal' ), MessageService::MAX_LENGTH ),
+			'message_empty'     => __( 'צריך לכתוב משהו בהודעה.', 'diromax-portal' ),
+			'closed'            => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
+			'expired'           => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
+			'failed'            => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
+			'mismatch'          => __( 'שתי הסיסמאות לא זהות. אפשר להקליד שוב.', 'diromax-portal' ),
 			/* translators: %d: minimum length. */
-			'weak'           => sprintf( __( 'הסיסמה לא מתאימה: צריך לפחות %d תווים, בלי כתובת המייל ובלי רצף חוזר, ולא סיסמה שדלפה בעבר. משפט קצר שקל לזכור עובד טוב.', 'diromax-portal' ), PasswordService::MIN_LENGTH ),
-			'reauth'         => __( 'כדי לשנות את הסיסמה צריך להזין את הסיסמה הנוכחית, או להיכנס מחדש עם קישור למייל.', 'diromax-portal' ),
+			'weak'              => sprintf( __( 'הסיסמה לא מתאימה: צריך לפחות %d תווים, בלי כתובת המייל ובלי רצף חוזר, ולא סיסמה שדלפה בעבר. משפט קצר שקל לזכור עובד טוב.', 'diromax-portal' ), PasswordService::MIN_LENGTH ),
+			'reauth'            => __( 'כדי לשנות את הסיסמה צריך להזין את הסיסמה הנוכחית, או להיכנס מחדש עם קישור למייל.', 'diromax-portal' ),
 		);
 
 		return match ( true ) {

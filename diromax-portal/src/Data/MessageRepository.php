@@ -18,12 +18,12 @@ defined( 'ABSPATH' ) || exit;
  * names of files that were not kept and why.
  *
  * @phpstan-type MessageFile array{name:string, document_id:int|null, reason:string}
- * @phpstan-type MessageRow array{id:int, case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, files:MessageFile[], stage:string, received_at:string}
+ * @phpstan-type MessageRow array{id:int, case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, files:MessageFile[], stage:string, direction:string, channel:string, received_at:string}
  */
 final class MessageRepository {
 
 	/** Columns read back. */
-	private const COLUMNS = 'id, case_id, user_id, provider_id, sender_name, sender_email, subject, body, files, stage, received_at';
+	private const COLUMNS = 'id, case_id, user_id, provider_id, sender_name, sender_email, subject, body, files, stage, direction, channel, received_at';
 
 	/**
 	 * Constructor.
@@ -33,10 +33,11 @@ final class MessageRepository {
 	public function __construct( private readonly \wpdb $db ) {}
 
 	/**
-	 * Store a new message, before its files: stage "saving".
+	 * Store a new message. A client's email reply starts in stage "saving"
+	 * (its files follow); a message written on the site is saved at once.
 	 *
-	 * @param array{case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string} $fields Fields.
-	 * @param string                                                                                                                         $now    UTC DATETIME.
+	 * @param array{case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, direction?:string, channel?:string, stage?:string} $fields Fields: direction "in" (from a client) or "out" (from staff), channel "email" or "portal".
+	 * @param string                                                                                                                                                                            $now    UTC DATETIME.
 	 * @return int New ID; 0 when it failed or the message is already stored.
 	 */
 	public function insert( array $fields, string $now ): int {
@@ -51,7 +52,9 @@ final class MessageRepository {
 				'subject'      => mb_substr( $fields['subject'], 0, 255 ),
 				'body'         => $fields['body'],
 				'files'        => '[]',
-				'stage'        => 'saving',
+				'stage'        => $fields['stage'] ?? 'saving',
+				'direction'    => $fields['direction'] ?? 'in',
+				'channel'      => $fields['channel'] ?? 'email',
 				'received_at'  => $now,
 			)
 		);
@@ -116,6 +119,54 @@ final class MessageRepository {
 	}
 
 	/**
+	 * The conversation of a case in the order it happened: the latest
+	 * messages, oldest first.
+	 *
+	 * @param int $case_id Case.
+	 * @param int $limit   Maximum rows, 1–500.
+	 * @return MessageRow[]
+	 */
+	public function thread( int $case_id, int $limit = 200 ): array {
+		return array_reverse( $this->for_case( $case_id, $limit ) );
+	}
+
+	/**
+	 * Cases whose latest message is from a client: waiting for an answer.
+	 *
+	 * @param int $manager Manager, 0 for all.
+	 * @return array<int, array{case_id:int, case_title:string, number:string, sender_name:string, received_at:string}>
+	 */
+	public function awaiting_reply( int $manager ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				"SELECT m.case_id, c.title AS case_title, c.number, m.sender_name, m.received_at
+				   FROM %i m
+				   INNER JOIN ( SELECT case_id, MAX(id) AS id FROM %i WHERE stage <> 'saving' GROUP BY case_id ) last ON last.id = m.id
+				   INNER JOIN %i c ON c.id = m.case_id
+				  WHERE m.direction = 'in' AND c.status = 'active' AND ( %d = 0 OR c.manager_id = %d )
+				  ORDER BY m.id LIMIT 50",
+				Schema::table( 'messages' ),
+				Schema::table( 'messages' ),
+				Schema::table( 'cases' ),
+				$manager,
+				$manager
+			),
+			ARRAY_A
+		);
+
+		return array_map(
+			static fn( array $row ): array => array(
+				'case_id'     => (int) $row['case_id'],
+				'case_title'  => (string) $row['case_title'],
+				'number'      => (string) $row['number'],
+				'sender_name' => (string) $row['sender_name'],
+				'received_at' => (string) $row['received_at'],
+			),
+			(array) $rows
+		);
+	}
+
+	/**
 	 * Messages in a case.
 	 *
 	 * @param int $case_id Case.
@@ -173,6 +224,8 @@ final class MessageRepository {
 			'subject'      => (string) $row['subject'],
 			'body'         => (string) $row['body'],
 			'stage'        => (string) $row['stage'],
+			'direction'    => (string) $row['direction'],
+			'channel'      => (string) $row['channel'],
 			'files'        => array_values(
 				array_map(
 					static fn( $file ): array => array(

@@ -358,6 +358,7 @@
 .dxa-message h3 { margin: 0 0 4px; font-size: 16px; }
 .dxa-message__body { margin: 12px 0 0; line-height: 1.65; overflow-wrap: anywhere; }
 .dxa-message__files { margin: 12px 0 0; padding-inline-start: 20px; }
+.dxa-message.is-staff { border-inline-start-color: var(--a-blue); background: var(--a-bg); }
 .dxa-tasks { margin: 0 0 24px; padding: 0; list-style: none; background: var(--a-white); border: 1px solid var(--a-line); }
 .dxa-task { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; margin: 0; padding: 12px 16px; border-top: 1px solid var(--a-line-soft); }
 .dxa-task:first-child { border-top: 0; }

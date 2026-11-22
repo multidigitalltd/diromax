@@ -12,6 +12,7 @@ namespace Diromax\Portal\Service;
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\CaseSummary;
 use Diromax\Portal\Domain\Money;
+use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Portal\Router;
 
 defined( 'ABSPATH' ) || exit;
@@ -148,8 +149,8 @@ final class MailRenderer {
 	 * (spec 17.3). With a reason, it was not kept in the case and the
 	 * manager is warned.
 	 *
-	 * @param CaseRecord|null                                                                                                                                          $client_case Case, null when the address had none.
-	 * @param array{name:string, email:string, subject:string, text:string, files:array<int, array{name:string, attached:bool, kept:bool}>, reason:string, url:string} $reply       The reply.
+	 * @param CaseRecord|null                                                                                                                                                           $client_case Case, null when the address had none.
+	 * @param array{name:string, email:string, subject:string, text:string, files:array<int, array{name:string, attached:bool, kept:bool}>, reason:string, url:string, channel?:string} $reply The reply; channel "portal" when it was written on the site (spec 18.1).
 	 * @return MailMessage
 	 */
 	public function inbound( ?CaseRecord $client_case, array $reply ): MailMessage {
@@ -175,9 +176,11 @@ final class MailRenderer {
 				/* translators: %s: sender name. */
 				'headline'  => '' === $warning ? sprintf( __( 'הודעה חדשה מ%s', 'diromax-portal' ), $who ) : __( 'הודעה לבדיקה', 'diromax-portal' ),
 				'greeting'  => '',
-				'intro'     => '' === $warning
-					? __( 'התקבלה תשובה למייל מהאזור האישי. ההודעה נשמרה בתיק, בלשונית „הודעות”. כדי לענות ללקוח, משיבים למייל הזה.', 'diromax-portal' )
-					: __( 'התקבלה הודעה לכתובת התשובות של האזור האישי.', 'diromax-portal' ),
+				'intro'     => match ( true ) {
+					'' !== $warning                          => __( 'התקבלה הודעה לכתובת התשובות של האזור האישי.', 'diromax-portal' ),
+					'portal' === ( $reply['channel'] ?? '' ) => __( 'הלקוח כתב לך מהאזור האישי. ההודעה שמורה בתיק, בלשונית „הודעות”. אפשר לענות מהתיק, או להשיב למייל הזה.', 'diromax-portal' ),
+					default                                  => __( 'התקבלה תשובה למייל מהאזור האישי. ההודעה נשמרה בתיק, בלשונית „הודעות”. כדי לענות ללקוח, משיבים למייל הזה.', 'diromax-portal' ),
+				},
 				'body'      => 'message',
 				'warning'   => $warning,
 				'reply'     => $reply,
@@ -195,6 +198,47 @@ final class MailRenderer {
 			: sprintf( __( 'לבדיקה: הודעה מ-%s', 'diromax-portal' ), $reply['email'] ) . ( null === $client_case ? '' : ' · ' . $client_case->title );
 
 		return $this->message( $subject, $view );
+	}
+
+	/**
+	 * The project manager's reply, to a client of the case (spec 18.1).
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param string     $name        Recipient's name.
+	 * @param string     $manager     Who wrote it.
+	 * @param string     $text        The reply.
+	 * @param string     $url         The conversation in the portal.
+	 * @return MailMessage
+	 */
+	public function staff_reply( CaseRecord $client_case, string $name, string $manager, string $text, string $url ): MailMessage {
+		$view = $this->base(
+			$client_case,
+			array(
+				'preheader' => mb_substr( Text::line( $text ), 0, 120 ),
+				/* translators: 1: case number, 2: case address. */
+				'eyebrow'   => sprintf( __( 'תיק %1$s · %2$s', 'diromax-portal' ), $client_case->number, $client_case->title ),
+				/* translators: %s: project manager name. */
+				'headline'  => sprintf( __( 'תשובה מ%s', 'diromax-portal' ), $manager ),
+				'greeting'  => $name,
+				'intro'     => __( 'מנהל הפרויקט כתב לך בתיק. ההודעה המלאה כאן, וגם בלשונית „הודעות” באזור האישי.', 'diromax-portal' ),
+				'body'      => 'message',
+				'warning'   => '',
+				'reply'     => array(
+					'name'    => $manager,
+					'email'   => '',
+					'subject' => '',
+					'text'    => $text,
+					'files'   => array(),
+				),
+				'cta'       => array(
+					'label' => __( 'לשיחה באזור האישי', 'diromax-portal' ),
+					'url'   => $url,
+				),
+			)
+		);
+
+		/* translators: %s: case address. */
+		return $this->message( sprintf( __( 'תשובה ממנהל הפרויקט · %s', 'diromax-portal' ), $client_case->title ), $view );
 	}
 
 	/**

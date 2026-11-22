@@ -53,7 +53,7 @@
 .dxp-form { display: grid; gap: 16px; margin-top: 8px; }
 .dxp-field { margin: 0; }
 .dxp-field label { display: block; font-size: 14px; font-weight: 700; color: var(--p-ink); margin-bottom: 6px; }
-.dxp-field input, .dxp-field select { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 2px solid var(--p-ink); background: var(--p-white); color: var(--p-ink); border-radius: 0; }
+.dxp-field input, .dxp-field select, .dxp-field textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 2px solid var(--p-ink); background: var(--p-white); color: var(--p-ink); border-radius: 0; }
 .dxp-field select { width: auto; min-width: 160px; padding: 9px 12px; }
 .dxp-check { display: flex; align-items: center; gap: 10px; margin: 0; }
 .dxp-check input { width: 24px; height: 24px; accent-color: var(--p-blue); }
@@ -244,6 +244,15 @@
 .dxp-tag--declined, .dxp-tag--withdrawn { border-style: dashed; }
 
 /* updates timeline */
+/* Conversation with the project manager (spec 18.1). */
+.dxp-chat { display: grid; gap: 14px; margin: 0 0 28px; padding: 0; list-style: none; }
+.dxp-chat__msg { max-width: 640px; padding: 14px 18px; background: var(--p-white); border: 2px solid var(--p-ink); }
+.dxp-chat__msg.is-staff { margin-inline-start: auto; border-color: var(--p-line); background: var(--p-bg); }
+.dxp-chat__who { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 0 0 6px; font-size: 14px; color: var(--p-muted); }
+.dxp-chat__who strong { color: var(--p-ink); }
+.dxp-chat__body { line-height: 1.65; overflow-wrap: anywhere; }
+.dxp-chat__files { margin: 8px 0 0; padding-inline-start: 18px; font-size: 14px; }
+.dxp-chat__form textarea { min-height: 120px; resize: vertical; }
 /* Photo journal (spec 18.2). */
 .dxp-photos { margin: 0 0 32px; }
 .dxp-photos h3 { display: flex; gap: 10px; align-items: baseline; margin: 0 0 14px; font-size: 18px; }

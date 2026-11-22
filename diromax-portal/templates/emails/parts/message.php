@@ -33,7 +33,9 @@ $dx_files   = is_array( $dx_reply['files'] ?? null ) ? $dx_reply['files'] : arra
 		<tr><td class="dx-body" style="padding:16px 20px;text-align:right;font-family:<?php echo esc_attr( $font ); ?>;font-size:15px;line-height:1.6;color:#3a3d44;">
 			<p style="margin:0 0 4px;font-size:13px;font-weight:800;color:#55585f;">
 				<?php echo esc_html( (string) ( $dx_reply['name'] ?? '' ) ); ?>
-				<span dir="ltr">&lt;<?php echo esc_html( (string) ( $dx_reply['email'] ?? '' ) ); ?>&gt;</span>
+				<?php if ( '' !== (string) ( $dx_reply['email'] ?? '' ) ) : ?>
+					<span dir="ltr">&lt;<?php echo esc_html( (string) $dx_reply['email'] ); ?>&gt;</span>
+				<?php endif; ?>
 			</p>
 			<?php if ( '' !== (string) ( $dx_reply['subject'] ?? '' ) ) : ?>
 				<p class="dx-text" style="margin:0 0 12px;font-size:16px;font-weight:800;color:#15171c;"><?php echo esc_html( (string) $dx_reply['subject'] ); ?></p>

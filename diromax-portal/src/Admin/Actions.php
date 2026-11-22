@@ -17,6 +17,7 @@ use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\DemoCase;
 use Diromax\Portal\Service\DocRequestService;
 use Diromax\Portal\Service\Errors;
+use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\ReminderService;
@@ -71,6 +72,7 @@ final class Actions {
 		'upload_photos'       => array( array( 'stage', 'taken_on', 'caption', 'visible', 'notify' ), array() ),
 		'photo_visibility'    => array( array( 'photo_id', 'visible' ), array() ),
 		'delete_photo'        => array( array( 'photo_id' ), array() ),
+		'reply_message'       => array( array(), array( 'body' ) ),
 	);
 
 	/**
@@ -160,6 +162,7 @@ final class Actions {
 			'add_task'            => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->add( $client_case, $input, $actor ), __( 'המשימה נוספה.', 'diromax-portal' ), 'task', $input ),
 			'task_done'           => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->set_done( $client_case, absint( $input['task_id'] ), '1' === $input['done'], $actor ), '1' === $input['done'] ? __( 'המשימה סומנה כבוצעה.', 'diromax-portal' ) : __( 'המשימה חזרה לפתוחות.', 'diromax-portal' ) ),
 			'delete_task'         => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->delete( $client_case, absint( $input['task_id'] ), $actor ), __( 'המשימה נמחקה.', 'diromax-portal' ) ),
+			'reply_message'       => $this->finish( $client_case, 'messages', ( new MessageService( $this->app ) )->reply( $client_case, $actor, $input['body'] ), __( 'התשובה נשלחה ללקוחות ונשמרה בשיחה.', 'diromax-portal' ), 'message', $input ),
 			'upload_photos'       => $this->upload_photos( $client_case, $input, $actor ),
 			'photo_visibility'    => $this->finish( $client_case, 'photos', ( new PhotoService( $this->app ) )->set_visible( $client_case, absint( $input['photo_id'] ), '1' === $input['visible'], $actor ), '1' === $input['visible'] ? __( 'הצילום מוצג ללקוח.', 'diromax-portal' ) : __( 'הצילום הוסתר מהלקוח.', 'diromax-portal' ) ),
 			'delete_photo'        => $this->finish( $client_case, 'photos', ( new PhotoService( $this->app ) )->delete( $client_case, absint( $input['photo_id'] ), $actor ), __( 'הצילום נמחק.', 'diromax-portal' ) ),
