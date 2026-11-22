@@ -49,6 +49,10 @@ $header     = array(
 			'url'   => add_query_arg( 'add', '1', Admin::case_url( $case->id, 'documents' ) ),
 		),
 		array(
+			'label' => __( '+ צילומים', 'diromax-portal' ),
+			'url'   => add_query_arg( 'add', '1', Admin::case_url( $case->id, 'photos' ) ),
+		),
+		array(
 			'label' => __( '+ החלטה', 'diromax-portal' ),
 			'url'   => add_query_arg( 'add', '1', Admin::case_url( $case->id, 'decisions' ) ),
 		),

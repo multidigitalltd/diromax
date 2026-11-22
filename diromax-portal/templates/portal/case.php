@@ -23,12 +23,17 @@ $tab_labels = array(
 	'decisions' => __( 'החלטות', 'diromax-portal' ),
 	'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 	'updates'   => __( 'עדכונים', 'diromax-portal' ),
+	'photos'    => __( 'יומן צילומים', 'diromax-portal' ),
 );
 $waiting    = count( array_filter( $view['decisions'], static fn( array $d ): bool => $d['pending'] ) );
 $notice     = $view['notice'] ?? null;
 
 if ( array() === $view['decisions'] ) {
 	unset( $tab_labels['decisions'] );
+}
+
+if ( array() === $view['photos'] ) {
+	unset( $tab_labels['photos'] );
 }
 ?>
 <section class="dxp-head" aria-labelledby="dxp-case-title">
@@ -209,6 +214,7 @@ if ( array() === $view['decisions'] ) {
 		'decisions' => 'decisions',
 		'documents' => 'documents',
 		'updates'   => 'updates',
+		'photos'    => 'photos',
 	)[ $current ] ?? 'finance';
 	require __DIR__ . '/parts/' . $panel . '.php';
 	?>

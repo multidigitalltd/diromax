@@ -25,7 +25,7 @@ final class EventRepository {
 	public const DIGEST_PAGE = 200;
 
 	/** Event kinds. */
-	public const KINDS = array( 'entry_created', 'entry_updated', 'entry_voided', 'request_created', 'request_settled', 'update_published', 'document_added', 'request_reminder', 'decision_created' );
+	public const KINDS = array( 'entry_created', 'entry_updated', 'entry_voided', 'request_created', 'request_settled', 'update_published', 'document_added', 'request_reminder', 'decision_created', 'photos_added' );
 
 	/**
 	 * Constructor.

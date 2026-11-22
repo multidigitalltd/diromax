@@ -342,6 +342,16 @@
 .dxa-stage-row__due input[type="date"] { min-height: 32px; }
 .dxa-board__card.is-late { border-inline-start: 4px solid var(--a-red); }
 .dxa-board__card .dxa-late { align-self: flex-start; }
+/* Photo journal (spec 18.2). */
+.dxa-photos { margin: 0 0 24px; }
+.dxa-photos h3 { margin: 0 0 10px; font-size: 15px; }
+.dxa-photos__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.dxa-photo { margin: 0; padding: 8px; background: var(--a-white); border: 1px solid var(--a-line); }
+.dxa-photo.is-hidden { border-style: dashed; }
+.dxa-photo a { display: block; }
+.dxa-photo img { display: block; width: 100%; height: auto; }
+.dxa-photo p { margin: 6px 0 0; font-size: 13px; line-height: 1.45; }
+.dxa-photo__actions { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 /* Client replies by email (spec 17.3). */
 .dxa-messages { margin: 0; padding: 0; list-style: none; }
 .dxa-message { margin: 0 0 16px; padding: 16px 20px; background: var(--a-white); border: 1px solid var(--a-line); border-inline-start: 4px solid var(--a-teal-deep); }

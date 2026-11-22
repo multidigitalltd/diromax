@@ -18,6 +18,7 @@ use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LoginCodeService;
 use Diromax\Portal\Service\PasswordService;
+use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Security\Turnstile;
 use Diromax\Portal\Support\Ids;
@@ -60,6 +61,8 @@ final class Controller {
 			'home'   => $this->home(),
 			'case'   => $this->case_page(),
 			'doc'    => $this->document(),
+			'photo'  => $this->photo( false ),
+			'thumb'  => $this->photo( true ),
 			'report' => $this->report(),
 			'sign'     => $this->sign(),
 			'signfile' => $this->sign_file(),
@@ -661,6 +664,26 @@ final class Controller {
 		if ( null === $document || null === $client_case || is_wp_error( $this->app->document_service->send( $client_case, $document, $user ) ) ) {
 			$this->not_found();
 		}
+	}
+
+	/**
+	 * A site photo or its thumbnail, shown in the page (spec 18.2).
+	 *
+	 * @param bool $thumb The thumbnail.
+	 */
+	private function photo( bool $thumb ): void {
+		$user        = $this->require_login();
+		$id          = (string) get_query_var( Router::ARG );
+		$photo       = Ids::is_public_id( $id ) ? $this->app->photos->find_by_public_id( $id ) : null;
+		$client_case = null === $photo ? null : $this->app->cases->find( $photo['case_id'] );
+		$service     = new PhotoService( $this->app );
+
+		if ( null === $photo || null === $client_case || ! $service->may_view( $client_case, $photo, $user ) ) {
+			$this->not_found();
+			return;
+		}
+
+		$service->stream( $photo, $thumb );
 	}
 
 	/**

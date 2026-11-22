@@ -41,6 +41,12 @@ final class Messages {
 			'files:missing'         => __( 'אחד הקבצים לא הגיע. העדכון לא פורסם; אפשר לבחור את הקבצים שוב.', 'diromax-portal' ),
 			'files:too_large'       => __( 'אחד הקבצים גדול מ-20MB. העדכון לא פורסם.', 'diromax-portal' ),
 			'files:type'            => __( 'אחד הקבצים מסוג שלא נתמך (אפשר PDF, JPG, PNG, WEBP, DOCX או XLSX). העדכון לא פורסם.', 'diromax-portal' ),
+			'photos:missing'        => __( 'לא נבחרו צילומים, או שההעלאה נכשלה.', 'diromax-portal' ),
+			'photos:too_many'       => __( 'אפשר להעלות עד 20 צילומים בפעם אחת.', 'diromax-portal' ),
+			'photos:type'           => __( 'אף צילום לא התקבל: צריך JPG, PNG או WEBP עד 20MB.', 'diromax-portal' ),
+			'photos:storage'        => __( 'אי אפשר לשמור צילומים כרגע: מפתח ההצפנה חסר או השתנה (פרטים בהתראה האדומה).', 'diromax-portal' ),
+			'taken_on:invalid'      => __( 'התאריך לא תקין. אפשר לבחור תאריך מלוח השנה.', 'diromax-portal' ),
+			'taken_on:future'       => __( 'תאריך הצילום לא יכול להיות בעתיד.', 'diromax-portal' ),
 		);
 
 		if ( isset( $specific[ $field . ':' . $code ] ) ) {

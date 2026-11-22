@@ -37,13 +37,16 @@ final class Router {
 	public const SCREENS = array( 'dashboard', 'cases', 'board', 'new', 'settings', 'case', 'manifest' );
 
 	/** Bump when the rules change, so an updated plugin refreshes them once. */
-	public const RULES_VERSION = '5';
+	public const RULES_VERSION = '6';
 
 	/** Option holding the rules version last flushed. */
 	private const RULES_OPTION = 'dx_portal_rules';
 
+	/** Tabs of the client's case page. */
+	public const CASE_TABS = array( 'finance', 'documents', 'updates', 'decisions', 'photos', 'messages' );
+
 	/** Views the router accepts. */
-	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc', 'manage', 'report', 'sign', 'signfile' );
+	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc', 'manage', 'report', 'sign', 'signfile', 'photo', 'thumb' );
 
 	/**
 	 * Register the rewrite rules.
@@ -55,6 +58,8 @@ final class Router {
 		add_rewrite_rule( '^' . $base . '/(login|logout|account)/?$', 'index.php?' . self::VIEW . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/(case|doc)/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=$matches[1]&' . self::ARG . '=$matches[2]', 'top' );
 		add_rewrite_rule( '^' . $base . '/case/([a-f0-9]{24})/report/?$', 'index.php?' . self::VIEW . '=report&' . self::ARG . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/photo/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=photo&' . self::ARG . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/photo/([a-f0-9]{24})/thumb/?$', 'index.php?' . self::VIEW . '=thumb&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/sign/([A-Za-z0-9_-]{43})/?$', 'index.php?' . self::VIEW . '=sign&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/sign/([A-Za-z0-9_-]{43})/file/?$', 'index.php?' . self::VIEW . '=signfile&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=dashboard', 'top' );
@@ -194,7 +199,7 @@ final class Router {
 	public static function case_url( CaseRecord $client_case, string $tab = '' ): string {
 		$url = self::url( 'case', $client_case->public_id );
 
-		return in_array( $tab, array( 'finance', 'documents', 'updates', 'decisions' ), true ) ? add_query_arg( 'tab', $tab, $url ) : $url;
+		return in_array( $tab, self::CASE_TABS, true ) ? add_query_arg( 'tab', $tab, $url ) : $url;
 	}
 
 	/**
@@ -205,6 +210,21 @@ final class Router {
 	 */
 	public static function document_url( DocumentRecord $document ): string {
 		return self::url( 'doc', $document->public_id );
+	}
+
+	/**
+	 * A site photo, or its thumbnail.
+	 *
+	 * @param string $public_id Photo public ID.
+	 * @param bool   $thumb     The thumbnail.
+	 * @return string
+	 */
+	public static function photo_url( string $public_id, bool $thumb ): string {
+		if ( '' === (string) get_option( 'permalink_structure' ) ) {
+			return self::url( $thumb ? 'thumb' : 'photo', $public_id );
+		}
+
+		return self::url( 'photo', $public_id ) . ( $thumb ? 'thumb/' : '' );
 	}
 
 	/**

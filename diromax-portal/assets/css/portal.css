@@ -244,6 +244,15 @@
 .dxp-tag--declined, .dxp-tag--withdrawn { border-style: dashed; }
 
 /* updates timeline */
+/* Photo journal (spec 18.2). */
+.dxp-photos { margin: 0 0 32px; }
+.dxp-photos h3 { display: flex; gap: 10px; align-items: baseline; margin: 0 0 14px; font-size: 18px; }
+.dxp-photos__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.dxp-photo { margin: 0; }
+.dxp-photo a { display: block; border: 2px solid var(--p-ink); background: var(--p-line); }
+.dxp-photo a:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 2px; }
+.dxp-photo img { display: block; width: 100%; height: auto; }
+.dxp-photo figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: 14px; line-height: 1.45; }
 .dxp-tl { list-style: none; margin: 0; padding: 0; }
 .dxp-tl > li { display: grid; grid-template-columns: 120px 1fr; gap: 4px 24px; padding: 20px 0; border-bottom: 1px solid var(--p-line); }
 .dxp-tl > li:first-child { border-top: 2px solid var(--p-ink); }

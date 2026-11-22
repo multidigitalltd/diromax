@@ -20,6 +20,7 @@ use Diromax\Portal\Service\InboundService;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
 use Diromax\Portal\Service\MorningSummary;
+use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
@@ -41,7 +42,7 @@ final class Pages {
 	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'tasks', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'messages', 'documents', 'log' );
+	public const TABS = array( 'overview', 'tasks', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -433,6 +434,12 @@ final class Pages {
 				'assignees' => ( new TaskService( $this->app ) )->assignees( $client_case ),
 				'today'     => $this->app->clock->today(),
 			),
+			'photos'    => array(
+				'journal'   => ( new PhotoService( $this->app ) )->journal( $client_case, false ),
+				'stage'     => StageProgress::lead( $client_case->stages ),
+				'today'     => $this->app->clock->today(),
+				'key_ready' => $this->app->store->is_configured(),
+			),
 			'messages'  => array(
 				'messages' => $this->app->messages->for_case( $client_case->id ),
 				'enabled'  => InboundService::enabled(),
@@ -511,6 +518,7 @@ final class Pages {
 			'members'   => count( $this->app->members->for_case( $client_case->id ) ),
 			'tasks'     => $this->app->tasks->open_count( $client_case->id ),
 			'messages'  => $this->app->messages->count_for_case( $client_case->id ),
+			'photos'    => $this->app->photos->count_for_case( $client_case->id, false ),
 		);
 	}
 
@@ -588,6 +596,7 @@ final class Pages {
 			'finance'   => __( 'כספים', 'diromax-portal' ),
 			'decisions' => __( 'החלטות', 'diromax-portal' ),
 			'updates'   => __( 'עדכונים', 'diromax-portal' ),
+			'photos'    => __( 'צילומים', 'diromax-portal' ),
 			'messages'  => __( 'הודעות', 'diromax-portal' ),
 			'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 			'log'       => __( 'יומן', 'diromax-portal' ),

@@ -23,6 +23,7 @@ use Diromax\Portal\Plugin;
 use Diromax\Portal\Service\Contact;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Labels;
+use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Settings;
@@ -127,7 +128,8 @@ final class CaseView {
 			'case_id'    => $client_case->id,
 			'documents'  => $this->documents( $client_case ),
 			'updates'    => $this->updates( $client_case ),
-			'tab'        => in_array( $tab, array( 'finance', 'documents', 'updates', 'decisions' ), true ) ? $tab : 'finance',
+			'photos'     => ( new PhotoService( $this->app ) )->journal( $client_case, true ),
+			'tab'        => in_array( $tab, Router::CASE_TABS, true ) ? $tab : 'finance',
 			'filters'    => array(
 				'types'      => Labels::types(),
 				'categories' => Settings::categories(),
