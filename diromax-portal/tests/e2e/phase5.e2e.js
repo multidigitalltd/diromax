@@ -50,8 +50,7 @@ async function submit(page, selector) {
   check('the total adds the new sub-section', (await page.textContent('.dxa-budget tfoot')).includes('484,000'));
 
   await page.fill('#dxa-budget-fees-planned', 'abc');
-  await page.keyboard.press('Enter');
-  await page.waitForLoadState('load');
+  await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.keyboard.press('Enter')]);
   check('Enter saves (it does not move a line), and a bad amount is refused on its field', (await page.getAttribute('#dxa-budget-fees-planned', 'aria-invalid')) === 'true' && (await page.inputValue('#dxa-budget-research-label')) === 'בדיקות ומידע תכנוני' && (await page.locator('.dxa-budget__head').first().locator('.dxa-budget__name').inputValue()) === 'בדיקות ומידע תכנוני');
   await axe(page, 'budget with an error');
 
