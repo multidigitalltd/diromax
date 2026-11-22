@@ -351,7 +351,8 @@
 .dxa-photo a { display: block; }
 .dxa-photo img { display: block; width: 100%; height: auto; }
 .dxa-photo p { margin: 6px 0 0; font-size: 13px; line-height: 1.45; }
-.dxa-photo__actions { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.dxa-photo__actions { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 13px; }
+.dxa-photo__actions .button-link { min-height: 24px; min-width: 24px; padding: 2px 4px; }
 /* Client replies by email (spec 17.3). */
 .dxa-messages { margin: 0; padding: 0; list-style: none; }
 .dxa-message { margin: 0 0 16px; padding: 16px 20px; background: var(--a-white); border: 1px solid var(--a-line); border-inline-start: 4px solid var(--a-teal-deep); }

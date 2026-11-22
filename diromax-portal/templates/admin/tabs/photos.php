@@ -106,10 +106,10 @@ $dx_action  = static function ( string $action, int $photo_id, string $label, st
 								<span class="dxa-badge"><?php esc_html_e( 'פנימי', 'diromax-portal' ); ?></span>
 							<?php endif; ?>
 						</p>
-						<p class="dxa-photo__actions">
+						<div class="dxa-photo__actions">
 							<?php $dx_action( 'photo_visibility', (int) $dx_photo['id'], $dx_photo['visible'] ? __( 'להסתיר מהלקוח', 'diromax-portal' ) : __( 'להציג ללקוח', 'diromax-portal' ), $dx_photo['visible'] ? '0' : '1' ); ?>
 							<?php $dx_action( 'delete_photo', (int) $dx_photo['id'], __( 'מחיקה', 'diromax-portal' ) ); ?>
-						</p>
+						</div>
 					</li>
 				<?php endforeach; ?>
 			</ul>

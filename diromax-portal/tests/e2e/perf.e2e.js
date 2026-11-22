@@ -82,6 +82,8 @@ async function audit(lighthouse, configs, label, url, cookie) {
   await audit(lighthouse, configs, 'portal sign-in', BASE + '/portal/login/', '');
   await audit(lighthouse, configs, 'client case', caseUrl, clientCookie);
   await audit(lighthouse, configs, 'client documents', caseUrl + '?tab=documents', clientCookie);
+  await audit(lighthouse, configs, 'client photo journal', caseUrl + '?tab=photos', clientCookie);
+  await audit(lighthouse, configs, 'client messages', caseUrl + '?tab=messages', clientCookie);
   await audit(lighthouse, configs, 'management dashboard', BASE + '/portal/manage/', staffCookie);
   await audit(lighthouse, configs, 'management case', BASE + '/portal/manage/case/1/', staffCookie);
   await browser.close();
