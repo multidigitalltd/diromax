@@ -80,7 +80,7 @@ final class Stages {
 	/**
 	 * Status of each stage, keyed 1–7.
 	 *
-	 * @param array<int, array{status:string, started:string|null, done:string|null}> $stages Stage states.
+	 * @param array<int, array{status:string, started:string|null, done:string|null, due:string|null}> $stages Stage states.
 	 * @return array<int, string>
 	 */
 	public static function statuses( array $stages ): array {
@@ -92,7 +92,7 @@ final class Stages {
 	 * stages in progress when there are several, the next stage when none
 	 * is, or that all are done.
 	 *
-	 * @param array<int, array{status:string, started:string|null, done:string|null}> $stages Stage states.
+	 * @param array<int, array{status:string, started:string|null, done:string|null, due:string|null}> $stages Stage states.
 	 * @return string
 	 */
 	public static function summary( array $stages ): string {

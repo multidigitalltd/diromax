@@ -17,6 +17,7 @@ use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\PasswordService;
+use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Security\Turnstile;
 use Diromax\Portal\Support\Ids;
 use WP_Error;
@@ -58,6 +59,9 @@ final class Controller {
 			'home'   => $this->home(),
 			'case'   => $this->case_page(),
 			'doc'    => $this->document(),
+			'report' => $this->report(),
+			'sign'     => $this->sign(),
+			'signfile' => $this->sign_file(),
 			'manage' => ( new ManageController( $this->app ) )->dispatch(),
 			default  => $this->not_found(),
 		};
@@ -409,15 +413,24 @@ final class Controller {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Each branch verifies its own nonce, bound to the object.
 		$step   = isset( $_POST['dx_step'] ) ? sanitize_key( wp_unslash( $_POST['dx_step'] ) ) : '';
 		$nonce  = isset( $_POST['_dx_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_dx_nonce'] ) ) : '';
-		$object = absint( $_POST['decision'] ?? ( $_POST['document'] ?? 0 ) );
+		$object = absint( $_POST['decision'] ?? ( $_POST['document'] ?? ( $_POST['request'] ?? 0 ) ) );
 		$ok     = isset( $_POST['confirm'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['confirm'] ) );
 		$answer = isset( $_POST['answer'] ) ? sanitize_key( wp_unslash( $_POST['answer'] ) ) : '';
 		$note   = isset( $_POST['note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note'] ) ) : '';
+		$sign   = array(
+			'name'    => isset( $_POST['sign_name'] ) ? sanitize_text_field( wp_unslash( $_POST['sign_name'] ) ) : '',
+			'image'   => isset( $_POST['sign_image'] ) ? sanitize_text_field( wp_unslash( $_POST['sign_image'] ) ) : '',
+			'no_draw' => isset( $_POST['no_draw'] ) ? '1' : '',
+			'confirm' => $ok ? '1' : '',
+		);
+		$title  = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
 		// phpcs:enable
 
 		[ $tab, $result ] = match ( $step ) {
-			'decide'      => array( 'decisions', wp_verify_nonce( $nonce, 'dx_portal_decide_' . $object ) ? ( new DecisionService( $this->app ) )->answer( $client_case, $object, $user, $answer, $note, $ok ) : 'expired' ),
+			'decide'      => array( 'decisions', wp_verify_nonce( $nonce, 'dx_portal_decide_' . $object ) ? ( new DecisionService( $this->app ) )->answer( $client_case, $object, $user, $answer, $note, $ok, $sign ) : 'expired' ),
 			'acknowledge' => array( 'documents', ! wp_verify_nonce( $nonce, 'dx_portal_ack_' . $object ) ? 'expired' : ( $ok ? ( new AgreementService( $this->app ) )->acknowledge( $client_case, $object, $user ) : 'confirm' ) ),
+			'sign'        => array( 'documents', wp_verify_nonce( $nonce, 'dx_portal_sign_doc_' . $object ) ? ( new SignatureService( $this->app ) )->sign_document( $client_case, $object, $user, $sign ) : 'expired' ),
+			'upload'      => array( 'documents', wp_verify_nonce( $nonce, 'dx_portal_upload_' . $client_case->id ) ? $this->client_upload( $client_case, $user, $title, $object ) : 'expired' ),
 			default       => array( 'finance', 'failed' ),
 		};
 
@@ -427,15 +440,44 @@ final class Controller {
 		}
 
 		$code = match ( true ) {
+			true === $result && 'sign' === $step     => 'signed',
+			true === $result && 'upload' === $step   => 'uploaded',
 			true === $result && 'documents' === $tab => 'acknowledged',
 			true === $result                         => 'approve' === $answer ? 'approved' : 'declined',
 			is_string( $result )                     => $result,
 			'dx_not_pending' === $result->get_error_code() => 'closed',
+			'dx_rate_limited' === $result->get_error_code() => 'too_many',
+			isset( Errors::fields( $result )['file'] )     => 'file',
+			isset( Errors::fields( $result )['request'] )  => 'request_closed',
+			isset( Errors::fields( $result )['title'] )    => 'title',
+			isset( Errors::fields( $result )['image'] ), isset( Errors::fields( $result )['name'] ) => 'signature',
 			isset( Errors::fields( $result )['confirm'] )  => 'confirm',
 			default                                  => 'failed',
 		};
 
 		$this->redirect( add_query_arg( 'done', $code, Router::case_url( $client_case, $tab ) ) );
+	}
+
+	/**
+	 * A client's upload from the documents tab.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $user        Client.
+	 * @param string     $title       Title.
+	 * @param int        $request     Document request it answers, 0 for none.
+	 * @return true|WP_Error
+	 */
+	private function client_upload( CaseRecord $client_case, int $user, string $title, int $request ): bool|WP_Error {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified by the caller; the file array is checked in DocumentService::precheck().
+		$file = isset( $_FILES['file'] ) && is_array( $_FILES['file'] ) ? $_FILES['file'] : null;
+
+		if ( null === $file ) {
+			return Errors::invalid( array( 'file' => 'missing' ) );
+		}
+
+		$result = $this->app->document_service->upload_from_client( $client_case, $file, $title, $user, 0 === $request ? null : $request );
+
+		return $result instanceof WP_Error ? $result : true;
 	}
 
 	/**
@@ -467,18 +509,25 @@ final class Controller {
 			'approved'     => __( 'תודה. האישור נרשם בתיק ונשלח למנהל הפרויקט.', 'diromax-portal' ),
 			'declined'     => __( 'התשובה נרשמה בתיק ונשלחה למנהל הפרויקט.', 'diromax-portal' ),
 			'acknowledged' => __( 'תודה. אישור הקריאה נרשם.', 'diromax-portal' ),
+			'signed'       => __( 'תודה. החתימה נשמרה, ומנהל הפרויקט קיבל הודעה.', 'diromax-portal' ),
+			'uploaded'     => __( 'המסמך הועלה ונשמר מוצפן. מנהל הפרויקט קיבל הודעה.', 'diromax-portal' ),
 			'saved'        => __( 'השינויים נשמרו.', 'diromax-portal' ),
 			'password_set' => __( 'הסיסמה נשמרה. שאר החיבורים לחשבון נותקו, ונשלח אליך מייל אישור.', 'diromax-portal' ),
 		);
 		$no = array(
-			'confirm'  => __( 'כדי לאשר צריך לסמן שקראת את הפרטים.', 'diromax-portal' ),
-			'closed'   => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
-			'expired'  => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
-			'failed'   => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
-			'mismatch' => __( 'שתי הסיסמאות לא זהות. אפשר להקליד שוב.', 'diromax-portal' ),
+			'confirm'        => __( 'כדי לאשר צריך לסמן שקראת את הפרטים.', 'diromax-portal' ),
+			'signature'      => __( 'כדי לחתום צריך שם מלא, וציור חתימה או סימון שאין אפשרות לצייר.', 'diromax-portal' ),
+			'file'           => __( 'הקובץ לא התקבל: צריך PDF, JPG, PNG, WEBP, DOCX או XLSX עד 20MB.', 'diromax-portal' ),
+			'title'          => __( 'צריך לכתוב מה המסמך.', 'diromax-portal' ),
+			'request_closed' => __( 'הבקשה למסמך הזה כבר טופלה או בוטלה.', 'diromax-portal' ),
+			'too_many'       => __( 'הועלו הרבה מסמכים בשעה האחרונה. אפשר להמשיך בעוד שעה.', 'diromax-portal' ),
+			'closed'         => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
+			'expired'        => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
+			'failed'         => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
+			'mismatch'       => __( 'שתי הסיסמאות לא זהות. אפשר להקליד שוב.', 'diromax-portal' ),
 			/* translators: %d: minimum length. */
-			'weak'     => sprintf( __( 'הסיסמה לא מתאימה: צריך לפחות %d תווים, בלי כתובת המייל ובלי רצף חוזר, ולא סיסמה שדלפה בעבר. משפט קצר שקל לזכור עובד טוב.', 'diromax-portal' ), PasswordService::MIN_LENGTH ),
-			'reauth'   => __( 'כדי לשנות את הסיסמה צריך להזין את הסיסמה הנוכחית, או להיכנס מחדש עם קישור למייל.', 'diromax-portal' ),
+			'weak'           => sprintf( __( 'הסיסמה לא מתאימה: צריך לפחות %d תווים, בלי כתובת המייל ובלי רצף חוזר, ולא סיסמה שדלפה בעבר. משפט קצר שקל לזכור עובד טוב.', 'diromax-portal' ), PasswordService::MIN_LENGTH ),
+			'reauth'         => __( 'כדי לשנות את הסיסמה צריך להזין את הסיסמה הנוכחית, או להיכנס מחדש עם קישור למייל.', 'diromax-portal' ),
 		);
 
 		return match ( true ) {
@@ -515,6 +564,160 @@ final class Controller {
 		if ( null === $document || null === $client_case || is_wp_error( $this->app->document_service->send( $client_case, $document, $user ) ) ) {
 			$this->not_found();
 		}
+	}
+
+	/**
+	 * The printable report of a case: what the viewer may see, nothing more.
+	 */
+	private function report(): void {
+		$user        = $this->require_login();
+		$id          = (string) get_query_var( Router::ARG );
+		$client_case = Ids::is_public_id( $id ) ? $this->app->cases->find_by_public_id( $id ) : null;
+
+		if ( null === $client_case || ! $this->app->policy->can_view_case( $user, $client_case ) ) {
+			$this->not_found();
+			return;
+		}
+
+		$view            = ( new CaseView( $this->app ) )->report( $client_case, $user );
+		$view['back']    = Router::case_url( $client_case );
+		$view['printed'] = Labels::datetime( $this->app->clock->mysql() );
+
+		status_header( 200 );
+		Assets::enqueue( false );
+		include DX_PORTAL_DIR . 'templates/portal/report.php';
+	}
+
+	/**
+	 * Signing through an emailed link: no sign-in, the link is the key to
+	 * this one document. Step 1 sends a code to the address; step 2 signs.
+	 */
+	private function sign(): void {
+		header( 'Referrer-Policy: no-referrer' );
+
+		$token     = (string) get_query_var( Router::ARG );
+		$signature = new SignatureService( $this->app );
+		$link      = $signature->by_token( $token );
+
+		if ( null === $link ) {
+			status_header( 404 );
+			$this->render( 'sign', array( 'state' => 'closed' ), __( 'חתימה על מסמך', 'diromax-portal' ), false );
+			return;
+		}
+
+		$view = array(
+			'state'    => null === $link['request']['code_expires_at'] || '' === $link['request']['code_hash'] ? 'start' : 'form',
+			'request'  => $link['request'],
+			'document' => $link['document'],
+			'case'     => $link['case'],
+			'file'     => Router::sign_file_url( $token ),
+			'self'     => Router::sign_url( $token ),
+			'errors'   => array(),
+			'old'      => array(),
+			'notice'   => null,
+		);
+
+		if ( 'post' === self::method() ) {
+			$view = $this->sign_action( $signature, $token, $view );
+		}
+
+		$this->render( 'sign', $view, __( 'חתימה על מסמך', 'diromax-portal' ) );
+	}
+
+	/**
+	 * A form posted on the signing page.
+	 *
+	 * @param SignatureService     $signature Service.
+	 * @param string               $token     Link token.
+	 * @param array<string, mixed> $view      View model.
+	 * @return array<string, mixed>
+	 */
+	private function sign_action( SignatureService $signature, string $token, array $view ): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified below, bound to the request.
+		$step  = isset( $_POST['dx_step'] ) ? sanitize_key( wp_unslash( $_POST['dx_step'] ) ) : '';
+		$nonce = isset( $_POST['_dx_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_dx_nonce'] ) ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, 'dx_portal_sign_' . $view['request']['id'] ) ) {
+			$view['notice'] = self::notice( 'expired' );
+			return $view;
+		}
+
+		if ( 'code' === $step ) {
+			$captcha = isset( $_POST['cf-turnstile-response'] ) ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) ) : '';
+			$result  = Turnstile::enabled() && ! Turnstile::verify( $captcha )
+				? new WP_Error( 'dx_captcha', __( 'האימות נכשל. אפשר לנסות שוב.', 'diromax-portal' ) )
+				: $signature->send_code( $token );
+
+			$view['state']  = $result instanceof WP_Error ? $view['state'] : 'form';
+			$view['notice'] = $result instanceof WP_Error
+				? array(
+					'type' => 'error',
+					'text' => $result->get_error_message(),
+				)
+				: array(
+					'type' => 'ok',
+					/* translators: %s: masked email address. */
+					'text' => sprintf( __( 'שלחנו קוד בן 6 ספרות אל %s. הוא תקף ל-15 דקות.', 'diromax-portal' ), self::masked_email( (string) $view['request']['signer_email'] ) ),
+				);
+
+			return $view;
+		}
+
+		$input = array(
+			'code'      => isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '',
+			'name'      => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
+			'id_number' => isset( $_POST['id_number'] ) ? sanitize_text_field( wp_unslash( $_POST['id_number'] ) ) : '',
+			'image'     => isset( $_POST['image'] ) ? sanitize_text_field( wp_unslash( $_POST['image'] ) ) : '',
+			'no_draw'   => isset( $_POST['no_draw'] ) ? '1' : '',
+			'confirm'   => isset( $_POST['confirm'] ) ? '1' : '',
+		);
+		// phpcs:enable
+
+		$result = $signature->sign_with_link( $token, $input );
+
+		if ( true === $result ) {
+			$view['state'] = 'signed';
+			return $view;
+		}
+
+		$view['state']  = 'form';
+		$view['errors'] = Errors::fields( $result );
+		$view['old']    = array(
+			'name'      => $input['name'],
+			'id_number' => $input['id_number'],
+		);
+		$view['notice'] = array(
+			'type' => 'error',
+			'text' => __( 'החתימה לא נשמרה. בדקו את השדות המסומנים.', 'diromax-portal' ),
+		);
+
+		return $view;
+	}
+
+	/**
+	 * The document behind a signing link.
+	 */
+	private function sign_file(): void {
+		$link = ( new SignatureService( $this->app ) )->by_token( (string) get_query_var( Router::ARG ) );
+
+		if ( null === $link ) {
+			$this->not_found();
+			return;
+		}
+
+		$this->app->document_service->send_to_signer( $link['case'], $link['document'], (int) $link['request']['id'] );
+	}
+
+	/**
+	 * An address with most of its local part hidden, for screens.
+	 *
+	 * @param string $email Address.
+	 * @return string
+	 */
+	private static function masked_email( string $email ): string {
+		$parts = explode( '@', $email, 2 );
+
+		return 2 === count( $parts ) ? mb_substr( $parts[0], 0, 2 ) . '•••@' . $parts[1] : '';
 	}
 
 	/**
@@ -577,7 +780,7 @@ final class Controller {
 			status_header( 200 );
 		}
 
-		Assets::enqueue( 'login' === $template && Turnstile::enabled() );
+		Assets::enqueue( in_array( $template, array( 'login', 'sign' ), true ) && Turnstile::enabled() );
 
 		add_filter(
 			'pre_get_document_title',

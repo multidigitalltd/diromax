@@ -18,6 +18,7 @@ use Diromax\Portal\Domain\MemberRole;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Support\Transaction;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -120,15 +121,16 @@ final class DecisionService {
 	 * Only an owner or partner of the case may answer; a viewer and the staff
 	 * previewing the portal may not. The first answer wins.
 	 *
-	 * @param CaseRecord $client_case Case.
-	 * @param int        $id          Decision.
-	 * @param int        $user_id     Answering user.
-	 * @param string     $answer      approve or decline.
-	 * @param string     $note        Optional note.
-	 * @param bool       $confirmed   The "I have read the details" box, required to approve.
+	 * @param CaseRecord            $client_case Case.
+	 * @param int                   $id          Decision.
+	 * @param int                   $user_id     Answering user.
+	 * @param string                $answer      approve or decline.
+	 * @param string                $note        Optional note.
+	 * @param bool                  $confirmed   The "I have read the details" box, required to approve.
+	 * @param array<string, string> $signature   name, image, no_draw: approving is signing (spec 16.6).
 	 * @return true|WP_Error
 	 */
-	public function answer( CaseRecord $client_case, int $id, int $user_id, string $answer, string $note, bool $confirmed ): bool|WP_Error {
+	public function answer( CaseRecord $client_case, int $id, int $user_id, string $answer, string $note, bool $confirmed, array $signature = array() ): bool|WP_Error {
 		$decision = $this->app->decisions->find( $id );
 
 		if ( null === $decision || $decision->case_id !== $client_case->id || ! $this->app->policy->can_view_case( $user_id, $client_case ) ) {
@@ -154,10 +156,50 @@ final class DecisionService {
 			return Errors::invalid( array( 'confirm' => 'required' ) );
 		}
 
-		$now = $this->app->clock->mysql();
+		$signatures = new SignatureService( $this->app );
+		$signed     = $signatures->check_portal( array( 'confirm' => '1' ) + $signature );
 
-		if ( ! $this->app->decisions->answer( $id, $status, $note, $user_id, $this->fingerprint( $decision ), $now ) ) {
-			return self::not_pending();
+		if ( DecisionStatus::Approved === $status && $signed['errors'] ) {
+			return Errors::invalid( $signed['errors'] );
+		}
+
+		if ( DecisionStatus::Approved === $status && '' !== $signed['image'] && ! $this->app->store->is_configured() ) {
+			// The drawing is stored encrypted: without the key, nothing is answered.
+			return Errors::storage();
+		}
+
+		$now         = $this->app->clock->mysql();
+		$fingerprint = $this->fingerprint( $decision );
+		$failure     = null;
+
+		// The answer and, for an approval, its signature are stored together or not at all:
+		// an approval never stands without the signature that makes it.
+		$saved = Transaction::run(
+			$this->app->db,
+			function () use ( $client_case, $id, $status, $note, $user_id, $fingerprint, $now, $signatures, $signed, &$failure ): bool {
+				if ( ! $this->app->decisions->answer( $id, $status, $note, $user_id, $fingerprint, $now ) ) {
+					$failure = self::not_pending();
+					return false;
+				}
+
+				if ( DecisionStatus::Approved !== $status ) {
+					return true;
+				}
+
+				$user      = get_userdata( $user_id );
+				$signature = $signatures->record( $client_case, 'decision', $id, $fingerprint, $signed, $user_id, $user ? (string) $user->user_email : '', 'portal', null, null );
+
+				if ( $signature instanceof WP_Error ) {
+					$failure = $signature;
+					return false;
+				}
+
+				return true;
+			}
+		);
+
+		if ( ! $saved ) {
+			return $failure ?? Errors::storage();
 		}
 
 		$this->app->audit->record( 'decision.answered', $client_case->id, 'decision', $id, array( 'status' => $status->value ), $now );

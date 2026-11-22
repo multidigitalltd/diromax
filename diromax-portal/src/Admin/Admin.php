@@ -119,6 +119,29 @@ final class Admin {
 	}
 
 	/**
+	 * The signature certificate of a document or a decision (admin-post, with a nonce).
+	 *
+	 * @param int    $case_id Case.
+	 * @param string $subject document or decision.
+	 * @param int    $id      Subject.
+	 * @return string
+	 */
+	public static function certificate_url( int $case_id, string $subject, int $id ): string {
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'  => 'dx_portal_certificate',
+					'case_id' => $case_id,
+					'subject' => $subject,
+					'id'      => $id,
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'dx_portal_certificate_' . $case_id
+		);
+	}
+
+	/**
 	 * URL of a case screen, in whichever interface the user is working in.
 	 *
 	 * @param int    $case_id Case.

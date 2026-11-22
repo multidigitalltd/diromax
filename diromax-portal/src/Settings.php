@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  * Every read goes through defaults and sanitize(), so a hand-edited option can
  * never feed an unexpected type or value to the rest of the plugin.
  *
- * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int}
+ * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int, morning_summary:bool}
  */
 final class Settings {
 
@@ -91,6 +91,7 @@ final class Settings {
 			'remind_overdue_every' => 7,
 			'remind_overdue_max'   => 3,
 			'monthly_summary'      => true,
+			'morning_summary'      => true,
 			'stale_days'           => 21,
 			'categories'           => array(
 				'research'     => __( 'בדיקות ומידע תכנוני', 'diromax-portal' ),
@@ -131,6 +132,7 @@ final class Settings {
 			'remind_overdue_every' => self::int_in( $input['remind_overdue_every'] ?? null, 0, 30, $defaults['remind_overdue_every'] ),
 			'remind_overdue_max'   => self::int_in( $input['remind_overdue_max'] ?? null, 0, 10, $defaults['remind_overdue_max'] ),
 			'monthly_summary'      => self::bool_of( $input['monthly_summary'] ?? null, $defaults['monthly_summary'] ),
+			'morning_summary'      => self::bool_of( $input['morning_summary'] ?? null, $defaults['morning_summary'] ),
 			'stale_days'           => self::int_in( $input['stale_days'] ?? null, 3, 90, $defaults['stale_days'] ),
 		);
 	}

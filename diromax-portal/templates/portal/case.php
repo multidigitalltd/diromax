@@ -123,7 +123,7 @@ if ( array() === $view['decisions'] ) {
 </section>
 <?php endif; ?>
 
-<?php if ( ( $waiting > 0 && $view['can_answer'] ) || array() !== $view['to_confirm'] ) : ?>
+<?php if ( ( $waiting > 0 && $view['can_answer'] ) || array() !== $view['to_sign'] || array() !== $view['requests'] ) : ?>
 <section class="dxp-todo" aria-labelledby="dxp-todo-title">
 	<div class="dxp-wrap">
 		<h2 id="dxp-todo-title" class="dxp-todo__k"><?php esc_html_e( 'מחכה לך', 'diromax-portal' ); ?></h2>
@@ -142,12 +142,22 @@ if ( array() === $view['decisions'] ) {
 					</a>
 				</li>
 			<?php endif; ?>
-			<?php foreach ( $view['to_confirm'] as $document ) : ?>
+			<?php foreach ( $view['to_sign'] as $document ) : ?>
 				<li>
-					<a href="<?php echo esc_url( add_query_arg( 'tab', 'documents' ) . '#agreement-ack' ); ?>">
+					<a href="<?php echo esc_url( add_query_arg( 'tab', 'documents' ) . '#sign-' . (int) $document['id'] ); ?>">
 						<?php
 						/* translators: %s: document title. */
-						echo esc_html( sprintf( __( 'אישור קריאה: %s', 'diromax-portal' ), $document['title'] ) );
+						echo esc_html( sprintf( __( 'לחתימה: %s', 'diromax-portal' ), $document['title'] ) );
+						?>
+					</a>
+				</li>
+			<?php endforeach; ?>
+			<?php foreach ( $view['requests'] as $request ) : ?>
+				<li>
+					<a href="<?php echo esc_url( add_query_arg( 'tab', 'documents' ) . '#requests' ); ?>">
+						<?php
+						/* translators: %s: requested document. */
+						echo esc_html( sprintf( __( 'להעלות: %s', 'diromax-portal' ), $request['title'] ) );
 						?>
 					</a>
 				</li>

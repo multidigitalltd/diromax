@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 final class DocumentRepository {
 
 	/** Columns returned by every read. */
-	private const COLUMNS = 'id, public_id, case_id, update_id, kind, title, original_name, stored_name, mime, size, sha256, key_version, visible, created_at';
+	private const COLUMNS = 'id, public_id, case_id, update_id, kind, title, original_name, stored_name, mime, size, sha256, key_version, visible, created_at, uploaded_by, sign_required, request_id';
 
 	/**
 	 * Constructor.
@@ -35,9 +35,10 @@ final class DocumentRepository {
 	 * @return int New ID, 0 on failure.
 	 */
 	public function insert( array $doc, int $user_id, string $now ): int {
-		$doc['visible']     = $doc['visible'] ? 1 : 0;
-		$doc['uploaded_by'] = $user_id;
-		$doc['created_at']  = $now;
+		$doc['visible']       = $doc['visible'] ? 1 : 0;
+		$doc['sign_required'] = empty( $doc['sign_required'] ) ? 0 : 1;
+		$doc['uploaded_by']   = $user_id;
+		$doc['created_at']    = $now;
 
 		return false === $this->db->insert( Schema::table( 'documents' ), $doc ) ? 0 : (int) $this->db->insert_id;
 	}

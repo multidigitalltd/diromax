@@ -60,7 +60,7 @@ $header = array(
 				<?php else : ?>
 					<ul class="dxa-board__list">
 						<?php foreach ( $dxa_column['cards'] as $dxa_card ) : ?>
-							<li class="dxa-board__card">
+							<li class="dxa-board__card<?php echo '' !== $dxa_card['late'] ? ' is-late' : ''; ?>">
 								<a href="<?php echo esc_url( Admin::case_url( $dxa_card['case']->id ) ); ?>"><?php echo esc_html( $dxa_card['case']->title ); ?></a>
 								<span class="dxa-board__meta">
 									<span class="dxa-num"><?php echo esc_html( $dxa_card['case']->number ); ?></span>
@@ -76,6 +76,14 @@ $header = array(
 										?>
 									<?php endif; ?>
 								</span>
+								<?php if ( '' !== $dxa_card['late'] ) : ?>
+									<span class="dxa-late">
+										<?php
+										/* translators: %s: due date. */
+										echo esc_html( sprintf( __( 'עבר את היעד (%s)', 'diromax-portal' ), $dxa_card['late'] ) );
+										?>
+									</span>
+								<?php endif; ?>
 								<?php if ( '' !== $dxa_card['also'] ) : ?>
 									<span class="dxa-board__also">
 										<?php

@@ -230,7 +230,7 @@
 .dxa-screen .wrap.dxa .tablenav { margin: 8px 0; }
 .dxa-table td, .dxa-table th { vertical-align: top; }
 .dxa-ledger .dxa-num, .dxa .dxa-num { white-space: nowrap; font-family: var(--a-font-num); font-weight: 800; color: var(--a-ink); }
-.dxa-voided td { opacity: .7; }
+.dxa-voided td, .dxa-voided strong, .dxa-ledger .dxa-voided .dxa-num { color: var(--a-muted); }
 .dxa-voided strong, .dxa-voided .dxa-num { text-decoration: line-through; }
 .dxa-actions { min-width: 140px; }
 .dxa-actions form { margin: 0 0 4px; }
@@ -333,6 +333,24 @@
 .dxa-board__meta { font-size: 12.5px; color: var(--a-muted); }
 .dxa-board__also { align-self: flex-start; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--a-orange-text); background: var(--a-orange-tint); border: 1px solid var(--a-orange); }
 .dxa-board__waiting { margin-top: 28px; }
+
+/* ---------- Due dates, late flags, tasks ---------- */
+.dxa .dxa-late { display: inline-block; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--a-white); background: var(--a-red); }
+.dxa-step.is-late { border-top-color: var(--a-red); }
+.dxa-step .dxa-late { align-self: flex-start; }
+.dxa-stage-row__due { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-inline-start: 12px; font-size: 13px; }
+.dxa-stage-row__due input[type="date"] { min-height: 32px; }
+.dxa-board__card.is-late { border-inline-start: 4px solid var(--a-red); }
+.dxa-board__card .dxa-late { align-self: flex-start; }
+.dxa-tasks { margin: 0 0 24px; padding: 0; list-style: none; background: var(--a-white); border: 1px solid var(--a-line); }
+.dxa-task { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; margin: 0; padding: 12px 16px; border-top: 1px solid var(--a-line-soft); }
+.dxa-task:first-child { border-top: 0; }
+.dxa-task.is-late { border-inline-start: 4px solid var(--a-red); }
+.dxa-task__t { font-weight: 700; color: var(--a-ink); }
+.dxa-task.is-done .dxa-task__t { text-decoration: line-through; color: var(--a-muted); }
+.dxa-task__m { grid-column: 1; font-size: 13px; color: var(--a-muted); }
+.dxa-task__a { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.dxa-signed { color: var(--a-teal-deep); font-weight: 700; }
 
 /* ---------- Small screens and motion ---------- */
 @media (max-width: 1180px) {

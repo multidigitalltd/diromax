@@ -83,6 +83,13 @@ $header   = array(
 					<label for="dxa-monthly"><?php esc_html_e( 'לשלוח ב-1 לכל חודש סיכום של החודש שעבר לכל תיק פעיל', 'diromax-portal' ); ?></label>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'סיכום בוקר לצוות', 'diromax-portal' ); ?></th>
+				<td>
+					<input type="checkbox" id="dxa-morning" name="settings[morning_summary]" value="1"<?php checked( $settings['morning_summary'] ); ?>>
+					<label for="dxa-morning"><?php esc_html_e( 'לשלוח כל בוקר לכל איש צוות את המשימות שלו שהגיע מועדן ואת השלבים שעברו את היעד בתיקים שלו', 'diromax-portal' ); ?></label>
+				</td>
+			</tr>
 		</table>
 
 		<h2><?php esc_html_e( 'תזכורות תשלום', 'diromax-portal' ); ?></h2>

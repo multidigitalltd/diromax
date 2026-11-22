@@ -79,8 +79,8 @@ final class Retention {
 	}
 
 	/**
-	 * Export a person's portal data: memberships, emails sent, decision answers
-	 * and agreement confirmations.
+	 * Export a person's portal data: memberships, emails sent, decision answers,
+	 * agreement confirmations and signatures.
 	 *
 	 * @param string $email Email.
 	 * @return array{data: array<int, array<string, mixed>>, done: bool}
@@ -105,6 +105,11 @@ final class Retention {
 			foreach ( $this->app->acknowledgements->by_user( (int) $user->ID ) as $index => $row ) {
 				$data[] = self::group( 'dx-portal-agreement', __( 'אישורי קריאת הסכם', 'diromax-portal' ), 'agreement-' . $index, $row );
 			}
+		}
+
+		// By address, so people who signed through a link without an account are covered too.
+		foreach ( $this->app->signatures->by_email( $email ) as $index => $row ) {
+			$data[] = self::group( 'dx-portal-signature', __( 'חתימות', 'diromax-portal' ), 'signature-' . $index, $row );
 		}
 
 		return array(
@@ -132,7 +137,7 @@ final class Retention {
 		return array(
 			'items_removed'  => $removed > 0,
 			'items_retained' => $removed > 0,
-			'messages'       => $removed > 0 ? array( __( 'הרשומות הכספיות של התיק נשמרות אצל דירומקס, ללא קישור לחשבון.', 'diromax-portal' ) ) : array(),
+			'messages'       => $removed > 0 ? array( __( 'הרשומות הכספיות של התיק והחתימות על מסמכים נשמרות אצל דירומקס כראיה, עד שהתיק נמחק.', 'diromax-portal' ) ) : array(),
 			'done'           => true,
 		);
 	}

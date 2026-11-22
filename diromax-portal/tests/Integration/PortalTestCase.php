@@ -128,6 +128,27 @@ abstract class PortalTestCase extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * A small, unique PDF, shaped like one $_FILES item.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function sample_pdf(): array {
+		add_filter( 'dx_portal_is_uploaded_file', '__return_true' );
+
+		$path             = (string) tempnam( sys_get_temp_dir(), 'dxt' );
+		$this->fixtures[] = $path;
+		file_put_contents( $path, "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n" . wp_rand() . "\ntrailer << /Root 1 0 R >>\n%%EOF\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+
+		return array(
+			'name'     => 'מסמך.pdf',
+			'type'     => 'application/pdf',
+			'tmp_name' => $path,
+			'error'    => UPLOAD_ERR_OK,
+			'size'     => (int) filesize( $path ),
+		);
+	}
+
+	/**
 	 * Expense input with overrides.
 	 *
 	 * @param array<string, string> $overrides Fields.
@@ -143,21 +164,9 @@ abstract class PortalTestCase extends \WP_UnitTestCase {
 	 * @return \Diromax\Portal\Data\DocumentRecord
 	 */
 	protected function add_document( CaseRecord $client_case, int $manager, string $kind = 'agreement', bool $visible = true ): \Diromax\Portal\Data\DocumentRecord {
-		add_filter( 'dx_portal_is_uploaded_file', '__return_true' );
-
-		$path             = (string) tempnam( sys_get_temp_dir(), 'dxt' );
-		$this->fixtures[] = $path;
-		file_put_contents( $path, "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n" . wp_rand() . "\ntrailer << /Root 1 0 R >>\n%%EOF\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
-
 		$document = $this->app->document_service->upload(
 			$client_case,
-			array(
-				'name'     => 'מסמך.pdf',
-				'type'     => 'application/pdf',
-				'tmp_name' => $path,
-				'error'    => UPLOAD_ERR_OK,
-				'size'     => (int) filesize( $path ),
-			),
+			$this->sample_pdf(),
 			$kind,
 			'agreement' === $kind ? 'הסכם ניהול' : 'הצעת מחיר',
 			$visible,

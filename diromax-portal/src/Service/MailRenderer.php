@@ -144,6 +144,126 @@ final class MailRenderer {
 	}
 
 	/**
+	 * The staff morning summary.
+	 *
+	 * @param string     $name  Recipient's name.
+	 * @param MailCard[] $cards Tasks and late stages.
+	 * @param string     $url   Dashboard.
+	 * @return MailMessage
+	 */
+	public function morning( string $name, array $cards, string $url ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => $cards[0]->title ?? '',
+				'eyebrow'   => __( 'תיקי לקוחות · סיכום בוקר', 'diromax-portal' ),
+				'headline'  => __( 'מה מחכה לך היום', 'diromax-portal' ),
+				'greeting'  => $name,
+				'intro'     => __( 'המשימות שלך שהגיע מועדן, והשלבים שעברו את היעד בתיקים שלך.', 'diromax-portal' ),
+				'body'      => 'case-update',
+				'items'     => $cards,
+				'stages'    => Stages::names(),
+				'summary'   => null,
+				'cta'       => array(
+					'label' => __( 'ללוח הבקרה', 'diromax-portal' ),
+					'url'   => $url,
+				),
+			)
+		);
+
+		return $this->message( __( 'סיכום בוקר · תיקי לקוחות', 'diromax-portal' ), $view );
+	}
+
+	/**
+	 * A request to sign a document, with the signing link.
+	 *
+	 * @param string     $name        Signer's name.
+	 * @param CaseRecord $client_case Case.
+	 * @param string     $title       Document title.
+	 * @param string     $url         Signing link.
+	 * @param string     $manager     Project manager's name.
+	 * @return MailMessage
+	 */
+	public function sign_request( string $name, CaseRecord $client_case, string $title, string $url, string $manager ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				/* translators: %d: days. */
+				'preheader' => sprintf( __( 'הקישור תקף ל-%d יום.', 'diromax-portal' ), SignatureService::LINK_DAYS ),
+				'eyebrow'   => $client_case->title,
+				'headline'  => __( 'מסמך לחתימתך', 'diromax-portal' ),
+				'greeting'  => $name,
+				/* translators: 1: document title, 2: project manager. */
+				'intro'     => sprintf( __( 'נשלח אליך לחתימה המסמך "%1$s"%2$s. בכפתור למטה אפשר לקרוא את המסמך ולחתום עליו מהטלפון או מהמחשב. לפני החתימה נשלח קוד לכתובת המייל הזו.', 'diromax-portal' ), $title, '' === $manager ? '' : sprintf( /* translators: %s: name. */ __( ' על ידי %s מדירומקס', 'diromax-portal' ), $manager ) ),
+				'body'      => 'notice',
+				/* translators: %d: days. */
+				'notice'    => sprintf( __( 'הקישור אישי, תקף ל-%d יום ולחתימה אחת. לא ציפית למסמך הזה? אפשר להתעלם מהמייל.', 'diromax-portal' ), SignatureService::LINK_DAYS ),
+				'cta'       => array(
+					'label' => __( 'לקריאה ולחתימה', 'diromax-portal' ),
+					'url'   => $url,
+				),
+			)
+		);
+
+		/* translators: %s: document title. */
+		return $this->message( sprintf( __( 'מסמך לחתימתך: %s · דירומקס', 'diromax-portal' ), $title ), $view );
+	}
+
+	/**
+	 * The one-time code that confirms the signer's address.
+	 *
+	 * @param string $name Signer's name.
+	 * @param string $code 6 digits.
+	 * @return MailMessage
+	 */
+	public function sign_code( string $name, string $code ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => __( 'הקוד תקף ל-15 דקות.', 'diromax-portal' ),
+				'eyebrow'   => __( 'חתימה על מסמך', 'diromax-portal' ),
+				/* translators: %s: code. */
+				'headline'  => sprintf( __( 'קוד החתימה: %s', 'diromax-portal' ), $code ),
+				'greeting'  => $name,
+				'intro'     => __( 'מקלידים את הקוד בעמוד החתימה. הוא תקף ל-15 דקות.', 'diromax-portal' ),
+				'body'      => 'notice',
+				'notice'    => __( 'לא ביקשת לחתום? אל תמסור את הקוד לאף אחד, ואפשר להתעלם מהמייל.', 'diromax-portal' ),
+			)
+		);
+
+		return $this->message( __( 'קוד לחתימה על מסמך · דירומקס', 'diromax-portal' ), $view );
+	}
+
+	/**
+	 * Confirmation to someone who signed through a link.
+	 *
+	 * @param string $name   Signer's name.
+	 * @param string $title  Document title.
+	 * @param string $sha256 Fingerprint of the signed file.
+	 * @param string $when   Date and time.
+	 * @return MailMessage
+	 */
+	public function signed_copy( string $name, string $title, string $sha256, string $when ): MailMessage {
+		$view = $this->base(
+			null,
+			array(
+				'preheader' => $title,
+				'eyebrow'   => __( 'חתימה על מסמך', 'diromax-portal' ),
+				'headline'  => __( 'החתימה התקבלה', 'diromax-portal' ),
+				'greeting'  => $name,
+				/* translators: 1: document title, 2: date and time. */
+				'intro'     => sprintf( __( 'חתמת על "%1$s" ב-%2$s. תודה.', 'diromax-portal' ), $title, $when ),
+				'body'      => 'notice',
+				/* translators: %s: SHA-256. */
+				'notice'    => sprintf( __( 'טביעת האצבע (SHA-256) של הקובץ שנחתם: %s. היא מזהה בדיוק את הגרסה שעליה חתמת.', 'diromax-portal' ), $sha256 ),
+			)
+		);
+
+		/* translators: %s: document title. */
+		return $this->message( sprintf( __( 'החתימה התקבלה: %s · דירומקס', 'diromax-portal' ), $title ), $view );
+	}
+
+	/**
 	 * Security notice after a password was set or changed.
 	 *
 	 * @param string $name Recipient's name.

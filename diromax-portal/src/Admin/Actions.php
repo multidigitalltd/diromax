@@ -15,8 +15,11 @@ use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\DemoCase;
+use Diromax\Portal\Service\DocRequestService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\ReminderService;
+use Diromax\Portal\Service\SignatureService;
+use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Service\UpdateService;
 use Diromax\Portal\Settings;
 use WP_Error;
@@ -48,7 +51,11 @@ final class Actions {
 		'settle_request'      => array( array( 'entry_id', 'entry_date', 'category', 'method', 'reference', 'notify' ), array() ),
 		'send_reminder'       => array( array( 'entry_id' ), array() ),
 		'add_update'          => array( array( 'title', 'stage', 'stage_mode', 'visible', 'notify' ), array( 'body' ) ),
-		'upload_document'     => array( array( 'kind', 'title', 'visible', 'notify' ), array() ),
+		'upload_document'     => array( array( 'kind', 'title', 'visible', 'notify', 'sign_required' ), array() ),
+		'request_document'    => array( array( 'title' ), array( 'note' ) ),
+		'cancel_doc_request'  => array( array( 'request_id' ), array() ),
+		'request_signature'   => array( array( 'document_id', 'signer_name', 'signer_email' ), array() ),
+		'cancel_signature'    => array( array( 'request_id' ), array() ),
 		'add_decision'        => array( array( 'title', 'amount', 'document_id', 'due_date', 'notify' ), array( 'body' ) ),
 		'withdraw_decision'   => array( array( 'decision_id', 'reason' ), array() ),
 		'document_visibility' => array( array( 'document_id', 'visible' ), array() ),
@@ -56,6 +63,9 @@ final class Actions {
 		'send_now'            => array( array(), array() ),
 		'cancel_pending'      => array( array(), array() ),
 		'delete_case'         => array( array( 'confirm' ), array() ),
+		'add_task'            => array( array( 'title', 'assignee_id', 'due_date' ), array() ),
+		'task_done'           => array( array( 'task_id', 'done' ), array() ),
+		'delete_task'         => array( array( 'task_id' ), array() ),
 	);
 
 	/**
@@ -85,6 +95,7 @@ final class Actions {
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
 		add_action( 'admin_post_dx_portal_export', array( $this, 'export' ) );
+		add_action( 'admin_post_dx_portal_certificate', array( $this, 'certificate' ) );
 	}
 
 	/**
@@ -136,8 +147,62 @@ final class Actions {
 			'send_now'            => $this->send_now( $client_case, $actor ),
 			'cancel_pending'      => $this->cancel_pending( $client_case, $actor ),
 			'delete_case'         => $this->delete_case( $client_case, $input, $actor ),
+			'request_document'    => $this->finish( $client_case, 'documents', ( new DocRequestService( $this->app ) )->create( $client_case, $input, $actor ), __( 'הבקשה נשלחה ללקוח.', 'diromax-portal' ), 'docrequest', $input ),
+			'cancel_doc_request'  => $this->finish( $client_case, 'documents', ( new DocRequestService( $this->app ) )->cancel( $client_case, absint( $input['request_id'] ), $actor ), __( 'הבקשה בוטלה.', 'diromax-portal' ) ),
+			'request_signature'   => $this->finish( $client_case, 'documents', ( new SignatureService( $this->app ) )->request( $client_case, absint( $input['document_id'] ), $input, $actor ), __( 'בקשת החתימה נשלחה במייל.', 'diromax-portal' ), 'signrequest', $input ),
+			'cancel_signature'    => $this->finish( $client_case, 'documents', ( new SignatureService( $this->app ) )->cancel( $client_case, absint( $input['request_id'] ), $actor ), __( 'בקשת החתימה בוטלה, והקישור כבר לא עובד.', 'diromax-portal' ) ),
+			'add_task'            => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->add( $client_case, $input, $actor ), __( 'המשימה נוספה.', 'diromax-portal' ), 'task', $input ),
+			'task_done'           => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->set_done( $client_case, absint( $input['task_id'] ), '1' === $input['done'], $actor ), '1' === $input['done'] ? __( 'המשימה סומנה כבוצעה.', 'diromax-portal' ) : __( 'המשימה חזרה לפתוחות.', 'diromax-portal' ) ),
+			'delete_task'         => $this->finish( $client_case, 'tasks', ( new TaskService( $this->app ) )->delete( $client_case, absint( $input['task_id'] ), $actor ), __( 'המשימה נמחקה.', 'diromax-portal' ) ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};
+	}
+
+	/**
+	 * The signature certificate of a document or decision: every signature
+	 * with its evidence, ID number and drawing included, for staff only.
+	 */
+	public function certificate(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Verified on the next lines, bound to the case.
+		$case_id = isset( $_GET['case_id'] ) ? absint( $_GET['case_id'] ) : 0;
+		$type    = isset( $_GET['subject'] ) && 'decision' === sanitize_key( wp_unslash( $_GET['subject'] ) ) ? 'decision' : 'document';
+		$id      = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		// phpcs:enable
+		check_admin_referer( 'dx_portal_certificate_' . $case_id );
+
+		$actor       = get_current_user_id();
+		$client_case = $this->app->cases->find( $case_id );
+
+		if ( null === $client_case || ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
+			wp_die( esc_html__( 'אין הרשאה לתיק הזה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		$service  = new SignatureService( $this->app );
+		$document = 'document' === $type ? $this->app->documents->find( $id ) : null;
+		$decision = 'decision' === $type ? $this->app->decisions->find( $id ) : null;
+		$title    = null !== $document ? $document->title : (string) $decision?->title;
+		$current  = null !== $document ? $document->sha256 : (string) $decision?->fingerprint;
+
+		if ( ( null === $document && null === $decision ) || ( null !== $document ? $document->case_id : (int) $decision?->case_id ) !== $client_case->id ) {
+			wp_die( esc_html__( 'לא נמצא.', 'diromax-portal' ), '', array( 'response' => 404 ) );
+		}
+
+		$rows = array_map(
+			fn( array $signature ): array => array(
+				'row'       => $signature,
+				'valid'     => hash_equals( $current, (string) $signature['sha256'] ),
+				'id_number' => (string) $service->id_number( $signature ),
+				'image'     => (string) $service->image( $signature ),
+			),
+			$this->app->signatures->for_subject( $client_case->id, $type, $id )
+		);
+
+		$back = Admin::case_url( $client_case->id, 'decision' === $type ? 'decisions' : 'documents' );
+		$this->app->audit->record( 'signature.viewed', $client_case->id, $type, $id, array(), $this->app->clock->mysql() );
+		nocache_headers();
+		header( 'X-Robots-Tag: noindex, nofollow' );
+		include DX_PORTAL_DIR . 'templates/admin/certificate.php';
+		exit;
 	}
 
 	/**
@@ -184,23 +249,26 @@ final class Actions {
 	 * @param int                   $actor Actor.
 	 */
 	private function update_case( CaseRecord $client_case, array $input, int $actor ): void {
-		$input['stage_status'] = self::stage_statuses();
+		$input['stage_status'] = self::stage_pairs( 'stage_status', 'sanitize_key' );
+		$input['stage_due']    = self::stage_pairs( 'stage_due', 'sanitize_text_field' );
 		$this->finish( $client_case, 'details', $this->app->case_service->update_details( $client_case, $input, $actor ), __( 'פרטי התיק נשמרו.', 'diromax-portal' ), 'details', $input );
 	}
 
 	/**
-	 * The stage status radios (stage_status[N] = status) as "N:status,…"
-	 * for the service, which checks every stage number and status.
+	 * A per-stage field (stage_status[N] or stage_due[N]) as "N:value,…" for
+	 * the service, which checks every stage number and value.
 	 *
+	 * @param string   $field    POST field.
+	 * @param callable $sanitize Sanitizer for each value.
 	 * @return string
 	 */
-	private static function stage_statuses(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in handle().
-		$raw   = isset( $_POST['stage_status'] ) && is_array( $_POST['stage_status'] ) ? wp_unslash( $_POST['stage_status'] ) : array();
+	private static function stage_pairs( string $field, callable $sanitize ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified in handle(); each value is sanitized below.
+		$raw   = isset( $_POST[ $field ] ) && is_array( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : array();
 		$pairs = array();
 
-		foreach ( (array) $raw as $number => $status ) {
-			$pairs[] = absint( $number ) . ':' . sanitize_key( is_string( $status ) ? $status : '' );
+		foreach ( (array) $raw as $number => $value ) {
+			$pairs[] = absint( $number ) . ':' . str_replace( array( ',', ':' ), '', (string) $sanitize( is_string( $value ) ? $value : '' ) );
 		}
 
 		return implode( ',', $pairs );
@@ -360,7 +428,7 @@ final class Actions {
 		$file   = self::file( 'file' );
 		$result = null === $file
 			? Errors::invalid( array( 'file' => 'missing' ) )
-			: $this->app->document_service->upload( $client_case, $file, $input['kind'], $input['title'], '1' === $input['visible'], $actor, '1' === $input['notify'] );
+			: $this->app->document_service->upload( $client_case, $file, 'client' === $input['kind'] ? 'other' : $input['kind'], $input['title'], '1' === $input['visible'], $actor, '1' === $input['notify'], null, '1' === $input['sign_required'] );
 
 		$this->finish( $client_case, 'documents', $result, __( 'המסמך הועלה ונשמר מוצפן.', 'diromax-portal' ), 'document', $input );
 	}
@@ -462,6 +530,7 @@ final class Actions {
 			'access_months'    => sanitize_text_field( (string) ( $raw['access_months'] ?? '' ) ),
 			'categories'       => self::categories_input( (string) ( $raw['categories'] ?? '' ) ),
 			'monthly_summary'  => isset( $raw['monthly_summary'] ) ? '1' : '0',
+			'morning_summary'  => isset( $raw['morning_summary'] ) ? '1' : '0',
 		);
 
 		foreach ( array( 'daily_hour', 'remind_before_days', 'remind_overdue_every', 'remind_overdue_max', 'stale_days' ) as $number ) {

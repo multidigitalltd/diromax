@@ -21,23 +21,23 @@ final readonly class CaseRecord {
 	/**
 	 * Constructor.
 	 *
-	 * @param int                                                                     $id            ID.
-	 * @param string                                                                  $public_id     Public identifier for URLs.
-	 * @param string                                                                  $number        Human case number, e.g. 2026-014.
-	 * @param string                                                                  $title         Property address.
-	 * @param string                                                                  $property_type Property type.
-	 * @param string                                                                  $track         Track, e.g. funding from the project.
-	 * @param string                                                                  $scope         What is being done at the property.
-	 * @param string                                                                  $fee_terms     Management fee, as in the agreement.
-	 * @param string|null                                                             $signed_on     Agreement date, Y-m-d.
-	 * @param int                                                                     $manager_id    Assigned project manager.
-	 * @param CaseStatus                                                              $status        Status.
-	 * @param int                                                                     $stage         Current stage, 1–7.
-	 * @param array<int, array{status:string, started:string|null, done:string|null}> $stages Stage states keyed 1–7.
-	 * @param array<string, mixed>|null                                               $summary       Cached manager summary.
-	 * @param string                                                                  $created_at    UTC.
-	 * @param string|null                                                             $closed_at     UTC.
-	 * @param int|null                                                                $lead_id       Lead (theme dx_lead post) the case was opened from.
+	 * @param int                                                                                      $id            ID.
+	 * @param string                                                                                   $public_id     Public identifier for URLs.
+	 * @param string                                                                                   $number        Human case number, e.g. 2026-014.
+	 * @param string                                                                                   $title         Property address.
+	 * @param string                                                                                   $property_type Property type.
+	 * @param string                                                                                   $track         Track, e.g. funding from the project.
+	 * @param string                                                                                   $scope         What is being done at the property.
+	 * @param string                                                                                   $fee_terms     Management fee, as in the agreement.
+	 * @param string|null                                                                              $signed_on     Agreement date, Y-m-d.
+	 * @param int                                                                                      $manager_id    Assigned project manager.
+	 * @param CaseStatus                                                                               $status        Status.
+	 * @param int                                                                                      $stage         Current stage, 1–7.
+	 * @param array<int, array{status:string, started:string|null, done:string|null, due:string|null}> $stages Stage states keyed 1–7.
+	 * @param array<string, mixed>|null                                                                $summary       Cached manager summary.
+	 * @param string                                                                                   $created_at    UTC.
+	 * @param string|null                                                                              $closed_at     UTC.
+	 * @param int|null                                                                                 $lead_id       Lead (theme dx_lead post) the case was opened from.
 	 */
 	public function __construct(
 		public int $id,
@@ -93,7 +93,7 @@ final readonly class CaseRecord {
 	/**
 	 * Seven pending stages.
 	 *
-	 * @return array<int, array{status:string, started:string|null, done:string|null}>
+	 * @return array<int, array{status:string, started:string|null, done:string|null, due:string|null}>
 	 */
 	public static function default_stages(): array {
 		$stages = array();
@@ -103,6 +103,7 @@ final readonly class CaseRecord {
 				'status'  => 'pending',
 				'started' => null,
 				'done'    => null,
+				'due'     => null,
 			);
 		}
 
@@ -113,7 +114,7 @@ final readonly class CaseRecord {
 	 * Coerce decoded JSON into the stage shape, dropping anything unexpected.
 	 *
 	 * @param array<mixed> $decoded Decoded JSON.
-	 * @return array<int, array{status:string, started:string|null, done:string|null}>
+	 * @return array<int, array{status:string, started:string|null, done:string|null, due:string|null}>
 	 */
 	private static function normalize_stages( array $decoded ): array {
 		$stages = self::default_stages();
@@ -126,6 +127,7 @@ final readonly class CaseRecord {
 					'status'  => is_string( $value['status'] ?? null ) ? $value['status'] : 'pending',
 					'started' => is_string( $value['started'] ?? null ) ? $value['started'] : null,
 					'done'    => is_string( $value['done'] ?? null ) ? $value['done'] : null,
+					'due'     => is_string( $value['due'] ?? null ) ? $value['due'] : null,
 				);
 			}
 		}

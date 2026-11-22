@@ -72,6 +72,20 @@ $decisions = $view['decisions'];
 							<label for="<?php echo esc_attr( $field ); ?>-note"><?php esc_html_e( 'הערה למנהל הפרויקט (רשות)', 'diromax-portal' ); ?></label>
 							<textarea id="<?php echo esc_attr( $field ); ?>-note" name="note" rows="2" maxlength="500"></textarea>
 						</p>
+						<fieldset class="dxp-dec__sign">
+							<legend><?php esc_html_e( 'חתימה, לאישור בלבד', 'diromax-portal' ); ?></legend>
+							<?php
+							$pad = array(
+								'id'          => $field . '-sign',
+								'name_field'  => 'sign_name',
+								'image_field' => 'sign_image',
+								'name'        => (string) wp_get_current_user()->display_name,
+								'errors'      => array(),
+								'required'    => false,
+							);
+							require __DIR__ . '/signature-pad.php';
+							?>
+						</fieldset>
 						<p class="dxp-check">
 							<input type="checkbox" id="<?php echo esc_attr( $field ); ?>-ok" name="confirm" value="1">
 							<label for="<?php echo esc_attr( $field ); ?>-ok"><?php esc_html_e( 'קראתי את הפרטים, ואם אני מאשר/ת, אני מאשר/ת בדיוק את מה שכתוב כאן.', 'diromax-portal' ); ?></label>
@@ -80,7 +94,7 @@ $decisions = $view['decisions'];
 							<button type="submit" name="answer" value="approve" class="dxp-btn dxp-btn--orange"><?php esc_html_e( 'אישור', 'diromax-portal' ); ?></button>
 							<button type="submit" name="answer" value="decline" class="dxp-btn"><?php esc_html_e( 'דחייה', 'diromax-portal' ); ?></button>
 						</p>
-						<p class="dxp-dec__note"><?php esc_html_e( 'התשובה סופית ונרשמת בתיק עם התאריך והשעה. אם תרצה לשנות אחר כך, דבר עם מנהל הפרויקט.', 'diromax-portal' ); ?></p>
+						<p class="dxp-dec__note"><?php esc_html_e( 'אישור נעשה בחתימה. התשובה סופית ונרשמת בתיק עם התאריך, השעה וטביעת אצבע של מה שאושר. אם תרצה לשנות אחר כך, דבר עם מנהל הפרויקט.', 'diromax-portal' ); ?></p>
 					</form>
 				<?php elseif ( $decision['pending'] ) : ?>
 					<p class="dxp-dec__note"><?php esc_html_e( 'ההחלטה מחכה לתשובה של בעלי התיק.', 'diromax-portal' ); ?></p>

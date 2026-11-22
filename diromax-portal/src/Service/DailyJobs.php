@@ -56,6 +56,7 @@ final class DailyJobs {
 			( new ReminderService( $this->app ) )->run();
 			$digests->daily();
 			$digests->monthly();
+			( new MorningSummary( $this->app ) )->run();
 		} finally {
 			delete_transient( self::LOCK );
 		}

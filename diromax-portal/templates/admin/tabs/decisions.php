@@ -10,6 +10,7 @@
 
 declare( strict_types = 1 );
 
+use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Admin\Form;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Service\Labels;
@@ -23,7 +24,7 @@ $statuses = Labels::decision_statuses();
 ?>
 <details class="dxa-box dxa-box--add" id="form-decision"<?php echo array() === $view['decisions'] || 'decision' === $open || ! empty( $view['adding'] ) ? ' open' : ''; ?><?php echo ! empty( $view['adding'] ) ? ' data-dxa-focus' : ''; ?>>
 	<summary><h2><?php esc_html_e( 'בקשת החלטה מהלקוח', 'diromax-portal' ); ?></h2></summary>
-	<p class="description"><?php esc_html_e( 'הלקוח מאשר או דוחה באזור האישי. התשובה נרשמת בתיק עם התאריך, השעה וטביעת אצבע של מה שהוצג לו. זה אישור עסקי, לא חתימה דיגיטלית.', 'diromax-portal' ); ?></p>
+	<p class="description"><?php esc_html_e( 'הלקוח מאשר בחתימה, או דוחה, באזור האישי. התשובה נרשמת בתיק עם התאריך, השעה וטביעת אצבע של מה שהוצג לו.', 'diromax-portal' ); ?></p>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="dx_portal_add_decision">
 		<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
@@ -109,6 +110,9 @@ $statuses = Labels::decision_statuses();
 							<br><q><?php echo esc_html( $decision->answer_note ); ?></q>
 						<?php endif; ?>
 						<br><span class="dxa-muted" dir="ltr">SHA-256 <?php echo esc_html( substr( $decision->fingerprint, 0, 16 ) ); ?>…</span>
+						<?php if ( 'approved' === $decision->status->value ) : ?>
+							<br><a href="<?php echo esc_url( Admin::certificate_url( $case->id, 'decision', $decision->id ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'אישור חתימה', 'diromax-portal' ); ?><span class="screen-reader-text"><?php esc_html_e( '(נפתח בחלון חדש)', 'diromax-portal' ); ?></span></a>
+						<?php endif; ?>
 					</p>
 				<?php endif; ?>
 				<?php if ( '' !== $decision->withdraw_reason ) : ?>

@@ -37,13 +37,13 @@ final class Router {
 	public const SCREENS = array( 'dashboard', 'cases', 'board', 'new', 'settings', 'case', 'manifest' );
 
 	/** Bump when the rules change, so an updated plugin refreshes them once. */
-	public const RULES_VERSION = '4';
+	public const RULES_VERSION = '5';
 
 	/** Option holding the rules version last flushed. */
 	private const RULES_OPTION = 'dx_portal_rules';
 
 	/** Views the router accepts. */
-	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc', 'manage' );
+	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc', 'manage', 'report', 'sign', 'signfile' );
 
 	/**
 	 * Register the rewrite rules.
@@ -54,6 +54,9 @@ final class Router {
 		add_rewrite_rule( '^' . $base . '/?$', 'index.php?' . self::VIEW . '=home', 'top' );
 		add_rewrite_rule( '^' . $base . '/(login|logout|account)/?$', 'index.php?' . self::VIEW . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/(case|doc)/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=$matches[1]&' . self::ARG . '=$matches[2]', 'top' );
+		add_rewrite_rule( '^' . $base . '/case/([a-f0-9]{24})/report/?$', 'index.php?' . self::VIEW . '=report&' . self::ARG . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/sign/([A-Za-z0-9_-]{43})/?$', 'index.php?' . self::VIEW . '=sign&' . self::ARG . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/sign/([A-Za-z0-9_-]{43})/file/?$', 'index.php?' . self::VIEW . '=signfile&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=dashboard', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/manifest\\.webmanifest$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=manifest', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/(cases|board|new|settings)/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=$matches[1]', 'top' );
@@ -202,6 +205,44 @@ final class Router {
 	 */
 	public static function document_url( DocumentRecord $document ): string {
 		return self::url( 'doc', $document->public_id );
+	}
+
+	/**
+	 * The printable report of a case.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return string
+	 */
+	public static function report_url( CaseRecord $client_case ): string {
+		if ( '' === (string) get_option( 'permalink_structure' ) ) {
+			return self::url( 'report', $client_case->public_id );
+		}
+
+		return self::url( 'case', $client_case->public_id ) . 'report/';
+	}
+
+	/**
+	 * A signing link.
+	 *
+	 * @param string $token Link token.
+	 * @return string
+	 */
+	public static function sign_url( string $token ): string {
+		return self::url( 'sign', $token );
+	}
+
+	/**
+	 * The document behind a signing link.
+	 *
+	 * @param string $token Link token.
+	 * @return string
+	 */
+	public static function sign_file_url( string $token ): string {
+		if ( '' === (string) get_option( 'permalink_structure' ) ) {
+			return self::url( 'signfile', $token );
+		}
+
+		return self::url( 'sign', $token ) . 'file/';
 	}
 
 	/**

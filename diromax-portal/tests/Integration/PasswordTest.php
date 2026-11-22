@@ -137,8 +137,8 @@ final class PasswordTest extends PortalTestCase {
 	public function test_changing_the_password_ends_every_other_session(): void {
 		$client   = $this->member();
 		$sessions = \WP_Session_Tokens::get_instance( $client );
-		$sessions->create( $this->clock->now() + DAY_IN_SECONDS );
-		$sessions->create( $this->clock->now() + DAY_IN_SECONDS );
+		$sessions->create( max( time(), $this->clock->now() ) + DAY_IN_SECONDS );
+		$sessions->create( max( time(), $this->clock->now() ) + DAY_IN_SECONDS );
 		$token = $this->session( $client );
 
 		$this->assertTrue( $this->passwords->change( $client, $token, self::GOOD, '' ) );
@@ -226,7 +226,9 @@ final class PasswordTest extends PortalTestCase {
 	 * @return string Token.
 	 */
 	private function session( int $user_id ): string {
-		return \WP_Session_Tokens::get_instance( $user_id )->create( $this->clock->now() + DAY_IN_SECONDS );
+		// WordPress checks the expiry against the real time, not the frozen clock:
+		// an expiry tied to the frozen date made these tests fail once that date passed.
+		return \WP_Session_Tokens::get_instance( $user_id )->create( max( time(), $this->clock->now() ) + DAY_IN_SECONDS );
 	}
 
 	/**

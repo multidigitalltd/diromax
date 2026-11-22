@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 final readonly class DocumentRecord {
 
 	/** Document kinds and their order on screen. */
-	public const KINDS = array( 'agreement', 'addendum', 'plan', 'permit', 'contract', 'quote', 'invoice', 'receipt', 'photo', 'other' );
+	public const KINDS = array( 'agreement', 'addendum', 'plan', 'permit', 'contract', 'quote', 'invoice', 'receipt', 'photo', 'client', 'other' );
 
 	/**
 	 * Constructor.
@@ -36,6 +36,9 @@ final readonly class DocumentRecord {
 	 * @param int      $key_version   Encryption key version.
 	 * @param bool     $visible       Shown to the client.
 	 * @param string   $created_at    UTC.
+	 * @param int      $uploaded_by   Who uploaded it: staff, or a client for kind "client".
+	 * @param bool     $sign_required The clients are asked to sign it.
+	 * @param int|null $request_id    The document request it answers.
 	 */
 	public function __construct(
 		public int $id,
@@ -52,6 +55,9 @@ final readonly class DocumentRecord {
 		public int $key_version,
 		public bool $visible,
 		public string $created_at,
+		public int $uploaded_by = 0,
+		public bool $sign_required = false,
+		public ?int $request_id = null,
 	) {}
 
 	/**
@@ -76,6 +82,9 @@ final readonly class DocumentRecord {
 			key_version: (int) $row['key_version'],
 			visible: '1' === (string) $row['visible'],
 			created_at: (string) $row['created_at'],
+			uploaded_by: (int) ( $row['uploaded_by'] ?? 0 ),
+			sign_required: '1' === (string) ( $row['sign_required'] ?? '0' ),
+			request_id: null === ( $row['request_id'] ?? null ) ? null : (int) $row['request_id'],
 		);
 	}
 }
