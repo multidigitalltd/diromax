@@ -95,8 +95,9 @@ final class MorningSummary {
 		}
 
 		$today = $this->app->clock->today();
-		$tasks = $this->app->tasks->open_for( $user_id, $today, 50 );
-		$late  = $this->late_stages( $this->app->policy->can_manage_all( $user_id ) ? null : $user_id );
+		$all   = $this->app->policy->can_manage_all( $user_id );
+		$tasks = $this->app->tasks->open_for( $user_id, $all, $today, 50 );
+		$late  = $this->late_stages( $all ? null : $user_id );
 		$cards = array();
 
 		if ( array() !== $tasks ) {

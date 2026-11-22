@@ -18,6 +18,7 @@ use Diromax\Portal\Domain\MemberRole;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Support\Transaction;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -169,17 +170,39 @@ final class DecisionService {
 
 		$now         = $this->app->clock->mysql();
 		$fingerprint = $this->fingerprint( $decision );
+		$failure     = null;
 
-		if ( ! $this->app->decisions->answer( $id, $status, $note, $user_id, $fingerprint, $now ) ) {
-			return self::not_pending();
+		// The answer and, for an approval, its signature are stored together or not at all:
+		// an approval never stands without the signature that makes it.
+		$saved = Transaction::run(
+			$this->app->db,
+			function () use ( $client_case, $id, $status, $note, $user_id, $fingerprint, $now, $signatures, $signed, &$failure ): bool {
+				if ( ! $this->app->decisions->answer( $id, $status, $note, $user_id, $fingerprint, $now ) ) {
+					$failure = self::not_pending();
+					return false;
+				}
+
+				if ( DecisionStatus::Approved !== $status ) {
+					return true;
+				}
+
+				$user      = get_userdata( $user_id );
+				$signature = $signatures->record( $client_case, 'decision', $id, $fingerprint, $signed, $user_id, $user ? (string) $user->user_email : '', 'portal', null, null );
+
+				if ( $signature instanceof WP_Error ) {
+					$failure = $signature;
+					return false;
+				}
+
+				return true;
+			}
+		);
+
+		if ( ! $saved ) {
+			return $failure ?? Errors::storage();
 		}
 
 		$this->app->audit->record( 'decision.answered', $client_case->id, 'decision', $id, array( 'status' => $status->value ), $now );
-
-		if ( DecisionStatus::Approved === $status ) {
-			$user = get_userdata( $user_id );
-			$signatures->record( $client_case, 'decision', $id, $fingerprint, $signed, $user_id, $user ? (string) $user->user_email : '', 'portal', null, null );
-		}
 		$this->tell_manager( $client_case, $decision, $status, $note, $user_id );
 
 		return true;

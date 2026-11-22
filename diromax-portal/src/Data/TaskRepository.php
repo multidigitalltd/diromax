@@ -104,16 +104,20 @@ final class TaskRepository {
 	}
 
 	/**
-	 * Open tasks owned by a user in active cases, overdue first, then by due
-	 * date, undated last. With $until, only those due by that day.
+	 * Open tasks owned by a user in active cases they may still manage,
+	 * overdue first, then by due date, undated last. With $until, only those
+	 * due by that day. A case moved to another manager drops out, so its
+	 * details stop reaching the former one.
 	 *
-	 * @param int         $user_id Staff member.
-	 * @param string|null $until   Y-m-d, or null for every open task.
-	 * @param int         $limit   Maximum rows.
+	 * @param int         $user_id   Staff member.
+	 * @param bool        $all_cases The user may manage every case (administrator).
+	 * @param string|null $until     Y-m-d, or null for every open task.
+	 * @param int         $limit     Maximum rows.
 	 * @return OpenTask[]
 	 */
-	public function open_for( int $user_id, ?string $until = null, int $limit = 50 ): array {
+	public function open_for( int $user_id, bool $all_cases, ?string $until = null, int $limit = 50 ): array {
 		$limit = max( 1, min( 200, $limit ) );
+		$all   = $all_cases ? 1 : 0;
 
 		// Two statements: comparing a DATE with '' fails under MySQL's strict mode.
 		$rows = null === $until
@@ -121,10 +125,12 @@ final class TaskRepository {
 				$this->db->prepare(
 					"SELECT t.id, t.case_id, t.title, t.assignee_id, t.due_date, c.title AS case_title, c.number
 					FROM %i t INNER JOIN %i c ON c.id = t.case_id
-					WHERE t.assignee_id = %d AND t.done_at IS NULL AND c.status = 'active'
+					WHERE t.assignee_id = %d AND t.done_at IS NULL AND c.status = 'active' AND ( %d = 1 OR c.manager_id = %d )
 					ORDER BY t.due_date IS NULL, t.due_date, t.id LIMIT %d",
 					Schema::table( 'tasks' ),
 					Schema::table( 'cases' ),
+					$user_id,
+					$all,
 					$user_id,
 					$limit
 				),
@@ -134,10 +140,12 @@ final class TaskRepository {
 				$this->db->prepare(
 					"SELECT t.id, t.case_id, t.title, t.assignee_id, t.due_date, c.title AS case_title, c.number
 					FROM %i t INNER JOIN %i c ON c.id = t.case_id
-					WHERE t.assignee_id = %d AND t.done_at IS NULL AND c.status = 'active' AND t.due_date IS NOT NULL AND t.due_date <= %s
+					WHERE t.assignee_id = %d AND t.done_at IS NULL AND c.status = 'active' AND ( %d = 1 OR c.manager_id = %d ) AND t.due_date IS NOT NULL AND t.due_date <= %s
 					ORDER BY t.due_date, t.id LIMIT %d",
 					Schema::table( 'tasks' ),
 					Schema::table( 'cases' ),
+					$user_id,
+					$all,
 					$user_id,
 					$until,
 					$limit

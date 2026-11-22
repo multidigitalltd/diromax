@@ -240,9 +240,44 @@ final class TasksAndDueDatesTest extends PortalTestCase {
 			$manager
 		);
 
-		$this->assertSame( array( 'עם תאריך', 'בלי תאריך' ), array_column( $this->app->tasks->open_for( $manager ), 'title' ), 'Dated first, undated last.' );
+		$this->assertSame( array( 'עם תאריך', 'בלי תאריך' ), array_column( $this->app->tasks->open_for( $manager, false ), 'title' ), 'Dated first, undated last.' );
 		$this->assertSame( '', $this->app->db->last_error );
-		$this->assertSame( array( 'עם תאריך' ), array_column( $this->app->tasks->open_for( $manager, $this->clock->today() ), 'title' ) );
+		$this->assertSame( array( 'עם תאריך' ), array_column( $this->app->tasks->open_for( $manager, false, $this->clock->today() ), 'title' ) );
 		$this->assertSame( '', $this->app->db->last_error );
+	}
+
+	/**
+	 * Regression: after an administrator moved a case to another manager, the
+	 * former manager kept getting its tasks, and the case's title, on the
+	 * dashboard and in the morning summary.
+	 */
+	public function test_a_moved_case_leaves_the_former_managers_tasks(): void {
+		$former = $this->manager();
+		$next   = $this->manager();
+		$case   = $this->case_for( $former );
+		( new TaskService( $this->app ) )->add(
+			$case,
+			array(
+				'title'    => 'משימה בתיק שעבר',
+				'due_date' => $this->clock->today(),
+			),
+			$former
+		);
+		$this->assertCount( 1, ( new Pages( $this->app ) )->dashboard_data( $former )['tasks'] );
+
+		$moved = $this->app->case_service->update_details(
+			$case,
+			array(
+				'title'      => $case->title,
+				'manager_id' => (string) $next,
+			),
+			$this->admin()
+		);
+		$this->assertInstanceOf( CaseRecord::class, $moved );
+		$this->assertSame( $next, $moved->manager_id );
+
+		$this->assertSame( array(), ( new Pages( $this->app ) )->dashboard_data( $former )['tasks'] );
+		( new MorningSummary( $this->app ) )->run();
+		$this->assertNotContains( (string) get_userdata( $former )->user_email, array_column( $this->mails, 'to' ) );
 	}
 }

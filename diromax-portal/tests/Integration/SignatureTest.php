@@ -339,4 +339,86 @@ final class SignatureTest extends PortalTestCase {
 		$this->assertContains( 'dx-portal-signature', $groups );
 		$this->assertStringNotContainsString( 'image_enc', (string) wp_json_encode( $export ), 'Not the sealed drawing or ID number.' );
 	}
+
+	/**
+	 * Make the next inserts into the signatures table fail, as a full disk or
+	 * a lost connection would.
+	 *
+	 * @return callable The filter, to remove afterwards.
+	 */
+	private function break_signature_inserts(): callable {
+		$filter = static fn( string $query ): string => str_contains( $query, 'INSERT INTO `' . Schema::table( 'signatures' ) . '`' ) ? 'SELECT broken FROM nowhere' : $query;
+		add_filter( 'query', $filter );
+		$this->app->db->suppress_errors( true );
+
+		return $filter;
+	}
+
+	/**
+	 * Regression: when storing a link signature failed, the request was
+	 * already closed and its code cleared, so the link was dead and nothing
+	 * was signed.
+	 */
+	public function test_a_failed_link_signature_leaves_the_link_open(): void {
+		[ $manager, $case, , $agreement ] = $this->signable();
+		$service                          = new SignatureService( $this->app );
+		$service->request(
+			$case,
+			$agreement->id,
+			array(
+				'signer_name'  => 'רונית',
+				'signer_email' => 'ronit@example.org',
+			),
+			$manager
+		);
+		$token = $this->token_from_mail();
+		$service->send_code( $token );
+		$input = array(
+			'code'      => $this->code_from_mail(),
+			'name'      => 'רונית לוי',
+			'id_number' => self::ID,
+			'no_draw'   => '1',
+			'confirm'   => '1',
+		);
+
+		$filter = $this->break_signature_inserts();
+		$this->assertInstanceOf( WP_Error::class, $service->sign_with_link( $token, $input ) );
+		remove_filter( 'query', $filter );
+		$this->app->db->suppress_errors( false );
+
+		$this->assertNotNull( $service->by_token( $token ), 'The link still works.' );
+		$this->assertSame( array(), $this->app->signatures->for_case( $case->id ) );
+		$this->assertTrue( $service->sign_with_link( $token, $input ), 'And the same code signs on a retry.' );
+	}
+
+	/**
+	 * Regression: when storing the signature of an approval failed, the
+	 * decision stayed approved without it.
+	 */
+	public function test_a_failed_approval_signature_leaves_the_decision_pending(): void {
+		[ $manager, $case, $owner ] = $this->signable();
+		$decisions                  = new \Diromax\Portal\Service\DecisionService( $this->app );
+		$id                         = $decisions->create(
+			$case,
+			array(
+				'title' => 'אישור הצעת המחיר',
+				'body'  => 'הצעה של הקבלן',
+			),
+			$manager
+		);
+		$this->assertIsInt( $id );
+		$signature = array(
+			'name'    => 'משפחת כהן',
+			'no_draw' => '1',
+		);
+
+		$filter = $this->break_signature_inserts();
+		$this->assertInstanceOf( WP_Error::class, $decisions->answer( $case, $id, $owner, 'approve', '', true, $signature ) );
+		remove_filter( 'query', $filter );
+		$this->app->db->suppress_errors( false );
+
+		$this->assertTrue( $this->app->decisions->find( $id )->is_pending(), 'Not approved without its signature.' );
+		$this->assertNotContains( 'decision.answered', array_column( $this->app->audit->for_case( $case->id ), 'action' ) );
+		$this->assertTrue( $decisions->answer( $case, $id, $owner, 'approve', '', true, $signature ), 'A retry works.' );
+	}
 }

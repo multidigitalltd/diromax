@@ -18,6 +18,7 @@ use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Security\RateLimiter;
+use Diromax\Portal\Support\Transaction;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -385,18 +386,34 @@ final class SignatureService {
 			return Errors::invalid( $checked['errors'] );
 		}
 
-		$now = $this->app->clock->mysql();
-
-		if ( ! $this->app->sign_requests->close( (int) $request['id'], 'signed', $now, true ) ) {
-			return Errors::not_found();
-		}
-
+		$now      = $this->app->clock->mysql();
 		$document = $link['document'];
 		$user_id  = null === $request['user_id'] ? null : (int) $request['user_id'];
-		$id       = $this->record( $link['case'], 'document', $document->id, $document->sha256, $checked, $user_id, (string) $request['signer_email'], 'link', (int) $request['id'], $now );
+		$failure  = null;
 
-		if ( $id instanceof WP_Error ) {
-			return $id;
+		// Closing the request and storing the signature succeed or fail together:
+		// a failure leaves the link open and the code valid, so the signer can retry.
+		$saved = Transaction::run(
+			$this->app->db,
+			function () use ( $link, $request, $document, $checked, $user_id, $now, &$failure ): bool {
+				if ( ! $this->app->sign_requests->close( (int) $request['id'], 'signed', $now, true ) ) {
+					$failure = Errors::not_found();
+					return false;
+				}
+
+				$id = $this->record( $link['case'], 'document', $document->id, $document->sha256, $checked, $user_id, (string) $request['signer_email'], 'link', (int) $request['id'], $now );
+
+				if ( $id instanceof WP_Error ) {
+					$failure = $id;
+					return false;
+				}
+
+				return true;
+			}
+		);
+
+		if ( ! $saved ) {
+			return $failure ?? Errors::storage();
 		}
 
 		$copy = $this->app->renderer->signed_copy( $checked['name'], $document->title, $document->sha256, Labels::datetime( $now ) );

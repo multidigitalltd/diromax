@@ -113,7 +113,7 @@ final class Pages {
 			'quiet'      => $repo->never_signed_in( $manager, $this->app->clock->mysql_in( -3 * DAY_IN_SECONDS ) ),
 			'failed'     => $repo->failed_mail( $manager ),
 			'late'       => ( new MorningSummary( $this->app ) )->late_stages( $scope ),
-			'tasks'      => $this->app->tasks->open_for( $user, null, 20 ),
+			'tasks'      => $this->app->tasks->open_for( $user, 0 === $manager, null, 20 ),
 		);
 	}
 
