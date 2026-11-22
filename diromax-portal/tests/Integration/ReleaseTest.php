@@ -92,7 +92,11 @@ final class ReleaseTest extends PortalTestCase {
 
 		$this->assertContains( 'wc', $routes, 'Routes the owner whitelisted are kept.' );
 		$this->assertContains( 'diromax', $routes );
-		$this->assertSame( array( 'diromax', '/diromax' ), apply_filters( 'aios_whitelisted_rest_routes', 'not an array' ) );
+		$from_junk = apply_filters( 'aios_whitelisted_rest_routes', 'not an array' );
+		$this->assertContains( 'diromax', $from_junk );
+		$this->assertContains( '/diromax', $from_junk );
+		$this->assertContains( 'diromax-portal', $from_junk, '1.7.0: the Postmark webhooks too.' );
+		$this->assertSame( $from_junk, array_values( array_unique( array_filter( $from_junk, 'is_string' ) ) ), 'Strings only, once each.' );
 	}
 
 	/**

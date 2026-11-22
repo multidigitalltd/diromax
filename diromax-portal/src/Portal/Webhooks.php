@@ -60,6 +60,22 @@ final class Webhooks {
 		add_action( 'rest_api_init', array( $this, 'routes' ) );
 		// The Basic credentials are for this endpoint, not a WordPress application password.
 		add_filter( 'application_password_is_api_request', array( self::class, 'not_for_application_passwords' ) );
+		// All-In-One Security can refuse REST requests from visitors; Postmark is one. The key guards these routes.
+		add_filter( 'aios_whitelisted_rest_routes', array( self::class, 'allow_in_aios' ) );
+	}
+
+	/**
+	 * Keep the webhook namespace reachable when AIOS blocks REST for visitors.
+	 *
+	 * @param mixed $routes Whitelisted REST namespaces.
+	 * @return array<int, string>
+	 */
+	public static function allow_in_aios( $routes ): array {
+		$routes   = is_array( $routes ) ? array_values( array_filter( $routes, 'is_string' ) ) : array();
+		$routes[] = 'diromax-portal';  // /wp-json/diromax-portal/v1/postmark/...
+		$routes[] = '/diromax-portal'; // ?rest_route=/diromax-portal/v1/postmark/..., without pretty permalinks.
+
+		return array_values( array_unique( $routes ) );
 	}
 
 	/**

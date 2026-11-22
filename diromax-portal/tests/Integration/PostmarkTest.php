@@ -297,6 +297,10 @@ final class PostmarkTest extends PortalTestCase {
 			$this->assertSame( array( 'POST' => true ), $routes[ $route ][0]['methods'] );
 		}
 
+		$open = Webhooks::allow_in_aios( array( 'diromax', 42 ) );
+		$this->assertSame( array( 'diromax', 'diromax-portal', '/diromax-portal' ), $open, 'Kept open when AIOS blocks REST for visitors; junk dropped.' );
+		$this->assertContains( 'diromax-portal', (array) apply_filters( 'aios_whitelisted_rest_routes', array() ), 'Registered on the AIOS filter.' );
+
 		$before = $_SERVER['REQUEST_URI'] ?? null;
 
 		try {

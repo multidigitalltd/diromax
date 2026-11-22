@@ -36,7 +36,7 @@ final class MessageRepository {
 	 * Store a message with what happened to its files.
 	 *
 	 * @param array{case_id:int, user_id:int|null, provider_id:string, sender_name:string, sender_email:string, subject:string, body:string, files:MessageFile[]} $fields Fields.
-	 * @param string                                                                                                                                         $now    UTC DATETIME.
+	 * @param string                                                                                                                                              $now    UTC DATETIME.
 	 * @return int New ID; 0 when it failed or the message is already stored.
 	 */
 	public function insert( array $fields, string $now ): int {

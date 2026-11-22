@@ -66,5 +66,9 @@ php bin/build-icons.php               # app icons for the management app, from t
 - Money is integer agorot everywhere. Format only at the edge (`Domain\Money`).
 - `DX_PORTAL_KEY` (base64, 32 bytes) must be defined in `wp-config.php` before documents can be uploaded. Losing it makes every stored document unreadable.
 - Clients never reach wp-admin; everything they see is under `/portal/`.
-- Staff never sign in through the portal's password form (it would bypass two-factor); `PasswordService` refuses anyone who is not client-only.
+- Staff never sign in through the portal's password form (staff sign in on wp-login.php); `PasswordService` refuses anyone who is not client-only.
+- Every password sign-in needs an emailed 6-digit code (`Service\LoginCodeService`; wp-login.php through `Security\LoginGate`, the portal through `Portal\Controller`). Sign-in links need none. `DX_PORTAL_EMAIL_CODE_OFF` is the emergency switch. This is exception 5 in `EXCEPTIONS.md`.
+- All site mail goes through Postmark when `DX_POSTMARK_TOKEN` is set (`Service\Postmark` on `pre_wp_mail`). Read Postmark settings only through `Support\MailConfig`, never `constant()`.
+- Webhooks: `Portal\Webhooks` (`/wp-json/diromax-portal/v1/postmark/events|inbound`), HTTP Basic with `DX_POSTMARK_WEBHOOK_KEY`; they never sign in a WordPress user. Client replies are sorted by `Service\InboundService` and kept in `dx_messages`.
+- `wp_tempnam()` and other `wp-admin/includes` functions are missing on the portal and in REST requests: use `Support\TempFile`.
 - Every portal form posts back with a nonce bound to the object and answers a foreign case with 404, exactly like a missing one.
