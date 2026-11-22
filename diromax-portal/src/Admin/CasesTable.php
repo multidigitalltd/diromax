@@ -11,6 +11,7 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Service\Labels;
 
 defined( 'ABSPATH' ) || exit;
@@ -133,11 +134,24 @@ final class CasesTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_title( $item ): string {
+		$actions = array();
+
+		if ( current_user_can( Capabilities::DELETE_CASES ) ) {
+			// The delete form, with what it removes, is on the case's details tab (spec 19.1).
+			$actions['delete'] = sprintf(
+				'<a class="dxa-delete-link" href="%1$s">%2$s<span class="screen-reader-text"> %3$s</span></a>',
+				esc_url( Admin::case_url( $item->id, 'details' ) . '#dxa-delete' ),
+				esc_html__( 'מחיקה', 'diromax-portal' ),
+				esc_html( $item->title )
+			);
+		}
+
 		return sprintf(
-			'<strong><a class="row-title" href="%1$s">%2$s</a></strong><br><span class="dxa-muted">%3$s</span>',
+			'<strong><a class="row-title" href="%1$s">%2$s</a></strong><br><span class="dxa-muted">%3$s</span>%4$s',
 			esc_url( Admin::case_url( $item->id ) ),
 			esc_html( $item->title ),
-			esc_html( $item->number )
+			esc_html( $item->number ),
+			$this->row_actions( $actions )
 		);
 	}
 

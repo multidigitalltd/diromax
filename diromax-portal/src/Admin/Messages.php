@@ -54,9 +54,12 @@ final class Messages {
 		}
 
 		return match ( $code ) {
-			'required' => __( 'שדה חובה.', 'diromax-portal' ),
-			'too_long' => __( 'הטקסט ארוך מדי.', 'diromax-portal' ),
-			default    => __( 'הערך לא תקין.', 'diromax-portal' ),
+			'required'  => __( 'שדה חובה.', 'diromax-portal' ),
+			'too_long'  => __( 'הטקסט ארוך מדי.', 'diromax-portal' ),
+			'in_use'    => __( 'יש תנועות בסעיף הזה, ולכן הוא נשאר. מעבירים את התנועות לסעיף אחר, ואז מוחקים.', 'diromax-portal' ),
+			'duplicate' => __( 'כבר יש שורה בשם הזה באותו מקום. בוחרים שם אחר.', 'diromax-portal' ),
+			'too_many'  => __( 'הגעתם למספר השורות המרבי כאן (40 סעיפים, 30 סעיפי משנה בסעיף).', 'diromax-portal' ),
+			default     => __( 'הערך לא תקין.', 'diromax-portal' ),
 		};
 	}
 }

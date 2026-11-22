@@ -66,19 +66,8 @@ final class DemoCase {
 		}
 
 		$steps = array(
-			fn() => $this->app->case_service->save_budget(
-				$client_case,
-				array(
-					'architecture' => '55000',
-					'consultants'  => '18000',
-					'fees'         => '42000',
-					'contractor'   => '290000',
-					'management'   => '48000',
-					'reserve'      => '27000',
-				),
-				$actor
-			),
-			...array_map( fn( array $entry ) => fn() => $this->app->ledger_service->add( $client_case, $entry, $actor ), $this->entries() ),
+			fn() => $this->app->case_service->save_budget( $client_case, $this->budget( $client_case ), $actor ),
+			...array_map( fn( array $entry ) => fn() => $this->app->ledger_service->add( $client_case, $entry, $actor ), $this->entries( $client_case ) ),
 			...array_map( fn( array $update ) => fn() => ( new UpdateService( $this->app ) )->publish( $client_case, $update, array(), $actor ), $this->updates() ),
 			fn() => ( new DecisionService( $this->app ) )->create(
 				$client_case,
@@ -115,11 +104,63 @@ final class DemoCase {
 	}
 
 	/**
+	 * Planned amounts, on the default budget's lines when the office kept
+	 * them; sections the default no longer has are left out.
+	 *
+	 * @param CaseRecord $client_case The sample case.
+	 * @return array<string, string> Budget form fields.
+	 */
+	private function budget( CaseRecord $client_case ): array {
+		$tree    = $this->app->budget->tree( $client_case->id );
+		$amounts = array(
+			'architecture'          => '55000',
+			'consultants'           => '5000',
+			'consultants-structure' => '9000',
+			'consultants-survey'    => '4000',
+			'fees-permit'           => '12000',
+			'fees-betterment'       => '30000',
+			'contractor'            => '290000',
+			'management'            => '48000',
+			'reserve'               => '27000',
+		);
+		$input   = array();
+
+		foreach ( $amounts as $key => $amount ) {
+			if ( null !== $tree->find( $key ) ) {
+				$input[ $key . '.planned' ] = $amount;
+			}
+		}
+
+		return $input;
+	}
+
+	/**
+	 * A budget key for a sample entry: the wanted line, else its section,
+	 * else the first section of the case.
+	 *
+	 * @param CaseRecord $client_case The sample case.
+	 * @param string     $wanted      Key in the plugin's default budget.
+	 * @return string
+	 */
+	private function line( CaseRecord $client_case, string $wanted ): string {
+		$tree = $this->app->budget->tree( $client_case->id );
+
+		foreach ( array( $wanted, (string) strstr( $wanted, '-', true ) ) as $key ) {
+			if ( '' !== $key && null !== $tree->find( $key ) ) {
+				return $key;
+			}
+		}
+
+		return $tree->sections()[0]['key'] ?? '';
+	}
+
+	/**
 	 * Ledger entries, oldest first.
 	 *
+	 * @param CaseRecord $client_case The sample case.
 	 * @return array<int, array<string, string>>
 	 */
-	private function entries(): array {
+	private function entries( CaseRecord $client_case ): array {
 		$expense = fn( array $fields ): array => array_merge(
 			array(
 				'type'     => 'expense',
@@ -136,7 +177,7 @@ final class DemoCase {
 				array(
 					'entry_date'  => $this->day( -125 ),
 					'amount'      => '4500',
-					'category'    => 'consultants',
+					'category'    => $this->line( $client_case, 'consultants-survey' ),
 					'payee'       => __( 'מודד מוסמך', 'diromax-portal' ),
 					'description' => __( 'מדידה ומפת מצב', 'diromax-portal' ),
 					'funding'     => 'client',
@@ -156,7 +197,7 @@ final class DemoCase {
 				array(
 					'entry_date'  => $this->day( -105 ),
 					'amount'      => '38000',
-					'category'    => 'architecture',
+					'category'    => $this->line( $client_case, 'architecture' ),
 					'payee'       => __( 'משרד אדריכלים', 'diromax-portal' ),
 					'description' => __( 'תכנון אדריכלי, שלב א׳', 'diromax-portal' ),
 					'funding'     => 'project',
@@ -166,7 +207,7 @@ final class DemoCase {
 				array(
 					'entry_date'    => $this->day( -62 ),
 					'amount'        => '24000',
-					'category'      => 'management',
+					'category'      => $this->line( $client_case, 'management' ),
 					'payee'         => __( 'דירומקס', 'diromax-portal' ),
 					'description'   => __( 'שכר ניהול, שלב התכנון', 'diromax-portal' ),
 					'funding'       => 'proceeds',
@@ -178,7 +219,7 @@ final class DemoCase {
 					'entry_date'  => $this->day( -21 ),
 					'status'      => 'committed',
 					'amount'      => '45000',
-					'category'    => 'contractor',
+					'category'    => $this->line( $client_case, 'contractor' ),
 					'payee'       => __( 'קבלן ראשי בע״מ', 'diromax-portal' ),
 					'description' => __( 'הסכם קבלן ראשי, מקדמה', 'diromax-portal' ),
 					'funding'     => 'project',
@@ -199,7 +240,7 @@ final class DemoCase {
 				array(
 					'entry_date'  => $this->day( -8 ),
 					'amount'      => '12300',
-					'category'    => 'fees',
+					'category'    => $this->line( $client_case, 'fees-permit' ),
 					'payee'       => __( 'הוועדה המקומית לתכנון ובנייה', 'diromax-portal' ),
 					'description' => __( 'אגרת בקשה להיתר בנייה', 'diromax-portal' ),
 					'funding'     => 'project',

@@ -212,7 +212,7 @@ final class PhotoJournalTest extends PortalTestCase {
 
 		$closed = $this->app->case_service->set_status( $case, 'closed', $case->manager_id );
 		$this->assertInstanceOf( CaseRecord::class, $closed );
-		$this->assertTrue( $this->app->case_service->delete( $closed, $this->admin() ) );
+		$this->assertSame( 0, $this->app->case_service->delete( $closed, $this->admin() ) );
 		$this->assertNotTrue( $this->app->store->can_open( $two['stored_name'], 1 ), 'Deleting the case deletes its photos.' );
 		$this->assertNotTrue( $this->app->store->can_open( $two['thumb_name'], 1 ) );
 	}

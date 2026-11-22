@@ -11,13 +11,13 @@
 declare( strict_types = 1 );
 
 use Diromax\Portal\Admin\Admin;
+use Diromax\Portal\Admin\BudgetSelect;
 use Diromax\Portal\Admin\Form;
 use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\PayTo;
 use Diromax\Portal\Service\Labels;
-use Diromax\Portal\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -141,7 +141,7 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 									"><?php echo esc_html( $document->title ); ?></a>
 				<?php endif; ?>
 			</td>
-			<td><?php echo esc_html( EntryType::Expense === $entry->type || '' !== $entry->category ? Settings::category_label( $entry->category ) : '—' ); ?></td>
+			<td><?php echo esc_html( EntryType::Expense === $entry->type || '' !== $entry->category ? Labels::budget_line( $view['budget'], $entry->category ) : '—' ); ?></td>
 			<td dir="ltr" class="dxa-num"><?php echo esc_html( Money::format( $entry->total ) ); ?></td>
 			<td><?php echo $entry->visible ? esc_html__( 'גלוי', 'diromax-portal' ) : '<span class="dxa-muted">' . esc_html__( 'מוסתר', 'diromax-portal' ) . '</span>'; ?></td>
 			<td class="dxa-actions">
@@ -187,9 +187,7 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 								<?php if ( PayTo::Supplier === $entry->pay_to && '' === $entry->category ) : ?>
 									<p><label for="<?php echo esc_attr( $settle->id( 'category' ) ); ?>"><?php esc_html_e( 'סעיף בתקציב', 'diromax-portal' ); ?></label>
 									<select <?php echo $settle->attrs( 'category' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
-										<?php foreach ( $view['categories'] as $key => $label ) : ?>
-											<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
-										<?php endforeach; ?>
+										<?php echo BudgetSelect::options( $view['budget'], '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in BudgetSelect::options(). ?>
 									</select><?php $settle->print_error( 'category' ); ?></p>
 								<?php elseif ( PayTo::Diromax === $entry->pay_to ) : ?>
 									<p><label for="<?php echo esc_attr( $settle->id( 'method' ) ); ?>"><?php esc_html_e( 'אמצעי תשלום', 'diromax-portal' ); ?></label>

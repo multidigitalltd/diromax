@@ -28,7 +28,7 @@ final class DashboardUpgradeTest extends PortalTestCase {
 		$this->assertSame( 6, $case->stage, 'The last update started stage 6 alongside stage 5.' );
 		$this->assertSame( array( 'done', 'active', 'active' ), array( $case->stages[4]['status'], $case->stages[5]['status'], $case->stages[6]['status'] ) );
 		$this->assertCount( 8, $this->app->ledger->for_case( $case->id, false ) );
-		$this->assertSame( 48000000, array_sum( $this->app->budget->planned( $case->id ) ) );
+		$this->assertSame( 48000000, $this->app->budget->tree( $case->id )->total() );
 		$this->assertCount( 3, $this->app->updates->for_case( $case->id, false ) );
 		$this->assertCount( 1, $this->app->decisions->for_case( $case->id ) );
 		$this->assertSame( array(), $this->app->members->for_case( $case->id ), 'No clients, so nobody gets email.' );
@@ -143,7 +143,7 @@ final class DashboardUpgradeTest extends PortalTestCase {
 	 */
 	private function case_with_budget( int $manager, string $budget, string $spent ): CaseRecord {
 		$case = $this->case_for( $manager );
-		$this->assertTrue( $this->app->case_service->save_budget( $case, array( 'fees' => $budget ), $manager ) );
+		$this->assertTrue( $this->app->case_service->save_budget( $case, array( 'fees.planned' => $budget ), $manager ) );
 		$this->assertIsInt(
 			$this->app->ledger_service->add(
 				$case,

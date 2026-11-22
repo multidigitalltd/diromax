@@ -160,6 +160,10 @@ jobs:
         working-directory: diromax-portal/tests/e2e
         run: node phase4.e2e.js "$RUNNER_TEMP/e2e"
 
+      - name: Release 1.9.0 - budget tree, manager phone, case deletion
+        working-directory: diromax-portal/tests/e2e
+        run: node phase5.e2e.js "$RUNNER_TEMP/e2e"
+
       # Standard 9.1-9.2: Lighthouse on the key pages, phone and desktop. Over budget fails the job.
       - name: Performance budget (Lighthouse)
         working-directory: diromax-portal/tests/e2e

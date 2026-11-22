@@ -15,6 +15,7 @@
 
 declare( strict_types = 1 );
 
+use Diromax\Portal\Admin\BudgetSelect;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Service\Labels;
 
@@ -105,9 +106,7 @@ $value      = static fn( string $field, string $fallback ) => $form->old( $field
 		<label for="<?php echo esc_attr( $form->id( 'category' ) ); ?>"><?php esc_html_e( 'סעיף בתקציב', 'diromax-portal' ); ?></label>
 		<select <?php echo $form->attrs( 'category' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
 			<option value=""><?php esc_html_e( '— בחירה —', 'diromax-portal' ); ?></option>
-			<?php foreach ( $view['categories'] as $key => $label ) : ?>
-				<option value="<?php echo esc_attr( $key ); ?>"<?php selected( $value( 'category', $entry->category ?? '' ), $key ); ?>><?php echo esc_html( $label ); ?></option>
-			<?php endforeach; ?>
+			<?php echo BudgetSelect::options( $view['budget'], $value( 'category', $entry->category ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in BudgetSelect::options(). ?>
 		</select>
 		<?php $form->print_error( 'category' ); ?>
 	</p>

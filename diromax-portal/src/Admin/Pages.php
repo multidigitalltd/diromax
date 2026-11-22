@@ -10,12 +10,14 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
+use Diromax\Portal\Domain\BudgetTemplate;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\CaseView;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Portal\Webhooks;
+use Diromax\Portal\Service\Contact;
 use Diromax\Portal\Service\InboundService;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
@@ -266,14 +268,7 @@ final class Pages {
 			'fingerprint' => $this->app->store->fingerprint(),
 			'key_status'  => $this->app->document_service->key_status(),
 			'mail'        => self::mail_status(),
-			'categories'  => implode(
-				"\n",
-				array_map(
-					static fn( string $key, string $label ): string => $key . '=' . $label,
-					array_keys( Settings::categories() ),
-					Settings::categories()
-				)
-			),
+			'categories'  => BudgetTemplate::text( Settings::budget_template() ),
 		);
 	}
 
@@ -431,6 +426,8 @@ final class Pages {
 				'setup'   => $this->setup_steps( $client_case ),
 			),
 			'details'   => array(
+				'purge'          => $this->app->policy->can_delete_case( get_current_user_id(), $client_case ) ? $this->app->case_service->deletion_preview( $client_case, get_current_user_id() ) : null,
+				'manager_phone'  => '' !== (string) get_user_meta( $client_case->manager_id, Contact::PHONE_META, true ),
 				'stages'         => Stages::names(),
 				'stage_statuses' => Labels::stage_statuses(),
 				'managers'       => $this->app->case_service->managers(),
@@ -442,17 +439,18 @@ final class Pages {
 				'modes'   => Labels::notify_modes(),
 			),
 			'budget'    => array(
-				'planned'    => $this->app->budget->planned( $client_case->id ),
-				'categories' => Settings::categories(),
+				'tree'   => $this->app->budget->tree( $client_case->id ),
+				'in_use' => $this->app->ledger->count_by_category( $client_case->id ),
+				'lines'  => $this->app->case_service->summary( $client_case, false )->categories,
 			),
 			'finance'   => array(
-				'rows'       => $this->app->ledger->for_case( $client_case->id, false ),
-				'categories' => Settings::categories(),
-				'payees'     => $this->app->ledger->payees(),
-				'documents'  => $this->documents_by_id( $client_case ),
-				'today'      => $this->app->clock->today(),
+				'rows'      => $this->app->ledger->for_case( $client_case->id, false ),
+				'budget'    => $this->app->budget->tree( $client_case->id ),
+				'payees'    => $this->app->ledger->payees(),
+				'documents' => $this->documents_by_id( $client_case ),
+				'today'     => $this->app->clock->today(),
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only: opens one request's "mark as paid" form.
-				'settle'     => isset( $_GET['settle'] ) ? absint( $_GET['settle'] ) : 0,
+				'settle'    => isset( $_GET['settle'] ) ? absint( $_GET['settle'] ) : 0,
 			),
 			'decisions' => $this->decisions_data( $client_case ),
 			'updates'   => array(
@@ -508,7 +506,7 @@ final class Pages {
 		return array(
 			array(
 				'label'  => __( 'קובעים תקציב לפי סעיפים', 'diromax-portal' ),
-				'done'   => array_sum( $this->app->budget->planned( $client_case->id ) ) > 0,
+				'done'   => $this->app->budget->tree( $client_case->id )->total() > 0,
 				'url'    => Admin::case_url( $client_case->id, 'budget' ),
 				'action' => __( 'לתקציב', 'diromax-portal' ),
 			),

@@ -11,11 +11,11 @@ namespace Diromax\Portal\Service;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Data\LedgerRow;
+use Diromax\Portal\Domain\BudgetTree;
 use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Plugin;
-use Diromax\Portal\Settings;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
@@ -55,6 +55,7 @@ final class CsvExport {
 		}
 
 		$rows = $this->app->ledger->for_case( $client_case->id, ! $staff );
+		$tree = $this->app->budget->tree( $client_case->id );
 
 		$this->app->audit->record(
 			'export.csv',
@@ -77,7 +78,7 @@ final class CsvExport {
 		fputcsv( $handle, self::header( $staff ), ',', '"', '' );
 
 		foreach ( $rows as $row ) {
-			fputcsv( $handle, array_map( array( self::class, 'cell' ), self::line( $row, $staff ) ), ',', '"', '' );
+			fputcsv( $handle, array_map( array( self::class, 'cell' ), self::line( $row, $tree, $staff ) ), ',', '"', '' );
 		}
 
 		rewind( $handle );
@@ -150,6 +151,7 @@ final class CsvExport {
 			__( 'תיאור', 'diromax-portal' ),
 			__( 'ספק / נמען', 'diromax-portal' ),
 			__( 'סעיף בתקציב', 'diromax-portal' ),
+			__( 'סעיף משנה', 'diromax-portal' ),
 			__( 'מקור מימון', 'diromax-portal' ),
 			__( 'לפני מע״מ', 'diromax-portal' ),
 			__( 'מע״מ', 'diromax-portal' ),
@@ -167,11 +169,12 @@ final class CsvExport {
 	/**
 	 * One entry as cells.
 	 *
-	 * @param LedgerRow $row   Row.
-	 * @param bool      $staff Staff export.
+	 * @param LedgerRow  $row   Row.
+	 * @param BudgetTree $tree  The case's budget.
+	 * @param bool       $staff Staff export.
 	 * @return string[]
 	 */
-	private static function line( LedgerRow $row, bool $staff ): array {
+	private static function line( LedgerRow $row, BudgetTree $tree, bool $staff ): array {
 		$entry = $row->entry;
 		$yes   = __( 'כן', 'diromax-portal' );
 		$cells = array(
@@ -180,7 +183,7 @@ final class CsvExport {
 			self::status( $entry->type, $entry->status ),
 			$entry->description,
 			EntryType::Request === $entry->type ? Labels::pay_to( $entry->pay_to, $entry->payee ) : $entry->payee,
-			'' === $entry->category ? '' : Settings::category_label( $entry->category ),
+			...self::budget_cells( $tree, $entry->category ),
 			null === $entry->funding ? '' : ( Labels::funding()[ $entry->funding->value ] ?? '' ),
 			self::amount( $entry->net ),
 			self::amount( $entry->vat ),
@@ -209,5 +212,26 @@ final class CsvExport {
 			EntryType::Request === $type       => __( 'שולמה', 'diromax-portal' ),
 			default                            => __( 'שולם', 'diromax-portal' ),
 		};
+	}
+
+	/**
+	 * Section and sub-section of an entry, as two columns.
+	 *
+	 * @param BudgetTree $tree     The case's budget.
+	 * @param string     $category The entry's key.
+	 * @return array{0:string, 1:string}
+	 */
+	private static function budget_cells( BudgetTree $tree, string $category ): array {
+		if ( '' === $category ) {
+			return array( '', '' );
+		}
+
+		$line = $tree->find( $category );
+
+		if ( null === $line || '' === $line['parent'] ) {
+			return array( Labels::budget_line( $tree, $category ), '' );
+		}
+
+		return array( Labels::budget_line( $tree, $line['parent'] ), $line['label'] );
 	}
 }

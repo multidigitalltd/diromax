@@ -140,7 +140,7 @@ final class ReleaseTest extends PortalTestCase {
 
 		$this->assertSame( array( false, false, false, false, false ), $done( $pages->setup_steps( $case ) ) );
 
-		$this->assertTrue( $this->app->case_service->save_budget( $case, array( 'fees' => '1000' ), $manager ) );
+		$this->assertTrue( $this->app->case_service->save_budget( $case, array( 'fees.planned' => '1000' ), $manager ) );
 		$client = $this->client();
 		$this->app->members->upsert( $case->id, $client, MemberRole::Owner, true, $this->clock->mysql() );
 		$this->add_document( $case, $manager, 'agreement' );

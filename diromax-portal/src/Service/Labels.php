@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Service;
 
+use Diromax\Portal\Domain\BudgetTree;
 use Diromax\Portal\Domain\CaseStatus;
 use Diromax\Portal\Domain\EntryStatus;
 use Diromax\Portal\Domain\EntryType;
@@ -19,6 +20,7 @@ use Diromax\Portal\Domain\MemberRole;
 use Diromax\Portal\Domain\NotifyMode;
 use Diromax\Portal\Domain\PayTo;
 use Diromax\Portal\Domain\StageStatus;
+use Diromax\Portal\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -41,6 +43,21 @@ final class Labels {
 			EntryType::Refund  => __( 'החזר', 'diromax-portal' ),
 			EntryType::Request => __( 'דרישת תשלום', 'diromax-portal' ),
 		};
+	}
+
+	/**
+	 * A ledger entry's budget line: "Section › Sub-section" from the case's
+	 * budget; "Other" for none; the old settings label for a key the
+	 * budget does not have.
+	 *
+	 * @param BudgetTree $tree The case's budget.
+	 * @param string     $key  The entry's key.
+	 * @return string
+	 */
+	public static function budget_line( BudgetTree $tree, string $key ): string {
+		$label = '' === $key ? '' : $tree->label( $key );
+
+		return '' !== $label ? $label : Settings::category_label( $key );
 	}
 
 	/**

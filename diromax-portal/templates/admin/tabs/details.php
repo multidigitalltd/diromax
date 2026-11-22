@@ -27,6 +27,16 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 		<a href="<?php echo esc_url( (string) get_edit_post_link( $lead->ID ) ); ?>"><?php echo esc_html( get_the_title( $lead ) ); ?></a>
 	</p>
 <?php endif; ?>
+<?php if ( ! $view['manager_phone'] ) : ?>
+	<div class="notice notice-info inline">
+		<p>
+			<?php esc_html_e( 'למנהל הפרויקט של התיק לא הוגדר טלפון, ולכן הלקוחות רואים באזור האישי את הטלפון הכללי של האתר.', 'diromax-portal' ); ?>
+			<?php if ( current_user_can( 'edit_user', $case->manager_id ) ) : ?>
+				<a href="<?php echo esc_url( (string) get_edit_user_link( $case->manager_id ) ); ?>#dx_portal_phone"><?php esc_html_e( 'הוספת טלפון בפרופיל', 'diromax-portal' ); ?></a>
+			<?php endif; ?>
+		</p>
+	</div>
+<?php endif; ?>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="form-details">
 	<input type="hidden" name="action" value="dx_portal_update_case">
 	<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
@@ -92,10 +102,55 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 </form>
 <p class="description"><?php esc_html_e( 'תיק סגור נשאר גלוי ללקוח לפי תקופת הגישה שבהגדרות, ואחר כך הגישה נסגרת.', 'diromax-portal' ); ?></p>
 
-<?php if ( $view['can_purge'] ) : ?>
-	<div class="dxa-danger">
+<?php if ( null !== $view['purge'] ) : ?>
+	<?php $dx_purge = $view['purge']; ?>
+	<div class="dxa-danger" id="dxa-delete">
 		<h2><?php esc_html_e( 'מחיקת התיק לצמיתות', 'diromax-portal' ); ?></h2>
-		<p><?php esc_html_e( 'מוחק את התיק, את כל התנועות, העדכונים והמסמכים. אי אפשר לשחזר.', 'diromax-portal' ); ?></p>
+		<p><strong><?php esc_html_e( 'אי אפשר לשחזר.', 'diromax-portal' ); ?></strong> <?php esc_html_e( 'יימחקו:', 'diromax-portal' ); ?></p>
+		<ul class="dxa-purge">
+			<li>
+				<?php
+				/* translators: %d: number of ledger entries. */
+				echo esc_html( sprintf( _n( '%d תנועה כספית, התקציב, העדכונים וההחלטות', '%d תנועות כספיות, התקציב, העדכונים וההחלטות', $dx_purge['entries'], 'diromax-portal' ), $dx_purge['entries'] ) );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: 1: documents, 2: photos, 3: messages. */
+				echo esc_html( sprintf( __( '%1$d מסמכים, %2$d צילומים ו-%3$d הודעות', 'diromax-portal' ), $dx_purge['documents'], $dx_purge['photos'], $dx_purge['messages'] ) );
+				?>
+			</li>
+			<?php if ( array() === $dx_purge['accounts'] ) : ?>
+				<li><?php esc_html_e( 'אין חשבונות לקוח שיימחקו: לכל הלקוחות בתיק יש תיק נוסף, או שאין לקוחות.', 'diromax-portal' ); ?></li>
+			<?php else : ?>
+				<li>
+					<?php esc_html_e( 'חשבונות הלקוח האלה, כי אין להם תיק אחר:', 'diromax-portal' ); ?>
+					<ul>
+						<?php foreach ( $dx_purge['accounts'] as $dx_account ) : ?>
+							<li><?php echo esc_html( $dx_account['name'] ); ?> <span dir="ltr">&lt;<?php echo esc_html( $dx_account['email'] ); ?>&gt;</span></li>
+						<?php endforeach; ?>
+					</ul>
+				</li>
+			<?php endif; ?>
+		</ul>
+		<p class="description"><?php esc_html_e( 'חשבונות של אנשי צוות לא נמחקים לעולם. ביומן הפעולות נשאר רק מי מחק את התיק ומתי. רשומות כספיות חייבות לפעמים בשמירה לפי חוק: לפני המחיקה מורידים את ה-CSV ושומרים את הדוח.', 'diromax-portal' ); ?>
+			<a href="
+			<?php
+			echo esc_url(
+				wp_nonce_url(
+					add_query_arg(
+						array(
+							'action'  => 'dx_portal_export',
+							'case_id' => $case->id,
+						),
+						admin_url( 'admin-post.php' )
+					),
+					'dx_portal_export_' . $case->id
+				)
+			);
+			?>
+			"><?php esc_html_e( 'הורדת כל התנועות ל-CSV', 'diromax-portal' ); ?></a>
+		</p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="dxa-inline">
 			<input type="hidden" name="action" value="dx_portal_delete_case">
 			<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
@@ -106,8 +161,11 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 				echo esc_html( sprintf( __( 'לאישור, מקלידים את מספר התיק: %s', 'diromax-portal' ), $case->number ) );
 				?>
 			</label>
-			<input type="text" id="dxa-confirm" name="confirm" autocomplete="off" dir="ltr">
+			<input type="text" id="dxa-confirm" name="confirm" autocomplete="off" dir="ltr"<?php echo '' !== $form->error( 'confirm' ) ? ' aria-invalid="true" aria-describedby="dxa-confirm-error"' : ''; ?>>
 			<button type="submit" class="button button-link-delete"><?php esc_html_e( 'מחיקה לצמיתות', 'diromax-portal' ); ?></button>
+			<?php if ( '' !== $form->error( 'confirm' ) ) : ?>
+				<p class="dxa-error" id="dxa-confirm-error"><?php esc_html_e( 'מספר התיק לא תואם. התיק לא נמחק.', 'diromax-portal' ); ?></p>
+			<?php endif; ?>
 		</form>
 	</div>
 <?php endif; ?>

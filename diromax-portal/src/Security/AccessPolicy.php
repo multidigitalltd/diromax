@@ -129,14 +129,15 @@ final class AccessPolicy {
 	}
 
 	/**
-	 * May the user permanently delete this case? Only closed cases.
+	 * May the user permanently delete this case, open or closed?
 	 *
 	 * @param int        $user_id User.
 	 * @param CaseRecord $client_case    Case.
 	 * @return bool
 	 */
 	public function can_delete_case( int $user_id, CaseRecord $client_case ): bool {
-		return CaseStatus::Closed === $client_case->status
+		// Any status (spec 19.1): administrators only, after typing the case number.
+		return $client_case->id > 0
 			&& $user_id > 0
 			&& user_can( $user_id, Capabilities::DELETE_CASES );
 	}

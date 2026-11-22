@@ -191,23 +191,24 @@ final class CaseServiceTest extends PortalTestCase {
 		$this->assertFalse( $this->app->members->is_member( $case->id, $first ) );
 	}
 
-	public function test_budget_rejects_bad_amounts_and_drops_empty_lines(): void {
+	public function test_budget_rejects_bad_amounts_and_ignores_unknown_lines(): void {
 		$manager = $this->manager();
 		$case    = $this->case_for( $manager );
 
-		$this->assertSame( array( 'fees' => 'invalid' ), $this->app->case_service->save_budget( $case, array( 'fees' => 'abc' ), $manager )->get_error_data()['fields'] );
+		$this->assertSame( array( 'fees.planned' => 'invalid' ), $this->app->case_service->save_budget( $case, array( 'fees.planned' => 'abc' ), $manager )->get_error_data()['fields'] );
 		$this->assertTrue(
 			$this->app->case_service->save_budget(
 				$case,
 				array(
-					'fees'    => '42,000',
-					'reserve' => '',
-					'unknown' => '999',
+					'fees.planned'    => '42,000',
+					'reserve.planned' => '',
+					'unknown.planned' => '999',
 				),
 				$manager
 			)
 		);
-		$this->assertSame( array( 'fees' => 4200000 ), $this->app->budget->planned( $case->id ) );
+		$this->assertSame( 4200000, $this->app->budget->tree( $case->id )->total() );
+		$this->assertNull( $this->app->budget->tree( $case->id )->find( 'unknown' ), 'Only lines of the case are changed.' );
 	}
 
 	public function test_deleting_a_closed_case_removes_its_rows_and_files(): void {
@@ -216,7 +217,8 @@ final class CaseServiceTest extends PortalTestCase {
 		add_filter( 'dx_portal_is_uploaded_file', '__return_true' );
 		$admin   = $this->admin();
 		$manager = $this->manager();
-		$case    = $this->case_for( $manager, $this->client() );
+		$client  = $this->client();
+		$case    = $this->case_for( $manager, $client );
 		$path    = (string) tempnam( sys_get_temp_dir(), 'dxt' );
 		file_put_contents( $path, "%PDF-1.4\n%%EOF\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Fixture.
 		$document = $this->app->document_service->upload(
@@ -237,9 +239,10 @@ final class CaseServiceTest extends PortalTestCase {
 		$this->app->ledger_service->add( $case, self::expense(), $manager );
 
 		$closed = $this->app->case_service->set_status( $case, 'closed', $manager );
-		$this->assertTrue( $this->app->case_service->delete( $closed, $admin ) );
+		$this->assertSame( 1, $this->app->case_service->delete( $closed, $admin ), 'Its only client account goes with it (spec 19.1).' );
 
 		$this->assertNull( $this->app->cases->find( $case->id ) );
+		$this->assertFalse( get_userdata( $client ) );
 		$this->assertFileDoesNotExist( sys_get_temp_dir() . '/dx-portal-test-store/' . $document->stored_name );
 		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE case_id = %d', Schema::table( 'ledger' ), $case->id ) ) );
 		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE case_id = %d', Schema::table( 'case_members' ), $case->id ) ) );

@@ -15,7 +15,6 @@ use Diromax\Portal\Domain\EntryType;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
-use Diromax\Portal\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -112,7 +111,7 @@ final class MailItems {
 		switch ( $entry->type ) {
 			case EntryType::Expense:
 				$rows[] = array( __( 'ספק', 'diromax-portal' ), $entry->payee );
-				$rows[] = array( __( 'סעיף בתקציב', 'diromax-portal' ), Settings::category_label( $entry->category ) );
+				$rows[] = array( __( 'סעיף בתקציב', 'diromax-portal' ), Labels::budget_line( $this->app->budget->tree( $client_case->id ), $entry->category ) );
 				$rows[] = array( __( 'שולם מ', 'diromax-portal' ), Labels::funding()[ $entry->funding->value ?? '' ] ?? '' );
 				break;
 			case EntryType::Payment:
