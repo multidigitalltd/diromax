@@ -222,4 +222,27 @@ final class TasksAndDueDatesTest extends PortalTestCase {
 		$this->assertSame( 0, ( new MorningSummary( $this->app ) )->run() );
 		$this->assertSame( array(), $this->mails );
 	}
+
+	/**
+	 * Regression: "my tasks" compared due_date with '' when no day was given;
+	 * MySQL 8 in strict mode rejects that, so the dashboard showed no tasks.
+	 */
+	public function test_my_tasks_query_runs_cleanly_with_and_without_a_day(): void {
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager );
+		( new TaskService( $this->app ) )->add( $case, array( 'title' => 'בלי תאריך' ), $manager );
+		( new TaskService( $this->app ) )->add(
+			$case,
+			array(
+				'title'    => 'עם תאריך',
+				'due_date' => $this->clock->today(),
+			),
+			$manager
+		);
+
+		$this->assertSame( array( 'עם תאריך', 'בלי תאריך' ), array_column( $this->app->tasks->open_for( $manager ), 'title' ), 'Dated first, undated last.' );
+		$this->assertSame( '', $this->app->db->last_error );
+		$this->assertSame( array( 'עם תאריך' ), array_column( $this->app->tasks->open_for( $manager, $this->clock->today() ), 'title' ) );
+		$this->assertSame( '', $this->app->db->last_error );
+	}
 }

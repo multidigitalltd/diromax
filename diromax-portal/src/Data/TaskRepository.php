@@ -113,21 +113,37 @@ final class TaskRepository {
 	 * @return OpenTask[]
 	 */
 	public function open_for( int $user_id, ?string $until = null, int $limit = 50 ): array {
-		$rows = $this->db->get_results(
-			$this->db->prepare(
-				"SELECT t.id, t.case_id, t.title, t.assignee_id, t.due_date, c.title AS case_title, c.number
-				FROM %i t INNER JOIN %i c ON c.id = t.case_id
-				WHERE t.assignee_id = %d AND t.done_at IS NULL AND c.status = 'active' AND ( %s = '' OR ( t.due_date IS NOT NULL AND t.due_date <= %s ) )
-				ORDER BY t.due_date IS NULL, t.due_date, t.id LIMIT %d",
-				Schema::table( 'tasks' ),
-				Schema::table( 'cases' ),
-				$user_id,
-				(string) $until,
-				(string) $until,
-				max( 1, min( 200, $limit ) )
-			),
-			ARRAY_A
-		);
+		$limit = max( 1, min( 200, $limit ) );
+
+		// Two statements: comparing a DATE with '' fails under MySQL's strict mode.
+		$rows = null === $until
+			? $this->db->get_results(
+				$this->db->prepare(
+					"SELECT t.id, t.case_id, t.title, t.assignee_id, t.due_date, c.title AS case_title, c.number
+					FROM %i t INNER JOIN %i c ON c.id = t.case_id
+					WHERE t.assignee_id = %d AND t.done_at IS NULL AND c.status = 'active'
+					ORDER BY t.due_date IS NULL, t.due_date, t.id LIMIT %d",
+					Schema::table( 'tasks' ),
+					Schema::table( 'cases' ),
+					$user_id,
+					$limit
+				),
+				ARRAY_A
+			)
+			: $this->db->get_results(
+				$this->db->prepare(
+					"SELECT t.id, t.case_id, t.title, t.assignee_id, t.due_date, c.title AS case_title, c.number
+					FROM %i t INNER JOIN %i c ON c.id = t.case_id
+					WHERE t.assignee_id = %d AND t.done_at IS NULL AND c.status = 'active' AND t.due_date IS NOT NULL AND t.due_date <= %s
+					ORDER BY t.due_date, t.id LIMIT %d",
+					Schema::table( 'tasks' ),
+					Schema::table( 'cases' ),
+					$user_id,
+					$until,
+					$limit
+				),
+				ARRAY_A
+			);
 
 		return array_map(
 			static fn( array $row ): array => array(
