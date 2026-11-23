@@ -49,8 +49,9 @@ async function submit(page, selector) {
 
   await page.fill('#dxa-meeting-title', 'סיור בדירה עם האדריכלית');
   await page.selectOption('#dxa-meeting-kind', 'site');
-  await page.fill('#dxa-meeting-date', localDate(-2));
-  await page.fill('#dxa-meeting-time', '10:00');
+  // Today at midnight: the browser's own date check (min = today) lets it through; the server refuses the past.
+  await page.fill('#dxa-meeting-date', localDate(0));
+  await page.fill('#dxa-meeting-time', '00:00');
   await submit(page, '#form-meeting [type=submit]');
   check('a meeting in the past is refused on its field', (await page.getAttribute('#dxa-meeting-date', 'aria-invalid')) === 'true' && (await page.inputValue('#dxa-meeting-title')) === 'סיור בדירה עם האדריכלית');
   await axe(page, 'meeting form with an error');
