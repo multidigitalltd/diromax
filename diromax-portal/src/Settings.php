@@ -10,7 +10,9 @@ declare( strict_types = 1 );
 namespace Diromax\Portal;
 
 use Diromax\Portal\Domain\BudgetTree;
+use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\Text;
+use Diromax\Portal\Service\Stages;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * Every read goes through defaults and sanitize(), so a hand-edited option can
  * never feed an unexpected type or value to the rest of the plugin.
  *
- * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, subcategories:array<string, array<string, string>>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int, morning_summary:bool}
+ * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, subcategories:array<string, array<string, string>>, plan_template:array<int, array{label:string, trigger_on:string, stage:int, trigger_date:null, kind:string, amount:int, percent:int, pay_to:string, payee:string, days:int}>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int, morning_summary:bool}
  */
 final class Settings {
 
@@ -163,6 +165,8 @@ final class Settings {
 				'management'   => __( 'שכר ניהול דירומקס', 'diromax-portal' ),
 				'reserve'      => __( 'רזרבה לבלתי צפוי', 'diromax-portal' ),
 			),
+			// The office's payment plan for a new case (spec 21): empty until the office sets it.
+			'plan_template'        => array(),
 			'subcategories'        => array(
 				'consultants' => array(
 					'consultants-structure' => __( 'קונסטרוקציה', 'diromax-portal' ),
@@ -204,6 +208,7 @@ final class Settings {
 			'access_months'        => self::int_in( $input['access_months'] ?? null, 1, 120, $defaults['access_months'] ),
 			'categories'           => $categories,
 			'subcategories'        => self::subcategories_from( $input['subcategories'] ?? null, $categories, $defaults['subcategories'] ),
+			'plan_template'        => self::plan_from( $input['plan_template'] ?? null ),
 			'daily_hour'           => self::int_in( $input['daily_hour'] ?? null, 0, 23, $defaults['daily_hour'] ),
 			'remind_before_days'   => self::int_in( $input['remind_before_days'] ?? null, 0, 14, $defaults['remind_before_days'] ),
 			'remind_overdue_every' => self::int_in( $input['remind_overdue_every'] ?? null, 0, 30, $defaults['remind_overdue_every'] ),
@@ -305,6 +310,51 @@ final class Settings {
 				$used[ $key ]             = true;
 				$clean[ $parent ][ $key ] = $label;
 			}
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * The payment plan template: payments on a stage or by hand (a date
+	 * belongs to a case), each as stored by the settings screen. At most 20.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return array<int, array{label:string, trigger_on:string, stage:int, trigger_date:null, kind:string, amount:int, percent:int, pay_to:string, payee:string, days:int}>
+	 */
+	private static function plan_from( mixed $value ): array {
+		$clean = array();
+
+		foreach ( is_array( $value ) ? array_slice( $value, 0, 20 ) : array() as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$label   = is_string( $row['label'] ?? null ) ? mb_substr( Text::line( $row['label'] ), 0, 120 ) : '';
+			$trigger = in_array( $row['trigger_on'] ?? '', array( 'stage', 'manual' ), true ) ? (string) $row['trigger_on'] : '';
+			$kind    = in_array( $row['kind'] ?? '', array( 'percent', 'fixed' ), true ) ? (string) $row['kind'] : '';
+			$pay_to  = 'supplier' === ( $row['pay_to'] ?? '' ) ? 'supplier' : 'diromax';
+			$stage   = self::int_in( $row['stage'] ?? null, 1, Stages::COUNT, 0 );
+			$amount  = self::int_in( $row['amount'] ?? null, 0, Money::MAX, 0 );
+			$percent = self::int_in( $row['percent'] ?? null, 0, Money::BPS_WHOLE, 0 );
+			$payee   = 'supplier' === $pay_to && is_string( $row['payee'] ?? null ) ? mb_substr( Text::line( $row['payee'] ), 0, 120 ) : '';
+
+			if ( '' === $label || '' === $trigger || '' === $kind || ( 'stage' === $trigger && 0 === $stage ) || ( 'percent' === $kind ? 0 === $percent : 0 === $amount ) || ( 'supplier' === $pay_to && '' === $payee ) ) {
+				continue;
+			}
+
+			$clean[] = array(
+				'label'        => $label,
+				'trigger_on'   => $trigger,
+				'stage'        => 'stage' === $trigger ? $stage : 0,
+				'trigger_date' => null,
+				'kind'         => $kind,
+				'amount'       => 'fixed' === $kind ? $amount : 0,
+				'percent'      => 'percent' === $kind ? $percent : 0,
+				'pay_to'       => $pay_to,
+				'payee'        => $payee,
+				'days'         => self::int_in( $row['days'] ?? null, 0, 90, 14 ),
+			);
 		}
 
 		return $clean;

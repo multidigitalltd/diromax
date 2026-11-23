@@ -19,13 +19,13 @@ defined( 'ABSPATH' ) || exit;
 final class CaseRepository {
 
 	/** Columns returned by every read. */
-	private const COLUMNS = 'id, public_id, number, title, property_type, track, scope, fee_terms, signed_on, manager_id, status, stage, stages, summary, created_at, closed_at, lead_id';
+	private const COLUMNS = 'id, public_id, number, title, property_type, track, scope, fee_terms, signed_on, manager_id, status, stage, stages, summary, created_at, closed_at, lead_id, plan_base';
 
 	/** COLUMNS with the c. alias, for joins. */
-	private const CASE_COLUMNS = 'c.id, c.public_id, c.number, c.title, c.property_type, c.track, c.scope, c.fee_terms, c.signed_on, c.manager_id, c.status, c.stage, c.stages, c.summary, c.created_at, c.closed_at, c.lead_id';
+	private const CASE_COLUMNS = 'c.id, c.public_id, c.number, c.title, c.property_type, c.track, c.scope, c.fee_terms, c.signed_on, c.manager_id, c.status, c.stage, c.stages, c.summary, c.created_at, c.closed_at, c.lead_id, c.plan_base';
 
 	/** Columns update() may write. */
-	private const WRITABLE = array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'status', 'stage', 'stages', 'closed_at', 'lead_id' );
+	private const WRITABLE = array( 'title', 'property_type', 'track', 'scope', 'fee_terms', 'signed_on', 'manager_id', 'status', 'stage', 'stages', 'closed_at', 'lead_id', 'plan_base' );
 
 	/**
 	 * Constructor.

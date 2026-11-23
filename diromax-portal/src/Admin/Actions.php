@@ -11,6 +11,7 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\BudgetTemplate;
+use Diromax\Portal\Domain\PaymentPlan;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\CsvExport;
@@ -22,9 +23,11 @@ use Diromax\Portal\Service\ForecastService;
 use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PhotoService;
+use Diromax\Portal\Service\PlanService;
 use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\ReminderService;
 use Diromax\Portal\Service\SignatureService;
+use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Service\UpdateService;
 use Diromax\Portal\Settings;
@@ -80,6 +83,13 @@ final class Actions {
 		'update_meeting'      => array( array( 'meeting_id', 'title', 'kind', 'date', 'time', 'minutes', 'location', 'notify' ), array( 'note' ) ),
 		'cancel_meeting'      => array( array( 'meeting_id', 'notify' ), array() ),
 		'reply_message'       => array( array(), array( 'body' ) ),
+		'plan_add'            => array( array( 'label', 'trigger_on', 'stage', 'trigger_date', 'kind', 'value', 'pay_to', 'payee', 'days' ), array() ),
+		'plan_update'         => array( array( 'payment_id', 'label', 'trigger_on', 'stage', 'trigger_date', 'kind', 'value', 'pay_to', 'payee', 'days' ), array() ),
+		'plan_delete'         => array( array( 'payment_id' ), array() ),
+		'plan_base'           => array( array( 'base' ), array() ),
+		'plan_draft'          => array( array( 'payment_id' ), array() ),
+		'plan_approve'        => array( array( 'payment_id', 'amount', 'due_date', 'description', 'notify' ), array() ),
+		'plan_withdraw'       => array( array( 'payment_id', 'back' ), array() ),
 	);
 
 	/** Transient prefix holding a new webhook key until the next page shows it. */
@@ -182,8 +192,70 @@ final class Actions {
 			'add_meeting'         => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->create( $client_case, $input, self::participants(), $actor ), '1' === $input['notify'] ? __( 'הפגישה נקבעה, וההזמנות נשלחו.', 'diromax-portal' ) : __( 'הפגישה נקבעה.', 'diromax-portal' ), 'meeting', self::meeting_old( $input ) ),
 			'update_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->update( $client_case, absint( $input['meeting_id'] ), $input, self::participants(), $actor ), __( 'הפגישה עודכנה.', 'diromax-portal' ), 'meeting' . absint( $input['meeting_id'] ), self::meeting_old( $input ) ),
 			'cancel_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->cancel( $client_case, absint( $input['meeting_id'] ), '1' === $input['notify'], $actor ), __( 'הפגישה בוטלה.', 'diromax-portal' ) ),
+			'plan_add', 'plan_update', 'plan_delete', 'plan_base', 'plan_draft', 'plan_approve', 'plan_withdraw' => $this->plan( $action, $client_case, $input, $actor ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};
+	}
+
+	/**
+	 * The payment plan's forms (spec 21).
+	 *
+	 * @param string                $action      Action key.
+	 * @param CaseRecord            $client_case Case.
+	 * @param array<string, string> $input       Fields.
+	 * @param int                   $actor       Actor.
+	 */
+	private function plan( string $action, CaseRecord $client_case, array $input, int $actor ): never {
+		$plan    = new PlanService( $this->app );
+		$id      = absint( $input['payment_id'] ?? 0 );
+		$drafts  = $this->app->plan->count_drafts( $client_case->id );
+		$back    = '1' === ( $input['back'] ?? '' );
+		$success = array(
+			'plan_add'      => __( 'התשלום נוסף לתוכנית.', 'diromax-portal' ),
+			'plan_update'   => __( 'התשלום עודכן.', 'diromax-portal' ),
+			'plan_delete'   => __( 'התשלום נמחק מהתוכנית.', 'diromax-portal' ),
+			'plan_base'     => __( 'הבסיס נשמר, והאחוזים חושבו מחדש.', 'diromax-portal' ),
+			'plan_draft'    => __( 'נוצרה טיוטה של דרישת תשלום. בודקים אותה ומאשרים.', 'diromax-portal' ),
+			'plan_approve'  => '1' === ( $input['notify'] ?? '' ) ? __( 'דרישת התשלום נשלחה ללקוח, ונרשמה בכספים.', 'diromax-portal' ) : __( 'דרישת התשלום נרשמה בכספים, בלי מייל ללקוח.', 'diromax-portal' ),
+			'plan_withdraw' => $back ? __( 'התשלום חזר לתוכנית.', 'diromax-portal' ) : __( 'התשלום בוטל.', 'diromax-portal' ),
+		)[ $action ];
+		$result  = match ( $action ) {
+			'plan_add'      => $plan->add( $client_case, $input, $actor ),
+			'plan_update'   => $plan->update( $client_case, $id, $input, $actor ),
+			'plan_delete'   => $plan->delete( $client_case, $id, $actor ),
+			'plan_base'     => $plan->set_base( $client_case, $input['base'], $actor ),
+			'plan_draft'    => $plan->draft_now( $client_case, $id, $actor ),
+			'plan_approve'  => $plan->approve( $client_case, $id, $input, $actor ),
+			default         => $plan->withdraw( $client_case, $id, $back, $actor ),
+		};
+		$form = match ( $action ) {
+			'plan_add'     => 'plan',
+			'plan_update'  => 'plan' . $id,
+			'plan_base'    => 'base',
+			'plan_approve' => 'approve' . $id,
+			default        => '',
+		};
+
+		if ( in_array( $action, array( 'plan_add', 'plan_update' ), true ) ) {
+			$success .= $this->drafts_note( $client_case, $drafts );
+		}
+
+		$this->finish( $client_case, 'plan', $result, $success, $form, $input );
+	}
+
+	/**
+	 * A sentence on the drafts a change made, if any: a stage marked done, or a
+	 * payment whose time had come.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $before      Drafts before the change.
+	 * @return string '' or a sentence with a leading space.
+	 */
+	private function drafts_note( CaseRecord $client_case, int $before ): string {
+		$made = $this->app->plan->count_drafts( $client_case->id ) - $before;
+
+		/* translators: %d: number of drafts. */
+		return $made > 0 ? ' ' . sprintf( _n( 'נוצרה %d טיוטה של דרישת תשלום, והיא מחכה לאישור בלשונית "תוכנית תשלומים".', 'נוצרו %d טיוטות של דרישות תשלום, והן מחכות לאישור בלשונית "תוכנית תשלומים".', $made, 'diromax-portal' ), $made ) : '';
 	}
 
 	/**
@@ -279,7 +351,10 @@ final class Actions {
 	private function update_case( CaseRecord $client_case, array $input, int $actor ): void {
 		$input['stage_status'] = self::stage_pairs( 'stage_status', 'sanitize_key' );
 		$input['stage_due']    = self::stage_pairs( 'stage_due', 'sanitize_text_field' );
-		$this->finish( $client_case, 'details', $this->app->case_service->update_details( $client_case, $input, $actor ), __( 'פרטי התיק נשמרו.', 'diromax-portal' ), 'details', $input );
+		$drafts                = $this->app->plan->count_drafts( $client_case->id );
+		$result                = $this->app->case_service->update_details( $client_case, $input, $actor );
+
+		$this->finish( $client_case, 'details', $result, __( 'פרטי התיק נשמרו.', 'diromax-portal' ) . $this->drafts_note( $client_case, $drafts ), 'details', $input );
 	}
 
 	/**
@@ -474,9 +549,10 @@ final class Actions {
 	 * @param int                   $actor Actor.
 	 */
 	private function add_update( CaseRecord $client_case, array $input, int $actor ): void {
+		$drafts = $this->app->plan->count_drafts( $client_case->id );
 		$result = ( new UpdateService( $this->app ) )->publish( $client_case, $input, self::files( 'files' ), $actor );
 
-		$this->finish( $client_case, 'updates', $result, __( 'העדכון פורסם.', 'diromax-portal' ), 'update', $input );
+		$this->finish( $client_case, 'updates', $result, __( 'העדכון פורסם.', 'diromax-portal' ) . $this->drafts_note( $client_case, $drafts ), 'update', $input );
 	}
 
 	/**
@@ -634,12 +710,76 @@ final class Actions {
 		// The default budget: sections, and sub-sections on "- " lines (spec 19.2).
 		$input += Settings::template_settings( BudgetTemplate::parse( sanitize_textarea_field( (string) ( $raw['categories'] ?? '' ) ), Settings::budget_template() ) );
 
+		// The payment plan of a new case (spec 21.5): rows that fail the checks are reported, not saved.
+		[ $input['plan_template'], $skipped ] = self::plan_rows( isset( $raw['plan'] ) && is_array( $raw['plan'] ) ? $raw['plan'] : array() );
+
 		$before = Settings::all();
 		$after  = Settings::save( $input );
 
 		$this->app->audit->record( 'settings.updated', null, 'settings', null, array_diff_assoc( array_map( 'wp_json_encode', $after ), array_map( 'wp_json_encode', $before ) ), $this->app->clock->mysql() );
-		Flash::set( 'success', __( 'ההגדרות נשמרו.', 'diromax-portal' ) );
-		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) );
+
+		if ( array() === $skipped ) {
+			Flash::set( 'success', __( 'ההגדרות נשמרו.', 'diromax-portal' ) );
+			self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) );
+		}
+
+		/* translators: %s: the rows left out and why. */
+		Flash::set( 'error', sprintf( __( 'ההגדרות נשמרו, אבל שורות בתבנית תוכנית התשלומים לא נשמרו: %s', 'diromax-portal' ), implode( ' ', $skipped ) ) );
+		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) . '#dxa-plan-template' );
+	}
+
+	/**
+	 * The payment plan template as typed on the settings screen, one row per
+	 * payment. Empty rows are dropped; a row that fails the checks is left
+	 * out and named, with what to fix.
+	 *
+	 * @param array<mixed> $rows Raw rows (unslashed).
+	 * @return array{0:array<int, array<string, mixed>>, 1:array<int, string>} Rows to save; row number => sentence.
+	 */
+	private static function plan_rows( array $rows ): array {
+		$columns = array(
+			'label'  => __( 'שם התשלום', 'diromax-portal' ),
+			'stage'  => __( 'מתי', 'diromax-portal' ),
+			'kind'   => __( 'סוג', 'diromax-portal' ),
+			'value'  => __( 'אחוז או סכום', 'diromax-portal' ),
+			'pay_to' => __( 'למי', 'diromax-portal' ),
+			'payee'  => __( 'שם הספק', 'diromax-portal' ),
+			'days'   => __( 'ימים לתשלום', 'diromax-portal' ),
+		);
+		$keep    = array();
+		$skipped = array();
+
+		foreach ( array_values( array_slice( $rows, 0, 20 ) ) as $index => $row ) {
+			$text  = static fn( string $key ): string => is_array( $row ) && is_string( $row[ $key ] ?? null ) ? sanitize_text_field( $row[ $key ] ) : '';
+			$when  = $text( 'when' );
+			$input = array(
+				'label'      => $text( 'label' ),
+				'trigger_on' => 'manual' === $when ? 'manual' : 'stage',
+				'stage'      => str_starts_with( $when, 'stage:' ) ? substr( $when, 6 ) : '',
+				'kind'       => sanitize_key( $text( 'kind' ) ),
+				'value'      => $text( 'value' ),
+				'pay_to'     => sanitize_key( $text( 'pay_to' ) ),
+				'payee'      => $text( 'payee' ),
+				'days'       => $text( 'days' ),
+			);
+
+			if ( '' === $input['label'] && '' === $input['value'] ) {
+				continue;
+			}
+
+			$checked = PaymentPlan::validate( $input, Stages::COUNT, false );
+
+			if ( null !== $checked['fields'] ) {
+				$keep[] = $checked['fields'];
+				continue;
+			}
+
+			$field = (string) array_key_first( $checked['errors'] );
+			/* translators: 1: row number, 2: column, 3: what is wrong. */
+			$skipped[ $index + 1 ] = sprintf( __( 'שורה %1$d (%2$s): %3$s', 'diromax-portal' ), $index + 1, $columns[ $field ] ?? $columns['stage'], Messages::field( $field, $checked['errors'][ $field ] ) );
+		}
+
+		return array( $keep, $skipped );
 	}
 
 	/**

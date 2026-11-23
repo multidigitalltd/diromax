@@ -9,6 +9,9 @@
 
 declare( strict_types = 1 );
 
+use Diromax\Portal\Domain\Money;
+use Diromax\Portal\Domain\PaymentPlan;
+
 defined( 'ABSPATH' ) || exit;
 
 $settings = $view['settings'];
@@ -51,6 +54,121 @@ $header   = array(
 				</td>
 			</tr>
 		</table>
+
+		<h3 id="dxa-plan-template"><?php esc_html_e( 'תוכנית תשלומים לתיק חדש', 'diromax-portal' ); ?></h3>
+		<p class="description" id="dxa-plan-help"><?php esc_html_e( 'התשלומים שכל תיק חדש מתחיל איתם. אחוז מחושב מהבסיס של התיק (סך התקציב, או סכום שקובעים בתיק). בתוך התיק אפשר לשנות, להוסיף תשלום בתאריך, ולמחוק. כדי למחוק שורה כאן, מרוקנים את השם ואת הסכום. שינוי כאן לא משנה תיקים קיימים.', 'diromax-portal' ); ?></p>
+		<?php
+		$plan_rows = array_values( (array) $settings['plan_template'] );
+		$plan_size = min( 20, count( $plan_rows ) + 3 );
+		?>
+		<div class="dxa-scroll"><table class="widefat dxa-table dxa-plan-template" aria-describedby="dxa-plan-help">
+			<caption class="screen-reader-text"><?php esc_html_e( 'תוכנית תשלומים לתיק חדש', 'diromax-portal' ); ?></caption>
+			<thead><tr>
+				<th scope="col">#</th>
+				<th scope="col"><?php esc_html_e( 'שם התשלום', 'diromax-portal' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'מתי', 'diromax-portal' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'סוג', 'diromax-portal' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'אחוז או סכום (₪)', 'diromax-portal' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'למי', 'diromax-portal' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'שם הספק', 'diromax-portal' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'ימים לתשלום', 'diromax-portal' ); ?></th>
+			</tr></thead>
+			<tbody>
+			<?php for ( $plan_index = 0; $plan_index < $plan_size; $plan_index++ ) : ?>
+				<?php
+				$plan_row  = $plan_rows[ $plan_index ] ?? null;
+				$plan_name = 'settings[plan][' . $plan_index . ']';
+				$plan_id   = 'dxa-plan-' . $plan_index;
+				$plan_when = null === $plan_row ? '' : ( 'manual' === $plan_row['trigger_on'] ? 'manual' : 'stage:' . $plan_row['stage'] );
+				$plan_kind = null === $plan_row ? 'percent' : $plan_row['kind'];
+				$plan_line = $plan_index + 1;
+				?>
+				<tr>
+					<td><?php echo esc_html( (string) $plan_line ); ?></td>
+					<td>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $plan_id . '-label' ); ?>">
+							<?php
+							/* translators: %d: row number. */
+							echo esc_html( sprintf( __( 'שם התשלום, שורה %d', 'diromax-portal' ), $plan_line ) );
+							?>
+						</label>
+						<input type="text" id="<?php echo esc_attr( $plan_id . '-label' ); ?>" name="<?php echo esc_attr( $plan_name . '[label]' ); ?>" value="<?php echo esc_attr( (string) ( $plan_row['label'] ?? '' ) ); ?>" maxlength="120">
+					</td>
+					<td>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $plan_id . '-when' ); ?>">
+							<?php
+							/* translators: %d: row number. */
+							echo esc_html( sprintf( __( 'מתי, שורה %d', 'diromax-portal' ), $plan_line ) );
+							?>
+						</label>
+						<select id="<?php echo esc_attr( $plan_id . '-when' ); ?>" name="<?php echo esc_attr( $plan_name . '[when]' ); ?>">
+							<?php foreach ( (array) $view['stages'] as $stage_number => $stage_name ) : ?>
+								<option value="<?php echo esc_attr( 'stage:' . $stage_number ); ?>"<?php selected( $plan_when, 'stage:' . $stage_number ); ?>>
+									<?php
+									/* translators: %s: stage name. */
+									echo esc_html( sprintf( __( 'בסיום "%s"', 'diromax-portal' ), $stage_name ) );
+									?>
+								</option>
+							<?php endforeach; ?>
+							<option value="manual"<?php selected( $plan_when, 'manual' ); ?>><?php esc_html_e( 'ידני', 'diromax-portal' ); ?></option>
+						</select>
+					</td>
+					<td>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $plan_id . '-kind' ); ?>">
+							<?php
+							/* translators: %d: row number. */
+							echo esc_html( sprintf( __( 'סוג, שורה %d', 'diromax-portal' ), $plan_line ) );
+							?>
+						</label>
+						<select id="<?php echo esc_attr( $plan_id . '-kind' ); ?>" name="<?php echo esc_attr( $plan_name . '[kind]' ); ?>">
+							<option value="percent"<?php selected( $plan_kind, 'percent' ); ?>><?php esc_html_e( 'אחוז', 'diromax-portal' ); ?></option>
+							<option value="fixed"<?php selected( $plan_kind, 'fixed' ); ?>><?php esc_html_e( 'סכום קבוע', 'diromax-portal' ); ?></option>
+						</select>
+					</td>
+					<td>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $plan_id . '-value' ); ?>">
+							<?php
+							/* translators: %d: row number. */
+							echo esc_html( sprintf( __( 'אחוז או סכום, שורה %d', 'diromax-portal' ), $plan_line ) );
+							?>
+						</label>
+						<input type="text" inputmode="decimal" dir="ltr" class="small-text" id="<?php echo esc_attr( $plan_id . '-value' ); ?>" name="<?php echo esc_attr( $plan_name . '[value]' ); ?>" value="<?php echo esc_attr( null === $plan_row ? '' : ( 'percent' === $plan_row['kind'] ? PaymentPlan::percent_text( $plan_row['percent'] ) : Money::input( $plan_row['amount'] ) ) ); ?>" maxlength="16">
+					</td>
+					<td>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $plan_id . '-pay_to' ); ?>">
+							<?php
+							/* translators: %d: row number. */
+							echo esc_html( sprintf( __( 'למי, שורה %d', 'diromax-portal' ), $plan_line ) );
+							?>
+						</label>
+						<select id="<?php echo esc_attr( $plan_id . '-pay_to' ); ?>" name="<?php echo esc_attr( $plan_name . '[pay_to]' ); ?>">
+							<option value="diromax"<?php selected( (string) ( $plan_row['pay_to'] ?? 'diromax' ), 'diromax' ); ?>><?php esc_html_e( 'דירומקס', 'diromax-portal' ); ?></option>
+							<option value="supplier"<?php selected( (string) ( $plan_row['pay_to'] ?? '' ), 'supplier' ); ?>><?php esc_html_e( 'ספק', 'diromax-portal' ); ?></option>
+						</select>
+					</td>
+					<td>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $plan_id . '-payee' ); ?>">
+							<?php
+							/* translators: %d: row number. */
+							echo esc_html( sprintf( __( 'שם הספק, שורה %d', 'diromax-portal' ), $plan_line ) );
+							?>
+						</label>
+						<input type="text" id="<?php echo esc_attr( $plan_id . '-payee' ); ?>" name="<?php echo esc_attr( $plan_name . '[payee]' ); ?>" value="<?php echo esc_attr( (string) ( $plan_row['payee'] ?? '' ) ); ?>" maxlength="120">
+					</td>
+					<td>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $plan_id . '-days' ); ?>">
+							<?php
+							/* translators: %d: row number. */
+							echo esc_html( sprintf( __( 'ימים לתשלום, שורה %d', 'diromax-portal' ), $plan_line ) );
+							?>
+						</label>
+						<input type="number" dir="ltr" class="small-text" id="<?php echo esc_attr( $plan_id . '-days' ); ?>" name="<?php echo esc_attr( $plan_name . '[days]' ); ?>" value="<?php echo esc_attr( (string) ( $plan_row['days'] ?? 14 ) ); ?>" min="0" max="<?php echo esc_attr( (string) PaymentPlan::MAX_DAYS ); ?>">
+					</td>
+				</tr>
+			<?php endfor; ?>
+			</tbody>
+		</table></div>
+		<p class="description"><?php esc_html_e( 'עד 20 תשלומים. אחרי השמירה מופיעות עוד שורות ריקות.', 'diromax-portal' ); ?></p>
 
 		<h2><?php esc_html_e( 'מיילים ללקוחות', 'diromax-portal' ); ?></h2>
 		<table class="form-table" role="presentation">

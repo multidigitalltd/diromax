@@ -50,6 +50,15 @@ final class Messages {
 			'date:past'             => __( 'המועד כבר עבר. בוחרים תאריך ושעה בעתיד.', 'diromax-portal' ),
 			'title:case_closed'     => __( 'התיק סגור, ואי אפשר לקבוע בו פגישות.', 'diromax-portal' ),
 			'participants:invalid'  => __( 'אפשר להזמין רק לקוחות של התיק.', 'diromax-portal' ),
+			'value:percent'         => __( 'האחוז צריך להיות בין 0.01 ל-100, עם עד שתי ספרות אחרי הנקודה.', 'diromax-portal' ),
+			'value:invalid'         => __( 'הסכום צריך להיות מספר חיובי, עם עד שתי ספרות אחרי הנקודה.', 'diromax-portal' ),
+			'trigger_on:invalid'    => __( 'בוחרים מתי התשלום מגיע: בסיום שלב, בתאריך, או ידני.', 'diromax-portal' ),
+			'stage:invalid'         => __( 'בוחרים שלב מהרשימה.', 'diromax-portal' ),
+			'trigger_date:invalid'  => __( 'התאריך לא תקין. אפשר לבחור תאריך מלוח השנה.', 'diromax-portal' ),
+			'days:invalid'          => __( 'מספר הימים לתשלום: בין 0 ל-90.', 'diromax-portal' ),
+			'payee:required'        => __( 'כשמשלמים לספק, כותבים את שם הספק.', 'diromax-portal' ),
+			'label:case_closed'     => __( 'התיק סגור, ואי אפשר לשנות בו את תוכנית התשלומים.', 'diromax-portal' ),
+			'base:invalid'          => __( 'סכום הבסיס צריך להיות מספר, או ריק כדי לחשב מסך התקציב.', 'diromax-portal' ),
 		);
 
 		if ( isset( $specific[ $field . ':' . $code ] ) ) {

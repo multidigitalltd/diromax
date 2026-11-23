@@ -187,6 +187,20 @@ $header    = array(
 			<?php endif; ?>
 		</section>
 
+		<?php if ( array() !== $view['drafts'] ) : ?>
+			<section class="dxa-card dxa-card--hot" aria-labelledby="dxa-dash-drafts">
+				<h2 id="dxa-dash-drafts"><?php esc_html_e( 'דרישות תשלום לאישור', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['drafts'] ) ); ?></span></h2>
+				<ul class="dxa-list">
+					<?php foreach ( $view['drafts'] as $row ) : ?>
+						<li>
+							<a href="<?php echo esc_url( Admin::case_url( $row['payment']['case_id'], 'plan' ) . '#form-approve' . $row['payment']['id'] ); ?>"><?php echo esc_html( $row['payment']['label'] ); ?></a><br>
+							<span class="dxa-muted"><?php echo esc_html( $row['case_title'] . ' · ' . Money::format( $row['payment']['draft_amount'] ) ); ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
+		<?php endif; ?>
+
 		<?php if ( array() !== $view['meetings'] ) : ?>
 			<section class="dxa-card" aria-labelledby="dxa-dash-meetings">
 				<h2 id="dxa-dash-meetings"><?php esc_html_e( 'פגישות בשבוע הקרוב', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['meetings'] ) ); ?></span></h2>

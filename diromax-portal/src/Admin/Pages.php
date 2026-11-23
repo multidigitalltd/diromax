@@ -28,6 +28,7 @@ use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\MorningSummary;
 use Diromax\Portal\Service\PhotoService;
+use Diromax\Portal\Service\PlanService;
 use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
@@ -49,7 +50,7 @@ final class Pages {
 	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'tasks', 'meetings', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
+	public const TABS = array( 'overview', 'tasks', 'meetings', 'details', 'members', 'budget', 'finance', 'plan', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -129,6 +130,7 @@ final class Pages {
 			'late'       => ( new MorningSummary( $this->app ) )->late_stages( $scope ),
 			'tasks'      => $this->app->tasks->open_for( $user, 0 === $manager, null, 20 ),
 			'meetings'   => $this->app->meetings->starting_between( $this->app->clock->mysql(), $this->app->clock->mysql_in( 7 * DAY_IN_SECONDS ), $scope ),
+			'drafts'     => $this->app->plan->drafts( $scope ),
 		);
 	}
 
@@ -287,6 +289,7 @@ final class Pages {
 			'key_status'  => $this->app->document_service->key_status(),
 			'mail'        => self::mail_status(),
 			'categories'  => BudgetTemplate::text( Settings::budget_template() ),
+			'stages'      => Stages::names(),
 		);
 	}
 
@@ -470,6 +473,13 @@ final class Pages {
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only: opens one request's "mark as paid" form.
 				'settle'    => isset( $_GET['settle'] ) ? absint( $_GET['settle'] ) : 0,
 			),
+			'plan'      => ( new PlanService( $this->app ) )->for_staff( $client_case ) + array(
+				'budget_total' => $this->app->budget->tree( $client_case->id )->total(),
+				'stages'       => Stages::names(),
+				'states'       => PlanService::state_labels(),
+				'today'        => $this->app->clock->today(),
+				'closed'       => CaseStatus::Closed === $client_case->status,
+			),
 			'decisions' => $this->decisions_data( $client_case ),
 			'updates'   => array(
 				'updates' => $this->app->updates->for_case( $client_case->id, false ),
@@ -584,6 +594,7 @@ final class Pages {
 			'messages'  => $this->app->messages->count_for_case( $client_case->id ),
 			'photos'    => $this->app->photos->count_for_case( $client_case->id, false ),
 			'meetings'  => $this->app->meetings->count_upcoming( $client_case->id, $this->app->clock->mysql() ),
+			'plan'      => $this->app->plan->count_drafts( $client_case->id ),
 		);
 	}
 
@@ -660,6 +671,7 @@ final class Pages {
 			'members'   => __( 'לקוחות', 'diromax-portal' ),
 			'budget'    => __( 'תקציב', 'diromax-portal' ),
 			'finance'   => __( 'כספים', 'diromax-portal' ),
+			'plan'      => __( 'תוכנית תשלומים', 'diromax-portal' ),
 			'decisions' => __( 'החלטות', 'diromax-portal' ),
 			'updates'   => __( 'עדכונים', 'diromax-portal' ),
 			'photos'    => __( 'צילומים', 'diromax-portal' ),

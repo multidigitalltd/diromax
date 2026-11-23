@@ -19,7 +19,7 @@ use Diromax\Portal\Support\Clock;
  */
 abstract class PortalTestCase extends \WP_UnitTestCase {
 
-	/** 2026-11-18 10:00:00 UTC. */
+	/** 2026-11-19 10:00:00 UTC. */
 	protected const NOW = 1795082400;
 
 	protected Plugin $app;
