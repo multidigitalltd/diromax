@@ -82,11 +82,24 @@ final class MorningSummary {
 	}
 
 	/**
-	 * One person's summary, when there is something in it.
+	 * Scheduled meetings from now until the end of tomorrow, in the cases in scope.
 	 *
-	 * @param int $user_id Staff member.
-	 * @return bool Sent.
+	 * @param int|null $scope Manager, or null for every case.
+	 * @return array<int, array{meeting:array{id:int, public_id:string, case_id:int, title:string, kind:string, starts_at:string, minutes:int, location:string, note:string, status:string, sequence:int, reminded_before:bool, reminded_today:bool, created_by:int, created_at:string, updated_at:string}, case_title:string, number:string, manager_id:int}>
 	 */
+	public function meetings( ?int $scope ): array {
+		$now = $this->app->clock->now();
+		$end = ( new \DateTimeImmutable( '@' . $now ) )->setTimezone( wp_timezone() )->setTime( 0, 0 )->modify( '+2 days' );
+
+		return $this->app->meetings->starting_between( gmdate( 'Y-m-d H:i:s', $now ), $end->setTimezone( new \DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ), $scope );
+	}
+
+		/**
+		 * One person's summary, when there is something in it.
+		 *
+		 * @param int $user_id Staff member.
+		 * @return bool Sent.
+		 */
 	private function send_to( int $user_id ): bool {
 		$user = get_userdata( $user_id );
 
@@ -112,6 +125,29 @@ final class MorningSummary {
 						$task['case_title'] . ' · ' . ( $task['due_date'] === $today ? __( 'היום', 'diromax-portal' ) : Labels::date( $task['due_date'] ) ),
 					),
 					$tasks
+				),
+				amount: null,
+				note: '',
+				stage: null,
+				link: null,
+				subject: '',
+			);
+		}
+
+		$meetings = $this->meetings( $all ? null : $user_id );
+
+		if ( array() !== $meetings ) {
+			$cards[] = new MailCard(
+				tone: 'blue',
+				badge: __( 'פגישות', 'diromax-portal' ),
+				/* translators: %d: number of meetings. */
+				title: sprintf( _n( 'פגישה %d היום או מחר', '%d פגישות היום ומחר', count( $meetings ), 'diromax-portal' ), count( $meetings ) ),
+				rows: array_map(
+					static fn( array $row ): array => array(
+						$row['meeting']['title'],
+						$row['case_title'] . ' · ' . Labels::meeting_when( $row['meeting']['starts_at'], $row['meeting']['minutes'] ),
+					),
+					array_slice( $meetings, 0, 30 )
 				),
 				amount: null,
 				note: '',

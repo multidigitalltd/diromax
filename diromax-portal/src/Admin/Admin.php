@@ -32,6 +32,9 @@ final class Admin {
 	public const PAGE_NEW      = 'dx-case-new';
 	public const PAGE_SETTINGS = 'dx-portal-settings';
 
+	/** Payments forecast (administrators). */
+	public const PAGE_FORECAST = 'dx-forecast';
+
 	/**
 	 * Constructor.
 	 *
@@ -53,6 +56,7 @@ final class Admin {
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'כל התיקים', 'diromax-portal' ), __( 'כל התיקים', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_CASES, array( $pages, 'cases' ) );
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'לוח שלבים', 'diromax-portal' ), __( 'לוח שלבים', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_BOARD, array( $pages, 'board' ) );
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'תיק חדש', 'diromax-portal' ), __( 'תיק חדש', 'diromax-portal' ), Capabilities::MANAGE_CASES, self::PAGE_NEW, array( $pages, 'new_case' ) );
+				add_submenu_page( self::PAGE_DASHBOARD, __( 'תחזית תשלומים', 'diromax-portal' ), __( 'תחזית תשלומים', 'diromax-portal' ), Capabilities::MANAGE_SETTINGS, self::PAGE_FORECAST, array( $pages, 'forecast' ) );
 				add_submenu_page( self::PAGE_DASHBOARD, __( 'הגדרות האזור האישי', 'diromax-portal' ), __( 'הגדרות', 'diromax-portal' ), Capabilities::MANAGE_SETTINGS, self::PAGE_SETTINGS, array( $pages, 'settings' ) );
 			}
 		);
@@ -111,6 +115,7 @@ final class Admin {
 					self::PAGE_BOARD    => 'board',
 					self::PAGE_NEW      => 'new',
 					self::PAGE_SETTINGS => 'settings',
+					self::PAGE_FORECAST => 'forecast',
 					default             => 'dashboard',
 				}
 			);
@@ -419,7 +424,7 @@ final class Admin {
 	 * @return bool
 	 */
 	private static function is_plugin_screen( string $id ): bool {
-		foreach ( array( self::PAGE_DASHBOARD, self::PAGE_CASES, self::PAGE_BOARD, self::PAGE_NEW, self::PAGE_SETTINGS ) as $page ) {
+		foreach ( array( self::PAGE_DASHBOARD, self::PAGE_CASES, self::PAGE_BOARD, self::PAGE_NEW, self::PAGE_SETTINGS, self::PAGE_FORECAST ) as $page ) {
 			if ( str_contains( $id, $page ) ) {
 				return true;
 			}

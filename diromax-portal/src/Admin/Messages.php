@@ -47,6 +47,9 @@ final class Messages {
 			'photos:storage'        => __( 'אי אפשר לשמור צילומים כרגע: מפתח ההצפנה חסר או השתנה (פרטים בהתראה האדומה).', 'diromax-portal' ),
 			'taken_on:invalid'      => __( 'התאריך לא תקין. אפשר לבחור תאריך מלוח השנה.', 'diromax-portal' ),
 			'taken_on:future'       => __( 'תאריך הצילום לא יכול להיות בעתיד.', 'diromax-portal' ),
+			'date:past'             => __( 'המועד כבר עבר. בוחרים תאריך ושעה בעתיד.', 'diromax-portal' ),
+			'title:case_closed'     => __( 'התיק סגור, ואי אפשר לקבוע בו פגישות.', 'diromax-portal' ),
+			'participants:invalid'  => __( 'אפשר להזמין רק לקוחות של התיק.', 'diromax-portal' ),
 		);
 
 		if ( isset( $specific[ $field . ':' . $code ] ) ) {

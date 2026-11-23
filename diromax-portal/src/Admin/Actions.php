@@ -18,6 +18,8 @@ use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\DemoCase;
 use Diromax\Portal\Service\DocRequestService;
 use Diromax\Portal\Service\Errors;
+use Diromax\Portal\Service\ForecastService;
+use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\Postmark;
@@ -74,6 +76,9 @@ final class Actions {
 		'upload_photos'       => array( array( 'stage', 'taken_on', 'caption', 'visible', 'notify' ), array() ),
 		'photo_visibility'    => array( array( 'photo_id', 'visible' ), array() ),
 		'delete_photo'        => array( array( 'photo_id' ), array() ),
+		'add_meeting'         => array( array( 'title', 'kind', 'date', 'time', 'minutes', 'location', 'notify' ), array( 'note' ) ),
+		'update_meeting'      => array( array( 'meeting_id', 'title', 'kind', 'date', 'time', 'minutes', 'location', 'notify' ), array( 'note' ) ),
+		'cancel_meeting'      => array( array( 'meeting_id', 'notify' ), array() ),
 		'reply_message'       => array( array(), array( 'body' ) ),
 	);
 
@@ -110,6 +115,7 @@ final class Actions {
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
 		add_action( 'admin_post_dx_portal_export', array( $this, 'export' ) );
+		add_action( 'admin_post_dx_portal_forecast_csv', array( $this, 'forecast_csv' ) );
 		add_action( 'admin_post_dx_portal_certificate', array( $this, 'certificate' ) );
 	}
 
@@ -173,6 +179,9 @@ final class Actions {
 			'upload_photos'       => $this->upload_photos( $client_case, $input, $actor ),
 			'photo_visibility'    => $this->finish( $client_case, 'photos', ( new PhotoService( $this->app ) )->set_visible( $client_case, absint( $input['photo_id'] ), '1' === $input['visible'], $actor ), '1' === $input['visible'] ? __( 'הצילום מוצג ללקוח.', 'diromax-portal' ) : __( 'הצילום הוסתר מהלקוח.', 'diromax-portal' ) ),
 			'delete_photo'        => $this->finish( $client_case, 'photos', ( new PhotoService( $this->app ) )->delete( $client_case, absint( $input['photo_id'] ), $actor ), __( 'הצילום נמחק.', 'diromax-portal' ) ),
+			'add_meeting'         => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->create( $client_case, $input, self::participants(), $actor ), '1' === $input['notify'] ? __( 'הפגישה נקבעה, וההזמנות נשלחו.', 'diromax-portal' ) : __( 'הפגישה נקבעה.', 'diromax-portal' ), 'meeting', $input ),
+			'update_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->update( $client_case, absint( $input['meeting_id'] ), $input, self::participants(), $actor ), __( 'הפגישה עודכנה.', 'diromax-portal' ), 'meeting' . absint( $input['meeting_id'] ), $input ),
+			'cancel_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->cancel( $client_case, absint( $input['meeting_id'] ), '1' === $input['notify'], $actor ), __( 'הפגישה בוטלה.', 'diromax-portal' ) ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};
 	}
@@ -758,8 +767,24 @@ final class Actions {
 	}
 
 	/**
-	 * Preview of the pending email.
+	 * The payments forecast as CSV (spec 20.2): administrators only.
 	 */
+	public function forecast_csv(): void {
+		check_admin_referer( 'dx_portal_forecast_csv' );
+
+		$csv = ( new ForecastService( $this->app ) )->csv( get_current_user_id() );
+
+		if ( $csv instanceof WP_Error ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		CsvExport::output( $csv, 'diromax-forecast-' . $this->app->clock->today() . '.csv' );
+		exit;
+	}
+
+		/**
+		 * Preview of the pending email.
+		 */
 	public function preview(): void {
 		$case_id = isset( $_GET['case_id'] ) ? absint( $_GET['case_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified on the next line.
 		check_admin_referer( 'dx_portal_preview_' . $case_id );
@@ -849,11 +874,24 @@ final class Actions {
 	}
 
 	/**
-	 * One uploaded file, or null when none was chosen.
+	 * The clients ticked on a meeting form.
 	 *
-	 * @param string $field Field name.
-	 * @return array<string, mixed>|null
+	 * @return int[]
 	 */
+	private static function participants(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Called after check_admin_referer(); each value goes through absint() below.
+		$raw = isset( $_POST['participants'] ) && is_array( $_POST['participants'] ) ? wp_unslash( $_POST['participants'] ) : array();
+		// phpcs:enable
+
+		return array_values( array_filter( array_map( 'absint', array_slice( $raw, 0, 50 ) ) ) );
+	}
+
+		/**
+		 * One uploaded file, or null when none was chosen.
+		 *
+		 * @param string $field Field name.
+		 * @return array<string, mixed>|null
+		 */
 	private static function file( string $field ): ?array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Verified in handle(); DocumentService validates the file itself.
 		$file = $_FILES[ $field ] ?? null;

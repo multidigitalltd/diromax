@@ -230,16 +230,17 @@ final class Notifier {
 	/**
 	 * Send a ready message to one member of a case and log it (digests, summaries).
 	 *
-	 * @param CaseRecord  $client_case Case.
-	 * @param int         $user_id     Recipient.
-	 * @param string      $email       Address.
-	 * @param string      $template    Template code for the log.
-	 * @param MailMessage $message     Message.
-	 * @param string      $batch_key   Key that makes the send unique per recipient.
+	 * @param CaseRecord            $client_case Case.
+	 * @param int                   $user_id     Recipient.
+	 * @param string                $email       Address.
+	 * @param string                $template    Template code for the log.
+	 * @param MailMessage           $message     Message.
+	 * @param string                $batch_key   Key that makes the send unique per recipient.
+	 * @param array<string, string> $attachments Files to attach: name => path.
 	 * @return bool
 	 */
-	public function send_to_member( CaseRecord $client_case, int $user_id, string $email, string $template, MailMessage $message, string $batch_key ): bool {
-		return $this->send_logged( $client_case->id, $user_id, $email, $template, $message, $client_case, $batch_key );
+	public function send_to_member( CaseRecord $client_case, int $user_id, string $email, string $template, MailMessage $message, string $batch_key, array $attachments = array() ): bool {
+		return $this->send_logged( $client_case->id, $user_id, $email, $template, $message, $client_case, $batch_key, $attachments );
 	}
 
 	/**
@@ -383,18 +384,20 @@ final class Notifier {
 	/**
 	 * Send one message and log it.
 	 *
-	 * @param int|null        $case_id   Case.
-	 * @param int             $user_id   Recipient user.
-	 * @param string          $email     Recipient address.
-	 * @param string          $template  Template code.
-	 * @param MailMessage     $message   Rendered message.
-	 * @param CaseRecord|null $client_case      Case, for the reply-to manager.
-	 * @param string          $batch_key Batch key.
+	 * @param int|null              $case_id   Case.
+	 * @param int                   $user_id   Recipient user.
+	 * @param string                $email     Recipient address.
+	 * @param string                $template  Template code.
+	 * @param MailMessage           $message   Rendered message.
+	 * @param CaseRecord|null       $client_case      Case, for the reply-to manager.
+	 * @param string                $batch_key Batch key.
+	 * @param array<string, string> $attachments Files to attach: name => path.
 	 * @return bool
 	 */
-	private function send_logged( ?int $case_id, int $user_id, string $email, string $template, MailMessage $message, ?CaseRecord $client_case, string $batch_key = '' ): bool {
+	private function send_logged( ?int $case_id, int $user_id, string $email, string $template, MailMessage $message, ?CaseRecord $client_case, string $batch_key = '', array $attachments = array() ): bool {
 		$manager = null === $client_case ? null : get_userdata( $client_case->manager_id );
-		$ok      = Mailer::send( $email, $message, $manager ? $manager : null, self::reply_options( $client_case ) );
+		$options = self::reply_options( $client_case ) + ( array() === $attachments ? array() : array( 'attachments' => $attachments ) );
+		$ok      = Mailer::send( $email, $message, $manager ? $manager : null, $options );
 
 		$this->app->mail_log->add(
 			array(

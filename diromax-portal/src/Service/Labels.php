@@ -275,6 +275,40 @@ final class Labels {
 	}
 
 	/**
+	 * Kinds of meeting (spec 20.1).
+	 *
+	 * @return array<string, string>
+	 */
+	public static function meeting_kinds(): array {
+		return array(
+			'office' => __( 'פגישה במשרד', 'diromax-portal' ),
+			'site'   => __( 'סיור בשטח', 'diromax-portal' ),
+			'call'   => __( 'שיחת טלפון', 'diromax-portal' ),
+			'video'  => __( 'שיחת וידאו', 'diromax-portal' ),
+		);
+	}
+
+	/**
+	 * When a meeting is, in the site's time zone: "יום שלישי, 24.11.2026, 09:30–11:00".
+	 *
+	 * @param string $utc     Start, UTC DATETIME.
+	 * @param int    $minutes Length.
+	 * @return string
+	 */
+	public static function meeting_when( string $utc, int $minutes ): string {
+		$start = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $utc, new \DateTimeZone( 'UTC' ) );
+
+		if ( false === $start ) {
+			return '';
+		}
+
+		$start = $start->setTimezone( wp_timezone() );
+		$days  = array( __( 'יום ראשון', 'diromax-portal' ), __( 'יום שני', 'diromax-portal' ), __( 'יום שלישי', 'diromax-portal' ), __( 'יום רביעי', 'diromax-portal' ), __( 'יום חמישי', 'diromax-portal' ), __( 'יום שישי', 'diromax-portal' ), __( 'שבת', 'diromax-portal' ) );
+
+		return $days[ (int) $start->format( 'w' ) ] . ', ' . $start->format( 'd.m.Y' ) . ', ' . $start->format( 'H:i' ) . '–' . $start->modify( '+' . $minutes . ' minutes' )->format( 'H:i' );
+	}
+
+	/**
 	 * Date for display: 12.11.2026.
 	 *
 	 * @param string|null $date Y-m-d or a DATETIME.

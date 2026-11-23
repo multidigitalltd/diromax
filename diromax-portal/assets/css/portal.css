@@ -77,6 +77,17 @@
 .dxp-pm__tel a { color: var(--p-ink); font-weight: 800; text-decoration: none; border-bottom: 2px solid var(--p-blue); }
 .dxp-pm__tel a:hover { color: var(--p-blue); }
 .dxp-pm__tel a:focus-visible { outline: 3px solid var(--p-blue); outline-offset: 3px; }
+/* Upcoming meetings (spec 20.1) */
+.dxp-meets { padding: 20px 0 0; }
+.dxp-meets__k { font-size: 13px; font-weight: 800; letter-spacing: .06em; color: var(--p-muted); margin: 0 0 8px; }
+.dxp-meets__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.dxp-meet { background: var(--p-white); border: 2px solid var(--p-ink); border-inline-start-width: 8px; border-inline-start-color: var(--p-blue); padding: 14px 16px; }
+.dxp-meet p { margin: 0 0 6px; }
+.dxp-meet__when { font-weight: 800; color: var(--p-ink); }
+.dxp-meet__t { font-size: 17px; font-weight: 700; color: var(--p-ink); }
+.dxp-meet__kind { font-weight: 400; color: var(--p-muted); }
+.dxp-meet__where, .dxp-meet__note { color: var(--p-body); }
+.dxp-meet__btns { margin: 10px 0 0; }
 .dxp-pm__btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
 
 .dxp-stages { list-style: none; margin: clamp(28px, 3vw, 44px) 0 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 2px solid var(--p-ink); }

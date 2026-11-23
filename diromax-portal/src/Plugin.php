@@ -22,6 +22,7 @@ use Diromax\Portal\Data\LedgerRepository;
 use Diromax\Portal\Data\MailLog;
 use Diromax\Portal\Data\MemberRepository;
 use Diromax\Portal\Data\MessageRepository;
+use Diromax\Portal\Data\MeetingRepository;
 use Diromax\Portal\Data\PhotoRepository;
 use Diromax\Portal\Data\Schema;
 use Diromax\Portal\Data\SignatureRepository;
@@ -172,6 +173,13 @@ final class Plugin {
 	 * @var PhotoRepository
 	 */
 	public readonly PhotoRepository $photos;
+
+	/**
+	 * Meetings and who is invited.
+	 *
+	 * @var MeetingRepository
+	 */
+	public readonly MeetingRepository $meetings;
 	/**
 	 * Team tasks.
 	 *
@@ -268,6 +276,7 @@ final class Plugin {
 		$this->sign_requests    = new SignRequestRepository( $wpdb );
 		$this->messages         = new MessageRepository( $wpdb );
 		$this->photos           = new PhotoRepository( $wpdb );
+		$this->meetings         = new MeetingRepository( $wpdb );
 		$this->policy           = new AccessPolicy( $this->members, $clock );
 		$this->store            = new DocumentStore();
 		$this->limiter          = new RateLimiter( $clock );

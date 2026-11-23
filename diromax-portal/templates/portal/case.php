@@ -135,6 +135,29 @@ if ( array() === $view['photos'] ) {
 </section>
 <?php endif; ?>
 
+<?php if ( array() !== $view['meetings'] ) : ?>
+<section class="dxp-meets" aria-labelledby="dxp-meets-title">
+	<div class="dxp-wrap">
+		<h2 class="dxp-meets__k" id="dxp-meets-title"><?php echo esc_html( 1 === count( $view['meetings'] ) ? __( 'פגישה קרובה', 'diromax-portal' ) : __( 'פגישות קרובות', 'diromax-portal' ) ); ?></h2>
+		<ul class="dxp-meets__list">
+			<?php foreach ( $view['meetings'] as $meeting ) : ?>
+				<li class="dxp-meet">
+					<p class="dxp-meet__when"><?php echo esc_html( (string) $meeting['when'] ); ?></p>
+					<p class="dxp-meet__t"><?php echo esc_html( (string) $meeting['title'] ); ?> <span class="dxp-meet__kind">· <?php echo esc_html( (string) $meeting['kind_name'] ); ?></span></p>
+					<?php if ( '' !== $meeting['location'] ) : ?>
+						<p class="dxp-meet__where"><?php echo esc_html( (string) $meeting['location'] ); ?></p>
+					<?php endif; ?>
+					<?php if ( '' !== $meeting['note'] ) : ?>
+						<p class="dxp-meet__note"><?php echo nl2br( esc_html( (string) $meeting['note'] ) ); ?></p>
+					<?php endif; ?>
+					<p class="dxp-meet__btns"><a class="dxp-btn" href="<?php echo esc_url( (string) $meeting['ics'] ); ?>" download><?php esc_html_e( 'הוספה ליומן', 'diromax-portal' ); ?><span class="dxp-sr"> <?php echo esc_html( ': ' . $meeting['title'] ); ?></span></a></p>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
+</section>
+<?php endif; ?>
+
 <?php if ( ( $waiting > 0 && $view['can_answer'] ) || array() !== $view['to_sign'] || array() !== $view['requests'] ) : ?>
 <section class="dxp-todo" aria-labelledby="dxp-todo-title">
 	<div class="dxp-wrap">

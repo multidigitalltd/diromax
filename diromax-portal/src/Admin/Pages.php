@@ -11,6 +11,8 @@ namespace Diromax\Portal\Admin;
 
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\BudgetTemplate;
+use Diromax\Portal\Domain\CaseStatus;
+use Diromax\Portal\Domain\MeetingInput;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Plugin;
@@ -18,9 +20,11 @@ use Diromax\Portal\Portal\CaseView;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Portal\Webhooks;
 use Diromax\Portal\Service\Contact;
+use Diromax\Portal\Service\ForecastService;
 use Diromax\Portal\Service\InboundService;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LeadLink;
+use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\MorningSummary;
 use Diromax\Portal\Service\PhotoService;
@@ -45,7 +49,7 @@ final class Pages {
 	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'tasks', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
+	public const TABS = array( 'overview', 'tasks', 'meetings', 'details', 'members', 'budget', 'finance', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -124,6 +128,7 @@ final class Pages {
 			'awaiting'   => $this->app->messages->awaiting_reply( $manager ),
 			'late'       => ( new MorningSummary( $this->app ) )->late_stages( $scope ),
 			'tasks'      => $this->app->tasks->open_for( $user, 0 === $manager, null, 20 ),
+			'meetings'   => $this->app->meetings->starting_between( $this->app->clock->mysql(), $this->app->clock->mysql_in( 7 * DAY_IN_SECONDS ), $scope ),
 		);
 	}
 
@@ -240,6 +245,19 @@ final class Pages {
 			'lead'     => $lead,
 			'prefill'  => $lead ?? array(),
 		);
+	}
+
+	/**
+	 * The payments forecast screen (spec 20.2): administrators only.
+	 */
+	public function forecast(): void {
+		$view = ( new ForecastService( $this->app ) )->view( get_current_user_id() );
+
+		if ( $view instanceof \WP_Error ) {
+			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
+		}
+
+		include DX_PORTAL_DIR . 'templates/admin/forecast.php';
 	}
 
 	/**
@@ -472,6 +490,14 @@ final class Pages {
 				'assignees' => ( new TaskService( $this->app ) )->assignees( $client_case ),
 				'today'     => $this->app->clock->today(),
 			),
+			'meetings'  => array(
+				'meetings' => ( new MeetingService( $this->app ) )->for_staff( $client_case ),
+				'people'   => ( new MeetingService( $this->app ) )->invitable( $client_case ),
+				'kinds'    => Labels::meeting_kinds(),
+				'lengths'  => MeetingInput::LENGTHS,
+				'today'    => $this->app->clock->today(),
+				'closed'   => CaseStatus::Closed === $client_case->status,
+			),
 			'photos'    => array(
 				'journal'   => ( new PhotoService( $this->app ) )->journal( $client_case, false ),
 				'stage'     => StageProgress::lead( $client_case->stages ),
@@ -557,6 +583,7 @@ final class Pages {
 			'tasks'     => $this->app->tasks->open_count( $client_case->id ),
 			'messages'  => $this->app->messages->count_for_case( $client_case->id ),
 			'photos'    => $this->app->photos->count_for_case( $client_case->id, false ),
+			'meetings'  => $this->app->meetings->count_upcoming( $client_case->id, $this->app->clock->mysql() ),
 		);
 	}
 
@@ -628,6 +655,7 @@ final class Pages {
 		return array(
 			'overview'  => __( 'סקירה', 'diromax-portal' ),
 			'tasks'     => __( 'משימות', 'diromax-portal' ),
+			'meetings'  => __( 'פגישות', 'diromax-portal' ),
 			'details'   => __( 'פרטי התיק', 'diromax-portal' ),
 			'members'   => __( 'לקוחות', 'diromax-portal' ),
 			'budget'    => __( 'תקציב', 'diromax-portal' ),

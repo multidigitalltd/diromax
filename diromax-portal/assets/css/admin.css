@@ -389,6 +389,24 @@
 .dxa-task__a { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .dxa-signed { color: var(--a-teal-deep); font-weight: 700; }
 
+/* Payments forecast (spec 20.2) */
+.dxa-forecast__tools { margin: 0 0 16px; }
+.dxa-forecast tr.is-late th, .dxa-forecast tr.is-late td { color: var(--a-red); font-weight: 700; }
+.dxa-forecast tfoot th, .dxa-forecast tfoot td { border-top: 2px solid var(--a-ink); }
+
+/* Meetings (spec 20.1) */
+.dxa-meetings { margin: 0 0 24px; padding: 0; list-style: none; background: var(--a-white); border: 1px solid var(--a-line); }
+.dxa-meeting { margin: 0; padding: 14px 16px; border-top: 1px solid var(--a-line-soft); border-inline-start: 4px solid var(--a-blue); }
+.dxa-meeting:first-child { border-top: 0; }
+.dxa-meeting p { margin: 4px 0; }
+.dxa-meeting__when { color: var(--a-ink); }
+.dxa-meeting__title { margin: 2px 0 6px; font-size: 16px; }
+.dxa-meeting__note { padding: 8px 12px; background: var(--a-bg, #f6f6f4); }
+.dxa-meeting .dxa-box { margin: 10px 0; }
+.dxa-meetings--past li { margin: 0; padding: 8px 16px; border-top: 1px solid var(--a-line-soft); color: var(--a-muted); }
+.dxa-meetings--past li:first-child { border-top: 0; }
+.dxa-tag-cancelled { display: inline-block; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--a-ink); background: var(--a-line-soft); }
+
 /* ---------- Small screens and motion ---------- */
 @media (max-width: 1180px) {
   .dxa-dash-grid { grid-template-columns: minmax(0, 1fr); }

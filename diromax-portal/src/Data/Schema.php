@@ -23,13 +23,13 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '7';
+	public const VERSION = '8';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
 
 	/** Every table, without prefix. */
-	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages', 'photos' );
+	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages', 'photos', 'meetings', 'meeting_people' );
 
 	/**
 	 * Full table name.
@@ -116,6 +116,8 @@ final class Schema {
 		$signs   = self::table( 'signatures' );
 		$msgs    = self::table( 'messages' );
 		$photos  = self::table( 'photos' );
+		$meets   = self::table( 'meetings' );
+		$people  = self::table( 'meeting_people' );
 
 		return array(
 			"CREATE TABLE {$cases} (
@@ -452,6 +454,34 @@ final class Schema {
   KEY case_stage (case_id,stage,taken_on),
   KEY batch_key (batch_key)
 ) {$c};",
+			"CREATE TABLE {$meets} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  public_id char(24) NOT NULL,
+  case_id bigint(20) unsigned NOT NULL,
+  title varchar(120) NOT NULL,
+  kind varchar(20) NOT NULL DEFAULT 'office',
+  starts_at datetime NOT NULL,
+  minutes smallint(5) unsigned NOT NULL DEFAULT 60,
+  location varchar(200) NOT NULL DEFAULT '',
+  note text DEFAULT NULL,
+  status varchar(20) NOT NULL DEFAULT 'scheduled',
+  sequence smallint(5) unsigned NOT NULL DEFAULT 0,
+  reminded_before tinyint(1) NOT NULL DEFAULT 0,
+  reminded_today tinyint(1) NOT NULL DEFAULT 0,
+  created_by bigint(20) unsigned NOT NULL,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY public_id (public_id),
+  KEY case_start (case_id,starts_at),
+  KEY start_status (starts_at,status)
+) {$c};",
+			"CREATE TABLE {$people} (
+  meeting_id bigint(20) unsigned NOT NULL,
+  user_id bigint(20) unsigned NOT NULL,
+  PRIMARY KEY  (meeting_id,user_id),
+  KEY user_id (user_id)
+) {$c};",
 		);
 	}
 
@@ -497,6 +527,9 @@ final class Schema {
 			'dx_msgs_case'      => array( 'messages', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_msgs_user'      => array( 'messages', "FOREIGN KEY (user_id) REFERENCES {$users} (ID) ON DELETE SET NULL" ),
 			'dx_photos_case'    => array( 'photos', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_meets_case'     => array( 'meetings', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_people_meet'    => array( 'meeting_people', 'FOREIGN KEY (meeting_id) REFERENCES ' . self::table( 'meetings' ) . ' (id) ON DELETE CASCADE' ),
+			'dx_people_user'    => array( 'meeting_people', "FOREIGN KEY (user_id) REFERENCES {$users} (ID) ON DELETE CASCADE" ),
 		);
 	}
 

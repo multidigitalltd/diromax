@@ -7,7 +7,7 @@
  *
  * Expects $header: title, and optionally eyebrow, meta (strings), back
  * (label, url), actions (label, url, primary, new_tab) and current
- * (dashboard, cases, board, new, settings).
+ * (dashboard, cases, board, new, forecast, settings).
  *
  * @package Diromax\Portal
  *
@@ -38,6 +38,7 @@ if ( null !== $dxa_leads && current_user_can( $dxa_leads->cap->edit_posts ) ) {
 }
 
 if ( current_user_can( Capabilities::MANAGE_SETTINGS ) ) {
+	$dxa_items['forecast'] = array( __( 'תחזית תשלומים', 'diromax-portal' ), Admin::page_url( Admin::PAGE_FORECAST ) );
 	$dxa_items['settings'] = array( __( 'הגדרות', 'diromax-portal' ), Admin::page_url( Admin::PAGE_SETTINGS ) );
 }
 

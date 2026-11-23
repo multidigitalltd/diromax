@@ -54,6 +54,7 @@ final class DailyJobs {
 		try {
 			$digests = new DigestService( $this->app );
 			( new ReminderService( $this->app ) )->run();
+			( new MeetingService( $this->app ) )->send_reminders();
 			$digests->daily();
 			$digests->monthly();
 			( new MorningSummary( $this->app ) )->run();

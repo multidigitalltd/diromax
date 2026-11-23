@@ -187,6 +187,20 @@ $header    = array(
 			<?php endif; ?>
 		</section>
 
+		<?php if ( array() !== $view['meetings'] ) : ?>
+			<section class="dxa-card" aria-labelledby="dxa-dash-meetings">
+				<h2 id="dxa-dash-meetings"><?php esc_html_e( 'פגישות בשבוע הקרוב', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['meetings'] ) ); ?></span></h2>
+				<ul class="dxa-list">
+					<?php foreach ( $view['meetings'] as $row ) : ?>
+						<li>
+							<a href="<?php echo esc_url( Admin::case_url( (int) $row['meeting']['case_id'], 'meetings' ) ); ?>"><?php echo esc_html( $row['meeting']['title'] ); ?></a><br>
+							<span class="dxa-muted"><?php echo esc_html( Labels::meeting_when( $row['meeting']['starts_at'], $row['meeting']['minutes'] ) . ' · ' . $row['case_title'] ); ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
+		<?php endif; ?>
+
 		<?php if ( array() !== $view['awaiting'] ) : ?>
 			<section class="dxa-card dxa-card--hot" aria-labelledby="dxa-dash-awaiting">
 				<h2 id="dxa-dash-awaiting"><?php esc_html_e( 'הודעות שממתינות לתשובה', 'diromax-portal' ); ?> <span class="dxa-count"><?php echo esc_html( (string) count( $view['awaiting'] ) ); ?></span></h2>
