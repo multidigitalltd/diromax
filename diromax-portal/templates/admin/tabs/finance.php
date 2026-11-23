@@ -187,7 +187,7 @@ $open   = is_array( $flash ) && 'error' === $flash['type'] ? $flash['form'] : ''
 								<?php if ( PayTo::Supplier === $entry->pay_to && '' === $entry->category ) : ?>
 									<p><label for="<?php echo esc_attr( $settle->id( 'category' ) ); ?>"><?php esc_html_e( 'סעיף בתקציב', 'diromax-portal' ); ?></label>
 									<select <?php echo $settle->attrs( 'category' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
-										<?php echo BudgetSelect::options( $view['budget'], '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in BudgetSelect::options(). ?>
+										<?php echo BudgetSelect::options( $view['budget'], '', true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in BudgetSelect::options(). ?>
 									</select><?php $settle->print_error( 'category' ); ?></p>
 								<?php elseif ( PayTo::Diromax === $entry->pay_to ) : ?>
 									<p><label for="<?php echo esc_attr( $settle->id( 'method' ) ); ?>"><?php esc_html_e( 'אמצעי תשלום', 'diromax-portal' ); ?></label>
