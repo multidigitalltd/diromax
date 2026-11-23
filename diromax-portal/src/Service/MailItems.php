@@ -68,7 +68,7 @@ final class MailItems {
 				'photos_added'     => $this->photos_card( $client_case, $event['object_id'] ),
 				'schedule_changed' => $this->schedule_card( $client_case ),
 				'visit_published'  => $this->visit_card( $client_case, $event['object_id'] ),
-				'quote_sent'       => $this->quote_card( $client_case, $event['object_id'] ),
+				'quote_sent'       => $this->quote_card( $client_case, $event['object_id'], $hide_amounts ),
 				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
 			};
 
@@ -340,11 +340,12 @@ final class MailItems {
 	/**
 	 * Card for quotes sent to the client to choose from (spec 24.3).
 	 *
-	 * @param CaseRecord $client_case Case.
-	 * @param int        $id          Comparison.
+	 * @param CaseRecord $client_case  Case.
+	 * @param int        $id           Comparison.
+	 * @param bool       $hide_amounts Leave the prices out (the office's setting).
 	 * @return MailCard|null
 	 */
-	private function quote_card( CaseRecord $client_case, int $id ): ?MailCard {
+	private function quote_card( CaseRecord $client_case, int $id, bool $hide_amounts ): ?MailCard {
 		$comparison = null;
 
 		foreach ( ( new QuoteService( $this->app ) )->for_client( $client_case ) ?? array() as $candidate ) {
@@ -361,7 +362,7 @@ final class MailItems {
 			badge: __( 'הצעות מחיר לבחירתך', 'diromax-portal' ),
 			title: (string) $comparison['title'],
 			rows: array_map(
-				static fn( array $offer ): array => array( (string) $offer['supplier'], $offer['amount'] . ( '' !== $offer['duration'] ? ' · ' . $offer['duration'] : '' ) ),
+				static fn( array $offer ): array => array( (string) $offer['supplier'], implode( ' · ', array_filter( array( $hide_amounts ? '' : (string) $offer['amount'], (string) $offer['duration'] ) ) ) ),
 				(array) $comparison['offers']
 			),
 			amount: null,

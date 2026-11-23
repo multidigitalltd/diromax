@@ -201,6 +201,32 @@ final class QuotesTest extends PortalTestCase {
 		$this->assertSame( 'dx_closed', $this->code( $service->create( $this->app->cases->find( $case->id ) ?? $case, array( 'title' => 'x' ), $manager ) ) );
 	}
 
+	public function test_a_closed_case_takes_no_choice(): void {
+		// Regression (PR #20 review): a client could still choose after the case was closed.
+		[ $case, $manager, $client, $id, $quotes ] = $this->sent();
+		$this->assertInstanceOf( CaseRecord::class, $this->app->case_service->set_status( $case, 'closed', $manager ) );
+		$closed = $this->app->cases->find( $case->id );
+		$this->assertNotNull( $closed );
+
+		$this->assertSame( 'dx_closed', $this->code( ( new QuoteService( $this->app ) )->choose( $closed, $id, $quotes[0], $client, '', true ) ) );
+		$this->assertSame( 'open', $this->app->quotes->find_comparison( $id )['status'] ?? '' );
+	}
+
+	public function test_the_email_leaves_prices_out_when_the_office_hides_amounts(): void {
+		// Regression (PR #20 review): the quotes email showed prices despite the setting.
+		\Diromax\Portal\Settings::save( array( 'hide_amounts' => '1' ) );
+		[ $case, $manager, , $id ] = $this->drafted();
+		$service                   = new QuoteService( $this->app );
+		$this->assertIsInt( $service->add_offer( $case, $id, self::offer( 'מדידות כהן', '4,800' ), null, $manager ) );
+		$this->assertIsInt( $service->add_offer( $case, $id, self::offer( 'גיאו-מפות', '5,500' ), null, $manager ) );
+		$this->assertTrue( $service->send( $case, $id, true, $manager ) );
+
+		$body = (string) end( $this->mails )['message'];
+		$this->assertStringContainsString( 'גיאו-מפות', $body );
+		$this->assertStringNotContainsString( '4,800', $body );
+		$this->assertStringNotContainsString( '5,500', $body );
+	}
+
 	public function test_the_staff_tab_counts_what_waits_and_deleting_the_case_removes_it(): void {
 		global $wpdb;
 		[ $case, $manager, $client, $id, $quotes ] = $this->sent();

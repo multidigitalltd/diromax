@@ -249,6 +249,11 @@ final class QuoteService {
 			return Errors::forbidden();
 		}
 
+		// A closed case can still be read, not changed.
+		if ( CaseStatus::Closed === $client_case->status ) {
+			return Errors::closed();
+		}
+
 		$offer = $this->app->quotes->find_offer( $offer_id );
 
 		if ( null === $offer || $offer['comparison_id'] !== $id ) {

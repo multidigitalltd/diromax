@@ -556,7 +556,7 @@ final class Controller {
 			true === $result                         => 'approve' === $answer ? 'approved' : 'declined',
 			is_string( $result )                     => $result,
 			'choose' === $step && isset( Errors::fields( $result )['offer'] ) => 'offer',
-			'choose' === $step && 'dx_not_pending' === $result->get_error_code() => 'quote_closed',
+			'choose' === $step && in_array( $result->get_error_code(), array( 'dx_not_pending', 'dx_closed' ), true ) => 'quote_closed',
 			'message' === $step && 'dx_rate_limited' === $result->get_error_code() => 'too_many_messages',
 			'message' === $step && 'too_long' === ( Errors::fields( $result )['body'] ?? '' ) => 'message_long',
 			'message' === $step && isset( Errors::fields( $result )['body'] ) => 'message_empty',

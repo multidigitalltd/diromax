@@ -73,7 +73,7 @@ $dx_offer_doc = static function ( array $offer ): void {
 	<?php foreach ( $comparisons as $comparison ) : ?>
 		<?php
 		$field    = 'dxp-quote-' . (int) $comparison['id'];
-		$choosing = 'open' === $comparison['status'] && $view['can_answer'];
+		$choosing = 'open' === $comparison['status'] && $view['can_answer'] && ! $view['case']['closed'];
 		?>
 		<article class="dxp-quote" aria-labelledby="<?php echo esc_attr( $field ); ?>-title">
 			<h3 id="<?php echo esc_attr( $field ); ?>-title"><?php echo esc_html( (string) $comparison['title'] ); ?></h3>
