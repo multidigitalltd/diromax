@@ -178,6 +178,9 @@ $add_form  = new Form( $view['flash'], 'plan' );
 					echo esc_html( sprintf( __( '%1$s · %2$s', 'diromax-portal' ), (string) $payment['when'], 'supplier' === $payment['pay_to'] ? (string) $payment['payee'] : __( 'לדירומקס', 'diromax-portal' ) ) );
 					?>
 				</p>
+				<?php if ( $closed ) : ?>
+					<p class="dxa-muted"><?php esc_html_e( 'התיק סגור, ולכן הטיוטה לא תישלח.', 'diromax-portal' ); ?></p>
+				<?php else : ?>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="dxa-entry">
 					<?php $dx_plan_hidden( 'plan_approve', $case->id, (int) $payment['id'] ); ?>
 					<p class="dxa-field">
@@ -223,6 +226,7 @@ $add_form  = new Form( $view['flash'], 'plan' );
 						</button>
 					</form>
 				</div>
+				<?php endif; ?>
 			</li>
 		<?php endforeach; ?>
 	</ul>

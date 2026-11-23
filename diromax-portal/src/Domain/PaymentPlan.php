@@ -52,30 +52,30 @@ final class PaymentPlan {
 	}
 
 	/**
-	 * The plan's totals: the share in percent, the fixed amounts, and the
-	 * whole in agorot.
+	 * The plan's totals from what each payment comes to now: a planned share
+	 * at today's base, a draft or a request at its own amount. Cancelled
+	 * payments are left out.
 	 *
-	 * @param array<int, array{kind:string, amount:int, percent:int, status?:string}> $payments Payments; cancelled ones are left out.
-	 * @param int                                                                     $base     Base, agorot.
-	 * @return array{percent:int, fixed:int, total:int}
+	 * @param array<int, array{kind:string, percent:int, amount:int, state:string}> $rows Payments as shown.
+	 * @return array{percent:int, fixed:int, total:int} Basis points of the shares; agorot of the fixed ones and of the whole.
 	 */
-	public static function totals( array $payments, int $base ): array {
+	public static function totals( array $rows ): array {
 		$percent = 0;
 		$fixed   = 0;
 		$total   = 0;
 
-		foreach ( $payments as $payment ) {
-			if ( 'cancelled' === ( $payment['status'] ?? '' ) ) {
+		foreach ( $rows as $row ) {
+			if ( 'cancelled' === $row['state'] ) {
 				continue;
 			}
 
-			if ( 'percent' === $payment['kind'] ) {
-				$percent += $payment['percent'];
+			if ( 'percent' === $row['kind'] ) {
+				$percent += $row['percent'];
 			} else {
-				$fixed += $payment['amount'];
+				$fixed += $row['amount'];
 			}
 
-			$total += self::amount( $payment, $base );
+			$total += $row['amount'];
 		}
 
 		return array(

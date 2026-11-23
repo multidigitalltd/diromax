@@ -88,7 +88,15 @@ final class PlanRepository {
 	 * @return bool
 	 */
 	public function update( int $id, array $fields, string $now ): bool {
-		return false !== $this->db->update( Schema::table( 'plan' ), $fields + array( 'updated_at' => $now ), array( 'id' => $id ) );
+		// Only while planned: a draft made meanwhile keeps the terms it was worked out from.
+		return false !== $this->db->update(
+			Schema::table( 'plan' ),
+			$fields + array( 'updated_at' => $now ),
+			array(
+				'id'     => $id,
+				'status' => 'planned',
+			)
+		);
 	}
 
 	/**
@@ -145,30 +153,44 @@ final class PlanRepository {
 	}
 
 	/**
-	 * Set a payment's status (cancel, or back to planned).
+	 * Move a payment from one of the given states to another, atomically:
+	 * an approval or a draft made meanwhile is never overwritten.
 	 *
-	 * @param int    $id     Payment.
-	 * @param string $status planned or cancelled.
-	 * @param string $now    UTC DATETIME.
+	 * @param int      $id   Payment.
+	 * @param string[] $from States it may be in.
+	 * @param string   $to   New state.
+	 * @param string   $now  UTC DATETIME.
+	 * @return bool False when it was in none of them.
 	 */
-	public function set_status( int $id, string $status, string $now ): void {
-		$this->db->update(
+	public function move( int $id, array $from, string $to, string $now ): bool {
+		$sql = $this->db->prepare(
+			'UPDATE %i SET status = %s, updated_at = %s WHERE id = %d AND status IN (' . implode( ',', array_fill( 0, count( $from ), '%s' ) ) . ')',
 			Schema::table( 'plan' ),
-			array(
-				'status'     => $status,
-				'updated_at' => $now,
-			),
-			array( 'id' => $id )
+			$to,
+			$now,
+			$id,
+			...$from
 		);
+
+		return null !== $sql && 1 === $this->db->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared above.
 	}
 
 	/**
-	 * Delete a payment.
+	 * Delete a payment that is in one of the given states.
 	 *
-	 * @param int $id Payment.
+	 * @param int      $id     Payment.
+	 * @param string[] $states States it may be in.
+	 * @return bool False when it was in none of them.
 	 */
-	public function delete( int $id ): void {
-		$this->db->delete( Schema::table( 'plan' ), array( 'id' => $id ) );
+	public function delete( int $id, array $states ): bool {
+		$sql = $this->db->prepare(
+			'DELETE FROM %i WHERE id = %d AND status IN (' . implode( ',', array_fill( 0, count( $states ), '%s' ) ) . ')',
+			Schema::table( 'plan' ),
+			$id,
+			...$states
+		);
+
+		return null !== $sql && 1 === $this->db->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared above.
 	}
 
 	/**

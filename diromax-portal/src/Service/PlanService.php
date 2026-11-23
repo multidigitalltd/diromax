@@ -30,6 +30,7 @@ defined( 'ABSPATH' ) || exit;
  * cases start from the office's template (decision 34).
  *
  * @phpstan-import-type PlanRow from \Diromax\Portal\Data\PlanRepository
+ * @phpstan-type PlanView array{id:int, case_id:int, sort:int, label:string, trigger_on:string, stage:int, trigger_date:string|null, kind:string, amount:int, percent:int, pay_to:string, payee:string, days:int, status:string, draft_amount:int, draft_due:string|null, request_id:int|null, triggered_at:string|null, share:string, when:string, state:string, state_label:string}
  */
 final class PlanService {
 
@@ -91,6 +92,11 @@ final class PlanService {
 			return Errors::storage();
 		}
 
+		// Drafted meanwhile: the draft keeps the terms it was worked out from.
+		if ( 'planned' !== ( $this->app->plan->find( $id )['status'] ?? '' ) ) {
+			return Errors::not_found();
+		}
+
 		$this->app->audit->record( 'plan.updated', $client_case->id, 'plan', $id, array( 'label' => $fields['label'] ), $this->app->clock->mysql() );
 		$this->catch_up( $client_case, $id );
 
@@ -107,17 +113,18 @@ final class PlanService {
 	 * @return true|WP_Error
 	 */
 	public function delete( CaseRecord $client_case, int $id, int $actor ): bool|WP_Error {
-		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
-			return Errors::forbidden();
+		$refused = $this->refused( $client_case, $actor );
+
+		if ( null !== $refused ) {
+			return $refused;
 		}
 
 		$payment = $this->owned( $client_case, $id, array( 'planned', 'cancelled' ) );
 
-		if ( null === $payment ) {
+		if ( null === $payment || ! $this->app->plan->delete( $id, array( 'planned', 'cancelled' ) ) ) {
 			return Errors::not_found();
 		}
 
-		$this->app->plan->delete( $id );
 		$this->app->audit->record( 'plan.deleted', $client_case->id, 'plan', $id, array( 'label' => $payment['label'] ), $this->app->clock->mysql() );
 
 		return true;
@@ -132,8 +139,10 @@ final class PlanService {
 	 * @return true|WP_Error
 	 */
 	public function set_base( CaseRecord $client_case, string $value, int $actor ): bool|WP_Error {
-		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
-			return Errors::forbidden();
+		$refused = $this->refused( $client_case, $actor );
+
+		if ( null !== $refused ) {
+			return $refused;
 		}
 
 		$value  = trim( $value );
@@ -186,8 +195,10 @@ final class PlanService {
 	 * @return true|WP_Error
 	 */
 	public function draft_now( CaseRecord $client_case, int $id, int $actor ): bool|WP_Error {
-		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
-			return Errors::forbidden();
+		$refused = $this->refused( $client_case, $actor );
+
+		if ( null !== $refused ) {
+			return $refused;
 		}
 
 		$payment = $this->owned( $client_case, $id, array( 'planned' ) );
@@ -247,8 +258,10 @@ final class PlanService {
 	 * @return int|WP_Error The request's ID.
 	 */
 	public function approve( CaseRecord $client_case, int $id, array $input, int $actor ): int|WP_Error {
-		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
-			return Errors::forbidden();
+		$refused = $this->refused( $client_case, $actor );
+
+		if ( null !== $refused ) {
+			return $refused;
 		}
 
 		$payment = $this->owned( $client_case, $id, array( 'draft' ) );
@@ -309,17 +322,20 @@ final class PlanService {
 	 * @return true|WP_Error
 	 */
 	public function withdraw( CaseRecord $client_case, int $id, bool $back, int $actor ): bool|WP_Error {
-		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
-			return Errors::forbidden();
+		$refused = $this->refused( $client_case, $actor );
+
+		if ( null !== $refused ) {
+			return $refused;
 		}
 
-		$payment = $this->owned( $client_case, $id, $back ? array( 'draft' ) : array( 'planned', 'draft' ) );
+		$from    = $back ? array( 'draft' ) : array( 'planned', 'draft' );
+		$payment = $this->owned( $client_case, $id, $from );
 
-		if ( null === $payment ) {
+		// Atomic: an approval that got there first is never undone.
+		if ( null === $payment || ! $this->app->plan->move( $id, $from, $back ? 'planned' : 'cancelled', $this->app->clock->mysql() ) ) {
 			return Errors::not_found();
 		}
 
-		$this->app->plan->set_status( $id, $back ? 'planned' : 'cancelled', $this->app->clock->mysql() );
 		$this->app->audit->record( $back ? 'plan.reopened' : 'plan.cancelled', $client_case->id, 'plan', $id, array( 'label' => $payment['label'] ), $this->app->clock->mysql() );
 
 		return true;
@@ -329,17 +345,17 @@ final class PlanService {
 	 * The plan for the staff tab.
 	 *
 	 * @param CaseRecord $client_case Case.
-	 * @return array{base:int, base_set:bool, rows:array<int, array<string, mixed>>, totals:array{percent:int, fixed:int, total:int}}
+	 * @return array{base:int, base_set:bool, rows:array<int, PlanView>, totals:array{percent:int, fixed:int, total:int}}
 	 */
 	public function for_staff( CaseRecord $client_case ): array {
-		$base     = $this->base( $client_case );
-		$payments = $this->app->plan->for_case( $client_case->id );
+		$base = $this->base( $client_case );
+		$rows = $this->views( $client_case, $base );
 
 		return array(
 			'base'     => $base,
 			'base_set' => $client_case->plan_base > 0,
-			'rows'     => array_map( fn( array $payment ): array => $this->view( $payment, $base ), $payments ),
-			'totals'   => PaymentPlan::totals( $payments, $base ),
+			'rows'     => $rows,
+			'totals'   => PaymentPlan::totals( $rows ),
 		);
 	}
 
@@ -351,17 +367,15 @@ final class PlanService {
 	 * @return array<int, array{label:string, amount:string, when:string, state:string, state_label:string}>
 	 */
 	public function for_client( CaseRecord $client_case ): array {
-		$base = $this->base( $client_case );
 		$list = array();
 
-		foreach ( $this->app->plan->for_case( $client_case->id ) as $payment ) {
-			if ( 'cancelled' === $payment['status'] ) {
+		foreach ( $this->views( $client_case, $this->base( $client_case ) ) as $row ) {
+			if ( 'cancelled' === $row['state'] ) {
 				continue;
 			}
 
-			$row    = $this->view( $payment, $base );
 			$list[] = array(
-				'label'       => $payment['label'],
+				'label'       => (string) $row['label'],
 				'amount'      => Money::format( (int) $row['amount'] ),
 				'when'        => (string) $row['when'],
 				// A draft is not sent yet: for the client it is still planned.
@@ -418,6 +432,21 @@ final class PlanService {
 		$checked = PaymentPlan::validate( $input, Stages::COUNT, true );
 
 		return null === $checked['fields'] ? Errors::invalid( $checked['errors'] ) : $checked['fields'];
+	}
+
+	/**
+	 * Why the actor may not change this case's plan now, if they may not.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $actor       Acting user.
+	 * @return WP_Error|null
+	 */
+	private function refused( CaseRecord $client_case, int $actor ): ?WP_Error {
+		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
+			return Errors::forbidden();
+		}
+
+		return CaseStatus::Closed === $client_case->status ? Errors::closed() : null;
 	}
 
 	/**
@@ -493,16 +522,33 @@ final class PlanService {
 	}
 
 	/**
+	 * The case's payments for a screen, with the requests they became read
+	 * in one query.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $base        Plan base.
+	 * @return array<int, PlanView>
+	 */
+	private function views( CaseRecord $client_case, int $base ): array {
+		$payments = $this->app->plan->for_case( $client_case->id );
+		$requests = $this->app->ledger->find_many( $client_case->id, array_filter( array_column( $payments, 'request_id' ) ) );
+
+		return array_map( fn( array $payment ): array => $this->view( $payment, $base, $requests ), $payments );
+	}
+
+	/**
 	 * A payment for a screen.
 	 *
-	 * @param array $payment Payment.
-	 * @param int   $base    Plan base.
+	 * @param array                                      $payment  Payment.
+	 * @param int                                        $base     Plan base.
+	 * @param array<int, \Diromax\Portal\Data\LedgerRow> $requests Linked requests by ID.
 	 * @phpstan-param PlanRow $payment
 	 * @return array<string, mixed>
+	 * @phpstan-return PlanView
 	 */
-	private function view( array $payment, int $base ): array {
+	private function view( array $payment, int $base, array $requests ): array {
 		$state   = $payment['status'];
-		$request = null === $payment['request_id'] ? null : $this->app->ledger->find( $payment['request_id'] );
+		$request = null === $payment['request_id'] ? null : ( $requests[ $payment['request_id'] ] ?? null );
 		$amount  = match ( $state ) {
 			'draft' => $payment['draft_amount'],
 			'sent'  => null === $request ? $payment['draft_amount'] : $request->entry->total,

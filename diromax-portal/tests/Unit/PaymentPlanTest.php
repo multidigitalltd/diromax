@@ -172,42 +172,41 @@ final class PaymentPlanTest extends TestCase {
 		$this->assertSame( array( '10', '12.5', '12.25', '0.01', '100' ), array_map( array( PaymentPlan::class, 'percent_text' ), array( 1000, 1250, 1225, 1, 10000 ) ), 'Shown as typed, never rounded.' );
 	}
 
-	public function test_totals_leave_cancelled_payments_out(): void {
+	public function test_totals_add_what_each_payment_comes_to_and_leave_cancelled_ones_out(): void {
 		$totals = PaymentPlan::totals(
 			array(
 				array(
 					'kind'    => 'percent',
-					'amount'  => 0,
 					'percent' => 1000,
-					'status'  => 'sent',
+					'amount'  => 1050000,
+					'state'   => 'sent',
 				),
 				array(
 					'kind'    => 'percent',
-					'amount'  => 0,
 					'percent' => 3000,
-					'status'  => 'planned',
+					'amount'  => 3000000,
+					'state'   => 'planned',
 				),
 				array(
 					'kind'    => 'fixed',
-					'amount'  => 500000,
 					'percent' => 0,
-					'status'  => 'draft',
+					'amount'  => 500000,
+					'state'   => 'draft',
 				),
 				array(
 					'kind'    => 'percent',
-					'amount'  => 0,
 					'percent' => 6000,
-					'status'  => 'cancelled',
+					'amount'  => 6000000,
+					'state'   => 'cancelled',
 				),
-			),
-			10000000
+			)
 		);
 
 		$this->assertSame(
 			array(
 				'percent' => 4000,
 				'fixed'   => 500000,
-				'total'   => 4500000,
+				'total'   => 4550000,
 			),
 			$totals
 		);

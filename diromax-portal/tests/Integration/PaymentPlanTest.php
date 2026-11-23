@@ -427,6 +427,127 @@ final class PaymentPlanTest extends PortalTestCase {
 	}
 
 	/**
+	 * A manual payment of the given amount, drafted and approved.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $manager     Manager.
+	 * @param string     $amount      Shekels.
+	 * @return array{0:int, 1:int} Payment, request.
+	 */
+	private function sent_payment( CaseRecord $client_case, int $manager, string $amount ): array {
+		$plan = new PlanService( $this->app );
+		$id   = $this->id_of(
+			$plan->add(
+				$client_case,
+				self::payment(
+					array(
+						'trigger_on' => 'manual',
+						'kind'       => 'fixed',
+						'value'      => $amount,
+					)
+				),
+				$manager
+			)
+		);
+		$this->assertTrue( $plan->draft_now( $client_case, $id, $manager ) );
+		$request = $this->id_of(
+			$plan->approve(
+				$client_case,
+				$id,
+				array(
+					'amount'      => $amount,
+					'due_date'    => '2026-11-30',
+					'description' => 'תשלום',
+				),
+				$manager
+			)
+		);
+
+		return array( $id, $request );
+	}
+
+	public function test_returning_a_draft_never_undoes_an_approval(): void {
+		// Regression (PR #17 review): an unconditional status change after an approval let the payment be sent twice.
+		[ $case, $manager ] = $this->planned_case();
+		$plan               = new PlanService( $this->app );
+		[ $id, $request ]   = $this->sent_payment( $case, $manager, '5000' );
+
+		$this->assertSame( 'dx_not_found', $this->code( $plan->withdraw( $case, $id, true, $manager ) ) );
+		$this->assertSame( 'dx_not_found', $this->code( $plan->withdraw( $case, $id, false, $manager ) ) );
+		$this->assertSame( 'dx_not_found', $this->code( $plan->delete( $case, $id, $manager ) ) );
+		$this->assertSame( array( 'sent', $request ), array( $this->app->plan->find( $id )['status'] ?? '', $this->app->plan->find( $id )['request_id'] ?? 0 ) );
+		$this->assertFalse( $this->app->plan->move( $id, array( 'draft' ), 'planned', $this->clock->mysql() ), 'The move itself checks the state.' );
+	}
+
+	public function test_a_closed_case_sends_nothing(): void {
+		// Regression (PR #17 review): a draft could be approved after the case was closed.
+		[ $case, $manager ] = $this->planned_case();
+		$plan               = new PlanService( $this->app );
+		$id                 = $this->id_of( $plan->add( $case, self::payment( array( 'trigger_on' => 'manual' ) ), $manager ) );
+		$this->assertTrue( $plan->draft_now( $case, $id, $manager ) );
+		$this->assertInstanceOf( CaseRecord::class, $this->app->case_service->set_status( $case, 'closed', $manager ) );
+		$case = $this->fresh( $case );
+
+		$this->assertSame(
+			'dx_closed',
+			$this->code(
+				$plan->approve(
+					$case,
+					$id,
+					array(
+						'amount'      => '1000',
+						'due_date'    => '2026-11-30',
+						'description' => 'x',
+					),
+					$manager
+				)
+			)
+		);
+		$this->assertSame( 'dx_closed', $this->code( $plan->withdraw( $case, $id, false, $manager ) ) );
+		$this->assertSame( 'dx_closed', $this->code( $plan->set_base( $case, '1000', $manager ) ) );
+		$this->assertSame( 'dx_closed', $this->code( $plan->delete( $case, $id, $manager ) ) );
+		$this->assertSame( array(), $this->app->ledger->for_case( $case->id, false ) );
+		$this->assertSame( 'draft', $this->app->plan->find( $id )['status'] ?? '' );
+	}
+
+	public function test_the_total_adds_what_each_payment_comes_to(): void {
+		// Regression (PR #17 review): the total was worked out from the terms, not from the drafted and sent amounts.
+		[ $case, $manager ] = $this->planned_case();
+		$plan               = new PlanService( $this->app );
+		$this->id_of( $plan->add( $case, self::payment(), $manager ) );
+		$case = $this->app->case_service->move_to_stage( $case, 3, false, $manager );
+		$this->assertInstanceOf( CaseRecord::class, $case );
+
+		$this->assertTrue( $this->app->case_service->save_budget( $case, array( 'consultants.planned' => '300000' ), $manager ) );
+		$this->assertSame( 2000000, $plan->for_staff( $this->fresh( $case ) )['totals']['total'], 'The draft keeps 10% of 200,000 ₪.' );
+
+		[ , $request ] = $this->sent_payment( $case, $manager, '7,000' );
+		$this->assertSame( 2700000, $plan->for_staff( $case )['totals']['total'] );
+		$this->assertTrue( $this->app->ledger_service->void( $case, $request, 'בטעות', false, $manager ) );
+		$this->assertSame( array( 2000000, 'cancelled' ), array( $plan->for_staff( $case )['totals']['total'], $plan->for_staff( $case )['rows'][1]['state'] ) );
+	}
+
+	public function test_the_plan_reads_its_requests_in_one_query(): void {
+		// Regression (PR #17 review): each sent payment read its request with a query of its own.
+		global $wpdb;
+		[ $case, $manager ] = $this->planned_case();
+		$plan               = new PlanService( $this->app );
+		$this->sent_payment( $case, $manager, '1000' );
+		$count = static function () use ( $plan, $case, $wpdb ): int {
+			$before = $wpdb->num_queries;
+			$plan->for_staff( $case );
+			$plan->for_client( $case );
+
+			return $wpdb->num_queries - $before;
+		};
+		$one   = $count();
+
+		$this->sent_payment( $case, $manager, '2000' );
+		$this->sent_payment( $case, $manager, '3000' );
+		$this->assertSame( $one, $count() );
+	}
+
+	/**
 	 * The error code of a refusal, or '' when it was allowed.
 	 *
 	 * @param mixed $result Service result.
