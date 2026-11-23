@@ -28,6 +28,7 @@ use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\PlanService;
+use Diromax\Portal\Service\ScheduleService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Settings;
@@ -140,6 +141,8 @@ final class CaseView {
 			'meetings'   => ( new MeetingService( $this->app ) )->for_client( $client_case, $viewer ),
 			// Only the finance tab shows the plan.
 			'plan'       => 'finance' === $active ? ( new PlanService( $this->app ) )->for_client( $client_case ) : array(),
+			// The tab shows only once the manager publishes the timeline.
+			'schedule'   => ( new ScheduleService( $this->app ) )->for_client( $client_case ),
 			'can_write'  => MessageService::may_write( $this->app->members->role( $client_case->id, $viewer ) ) && CaseStatus::Closed !== $client_case->status,
 			'tab'        => $active,
 			'filters'    => array(

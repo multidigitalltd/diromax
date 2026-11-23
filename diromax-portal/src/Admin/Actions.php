@@ -26,6 +26,7 @@ use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\PlanService;
 use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\ReminderService;
+use Diromax\Portal\Service\ScheduleService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
@@ -90,6 +91,12 @@ final class Actions {
 		'plan_draft'          => array( array( 'payment_id' ), array() ),
 		'plan_approve'        => array( array( 'payment_id', 'amount', 'due_date', 'description', 'notify' ), array() ),
 		'plan_withdraw'       => array( array( 'payment_id', 'back' ), array() ),
+		'save_schedule'       => array( array( 'note', 'visible', 'notify' ), array() ),
+		'compute_schedule'    => array( array( 'start_on' ), array() ),
+		'add_milestone'       => array( array( 'label', 'stage', 'date' ), array() ),
+		'update_milestone'    => array( array( 'milestone_id', 'label', 'stage', 'date', 'note' ), array() ),
+		'delete_milestone'    => array( array( 'milestone_id' ), array() ),
+		'milestone_done'      => array( array( 'milestone_id', 'done' ), array() ),
 	);
 
 	/** Transient prefix holding a new webhook key until the next page shows it. */
@@ -193,8 +200,80 @@ final class Actions {
 			'update_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->update( $client_case, absint( $input['meeting_id'] ), $input, self::participants(), $actor ), __( 'הפגישה עודכנה.', 'diromax-portal' ), 'meeting' . absint( $input['meeting_id'] ), self::meeting_old( $input ) ),
 			'cancel_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->cancel( $client_case, absint( $input['meeting_id'] ), '1' === $input['notify'], $actor ), __( 'הפגישה בוטלה.', 'diromax-portal' ) ),
 			'plan_add', 'plan_update', 'plan_delete', 'plan_base', 'plan_draft', 'plan_approve', 'plan_withdraw' => $this->plan( $action, $client_case, $input, $actor ),
+			'save_schedule'       => $this->save_schedule( $client_case, $input, $actor ),
+			'compute_schedule'    => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->compute( $client_case, $input['start_on'], $actor ), __( 'התאריכים חושבו לפי משכי השלבים. בודקים, משנים לפי הצורך, ושומרים.', 'diromax-portal' ), 'compute', $input ),
+			'add_milestone'       => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->add_milestone( $client_case, $input, $actor ), __( 'אבן הדרך נוספה.', 'diromax-portal' ), 'milestone', $input ),
+			'update_milestone'    => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->update_milestone( $client_case, absint( $input['milestone_id'] ), $input, $actor ), __( 'אבן הדרך עודכנה.', 'diromax-portal' ), 'milestone' . absint( $input['milestone_id'] ), $input ),
+			'delete_milestone'    => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->delete_milestone( $client_case, absint( $input['milestone_id'] ), $actor ), __( 'אבן הדרך נמחקה.', 'diromax-portal' ) ),
+			'milestone_done'      => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->set_done( $client_case, absint( $input['milestone_id'] ), '1' === $input['done'], $actor ), '1' === $input['done'] ? __( 'אבן הדרך סומנה כהושגה.', 'diromax-portal' ) : __( 'אבן הדרך חזרה לפתוחות.', 'diromax-portal' ) ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};
+	}
+
+	/**
+	 * Save the timeline: each stage's planned start and end (start[N],
+	 * end[N]), the note on moved dates, publication and email (spec 22).
+	 *
+	 * @param CaseRecord            $client_case Case.
+	 * @param array<string, string> $input       note, visible, notify.
+	 * @param int                   $actor       Actor.
+	 */
+	private function save_schedule( CaseRecord $client_case, array $input, int $actor ): never {
+		$starts  = self::stage_dates( 'start' );
+		$ends    = self::stage_dates( 'end' );
+		$visible = '1' === $input['visible'];
+		$notify  = '1' === $input['notify'];
+		$result  = ( new ScheduleService( $this->app ) )->save(
+			$client_case,
+			$starts,
+			$ends,
+			array(
+				'note'    => $input['note'],
+				'visible' => $visible,
+				'notify'  => $notify,
+			),
+			$actor
+		);
+		$old     = $input;
+
+		foreach ( array(
+			'start' => $starts,
+			'end'   => $ends,
+		) as $field => $dates ) {
+			foreach ( $dates as $stage => $date ) {
+				$old[ $field . '-' . $stage ] = $date;
+			}
+		}
+
+		$message = match ( true ) {
+			$notify && $visible => __( 'לוח הזמנים נשמר, והלקוח יקבל עליו עדכון במייל.', 'diromax-portal' ),
+			$visible            => __( 'לוח הזמנים נשמר, והוא מוצג ללקוח.', 'diromax-portal' ),
+			default             => __( 'לוח הזמנים נשמר. הוא עדיין לא מוצג ללקוח.', 'diromax-portal' ),
+		};
+
+		$this->finish( $client_case, 'schedule', $result, $message, 'schedule', $old );
+	}
+
+	/**
+	 * A date per stage from a field like start[N], each checked by the service.
+	 *
+	 * @param string $field POST field.
+	 * @return array<int, string>
+	 */
+	private static function stage_dates( string $field ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified in handle(); each value is sanitized below.
+		$raw   = isset( $_POST[ $field ] ) && is_array( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : array();
+		$dates = array();
+
+		foreach ( (array) $raw as $stage => $value ) {
+			$stage = absint( $stage );
+
+			if ( $stage >= 1 && $stage <= Stages::COUNT ) {
+				$dates[ $stage ] = sanitize_text_field( is_string( $value ) ? $value : '' );
+			}
+		}
+
+		return $dates;
 	}
 
 	/**
@@ -709,6 +788,9 @@ final class Actions {
 
 		// The default budget: sections, and sub-sections on "- " lines (spec 19.2).
 		$input += Settings::template_settings( BudgetTemplate::parse( sanitize_textarea_field( (string) ( $raw['categories'] ?? '' ) ), Settings::budget_template() ) );
+
+		// Typical weeks of each stage, for a new timeline (spec 22.5); Settings keeps 0–104.
+		$input['schedule_weeks'] = array_map( static fn( mixed $weeks ): string => is_string( $weeks ) ? sanitize_text_field( $weeks ) : '', isset( $raw['schedule_weeks'] ) && is_array( $raw['schedule_weeks'] ) ? $raw['schedule_weeks'] : array() );
 
 		// The payment plan of a new case (spec 21.5): rows that fail the checks are reported, not saved.
 		[ $input['plan_template'], $skipped ] = self::plan_rows( isset( $raw['plan'] ) && is_array( $raw['plan'] ) ? $raw['plan'] : array() );

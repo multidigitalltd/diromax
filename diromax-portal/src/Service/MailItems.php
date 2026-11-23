@@ -48,7 +48,7 @@ final class MailItems {
 
 		foreach ( $events as $event ) {
 			$kind = $event['kind'];
-			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested', 'photos_added' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
+			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested', 'photos_added', 'schedule_changed' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
 
 			if ( 'entry_voided' === $kind && 'entry_created' === ( $kinds[ $key ] ?? '' ) ) {
 				// Created and voided within one batch: the client never needs to hear of it.
@@ -66,6 +66,7 @@ final class MailItems {
 				'decision_created' => $this->decision_card( $client_case, $event['object_id'], $hide_amounts ),
 				'doc_requested'    => $this->doc_request_card( $client_case, $event['object_id'] ),
 				'photos_added'     => $this->photos_card( $client_case, $event['object_id'] ),
+				'schedule_changed' => $this->schedule_card( $client_case ),
 				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
 			};
 
@@ -247,6 +248,46 @@ final class MailItems {
 			),
 			/* translators: %s: stage label. */
 			subject: sprintf( __( 'צילומים חדשים מהשטח: %s', 'diromax-portal' ), Stages::label( $shown[0]['stage'] ) ),
+		);
+	}
+
+	/**
+	 * Card for a change in the timeline (spec 22.4): the dates that moved
+	 * since they were first shown, and why. Built when the email goes out,
+	 * so several changes in one batch make one card.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @return MailCard|null
+	 */
+	private function schedule_card( CaseRecord $client_case ): ?MailCard {
+		$client_case = $this->app->cases->find( $client_case->id ) ?? $client_case;
+		$service     = new ScheduleService( $this->app );
+
+		if ( null === $service->for_client( $client_case ) ) {
+			// Taken off the portal before the email went out.
+			return null;
+		}
+
+		$moved = $service->moved( $client_case );
+		$notes = array_values( array_unique( array_filter( array_column( $moved, 'note' ) ) ) );
+
+		return new MailCard(
+			tone: 'blue',
+			badge: __( 'לוח הזמנים', 'diromax-portal' ),
+			title: __( 'לוח הזמנים של הפרויקט עודכן', 'diromax-portal' ),
+			rows: array_map(
+				/* translators: 1: new date, 2: date first given. */
+				static fn( array $item ): array => array( $item['label'], sprintf( __( '%1$s (במקור %2$s)', 'diromax-portal' ), $item['date'], $item['first'] ) ),
+				array_slice( $moved, 0, 12 )
+			),
+			amount: null,
+			note: implode( "\n", $notes ),
+			stage: null,
+			link: array(
+				'label' => __( 'ללוח הזמנים באזור האישי', 'diromax-portal' ),
+				'url'   => Router::case_url( $client_case, 'schedule' ),
+			),
+			subject: __( 'עדכון בלוח הזמנים של הפרויקט', 'diromax-portal' ),
 		);
 	}
 

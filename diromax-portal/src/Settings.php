@@ -12,6 +12,7 @@ namespace Diromax\Portal;
 use Diromax\Portal\Domain\BudgetTree;
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\Text;
+use Diromax\Portal\Domain\Timeline;
 use Diromax\Portal\Service\Stages;
 
 defined( 'ABSPATH' ) || exit;
@@ -22,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
  * Every read goes through defaults and sanitize(), so a hand-edited option can
  * never feed an unexpected type or value to the rest of the plugin.
  *
- * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, subcategories:array<string, array<string, string>>, plan_template:array<int, array{label:string, trigger_on:string, stage:int, trigger_date:null, kind:string, amount:int, percent:int, pay_to:string, payee:string, days:int}>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int, morning_summary:bool}
+ * @phpstan-type SettingsShape array{vat_rate:int, quiet_minutes:int, max_wait_minutes:int, hide_amounts:bool, payment_details:string, access_months:int, categories:array<string, string>, subcategories:array<string, array<string, string>>, plan_template:array<int, array{label:string, trigger_on:string, stage:int, trigger_date:null, kind:string, amount:int, percent:int, pay_to:string, payee:string, days:int}>, schedule_weeks:array<int, int>, daily_hour:int, remind_before_days:int, remind_overdue_every:int, remind_overdue_max:int, monthly_summary:bool, stale_days:int, morning_summary:bool}
  */
 final class Settings {
 
@@ -167,6 +168,8 @@ final class Settings {
 			),
 			// The office's payment plan for a new case (spec 21): empty until the office sets it.
 			'plan_template'        => array(),
+			// Typical length of each stage in weeks, for a new case's timeline (spec 22.5): 0 until the office sets it.
+			'schedule_weeks'       => array_fill( 1, Stages::COUNT, 0 ),
 			'subcategories'        => array(
 				'consultants' => array(
 					'consultants-structure' => __( 'קונסטרוקציה', 'diromax-portal' ),
@@ -209,6 +212,7 @@ final class Settings {
 			'categories'           => $categories,
 			'subcategories'        => self::subcategories_from( $input['subcategories'] ?? null, $categories, $defaults['subcategories'] ),
 			'plan_template'        => self::plan_from( $input['plan_template'] ?? null ),
+			'schedule_weeks'       => self::weeks_from( $input['schedule_weeks'] ?? null ),
 			'daily_hour'           => self::int_in( $input['daily_hour'] ?? null, 0, 23, $defaults['daily_hour'] ),
 			'remind_before_days'   => self::int_in( $input['remind_before_days'] ?? null, 0, 14, $defaults['remind_before_days'] ),
 			'remind_overdue_every' => self::int_in( $input['remind_overdue_every'] ?? null, 0, 30, $defaults['remind_overdue_every'] ),
@@ -313,6 +317,22 @@ final class Settings {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Weeks for each stage, 0–104; anything else is 0.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return array<int, int>
+	 */
+	private static function weeks_from( mixed $value ): array {
+		$weeks = array();
+
+		for ( $stage = 1; $stage <= Stages::COUNT; $stage++ ) {
+			$weeks[ $stage ] = self::int_in( is_array( $value ) ? ( $value[ $stage ] ?? null ) : null, 0, Timeline::MAX_WEEKS, 0 );
+		}
+
+		return $weeks;
 	}
 
 	/**

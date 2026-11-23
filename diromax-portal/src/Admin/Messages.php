@@ -59,6 +59,8 @@ final class Messages {
 			'payee:required'        => __( 'כשמשלמים לספק, כותבים את שם הספק.', 'diromax-portal' ),
 			'label:case_closed'     => __( 'התיק סגור, ואי אפשר לשנות בו את תוכנית התשלומים.', 'diromax-portal' ),
 			'base:invalid'          => __( 'סכום הבסיס צריך להיות מספר, או ריק כדי לחשב מסך התקציב.', 'diromax-portal' ),
+			'start_on:no_weeks'     => __( 'עדיין לא נקבעו משכי שלבים בהגדרות, ולכן אין ממה לחשב.', 'diromax-portal' ),
+			'label:too_many'        => __( 'הגעתם למספר אבני הדרך המרבי בתיק (60).', 'diromax-portal' ),
 		);
 
 		if ( isset( $specific[ $field . ':' . $code ] ) ) {
@@ -71,6 +73,8 @@ final class Messages {
 			'in_use'    => __( 'יש תנועות בסעיף הזה, ולכן הוא נשאר. מעבירים את התנועות לסעיף אחר, ואז מוחקים.', 'diromax-portal' ),
 			'duplicate' => __( 'כבר יש שורה בשם הזה באותו מקום. בוחרים שם אחר.', 'diromax-portal' ),
 			'too_many'  => __( 'הגעתם למספר השורות המרבי כאן (40 סעיפים, 30 סעיפי משנה בסעיף).', 'diromax-portal' ),
+			'date'      => __( 'התאריך לא תקין. אפשר לבחור תאריך מלוח השנה.', 'diromax-portal' ),
+			'before_start' => __( 'הסיום לא יכול להיות לפני ההתחלה.', 'diromax-portal' ),
 			default     => __( 'הערך לא תקין.', 'diromax-portal' ),
 		};
 	}

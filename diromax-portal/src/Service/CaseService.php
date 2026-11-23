@@ -203,6 +203,29 @@ final class CaseService {
 	}
 
 	/**
+	 * Set the planned end of stages (their due dates), from the timeline.
+	 *
+	 * @param CaseRecord              $client_case Case.
+	 * @param array<int, string|null> $dues        Due date by stage, null for none; stages left out keep theirs.
+	 * @param int                     $actor       Acting user.
+	 * @return CaseRecord|WP_Error
+	 */
+	public function set_dues( CaseRecord $client_case, array $dues, int $actor ): CaseRecord|WP_Error {
+		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
+			return Errors::forbidden();
+		}
+
+		$client_case = $this->app->cases->find( $client_case->id ) ?? $client_case;
+		$stages      = StageProgress::with_dues( $client_case->stages, $dues );
+
+		if ( $stages === $client_case->stages ) {
+			return $client_case;
+		}
+
+		return $this->save( $client_case, array( 'stages' => (string) wp_json_encode( $stages ) ), $actor, 'case.schedule' );
+	}
+
+	/**
 	 * Change status: active, on hold, closed.
 	 *
 	 * @param CaseRecord $client_case   Case.

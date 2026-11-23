@@ -66,8 +66,10 @@ function localDate(offsetDays) {
 
   const activeStage = await page.locator('#dxa-stages .dxa-seg__in--active:checked').first().getAttribute('name');
   const number = activeStage.match(/\[(\d)\]/)[1];
-  await page.fill('#dxa-stage-due-' + number, localDate(-3));
-  await page.click('#form-details input[type=submit], #form-details button[type=submit]');
+  // Since 1.12.0 the due date is the stage's planned end, set in the timeline tab.
+  await page.goto(caseUrl + '?tab=schedule');
+  await page.fill('#dxa-schedule-end-' + number, localDate(-3));
+  await page.click('#form-schedule [type=submit]');
   await page.waitForLoadState('load');
   check('a stage past its due date is flagged in the stepper', (await page.textContent('.dxa-steps')).includes('עבר את היעד'));
   await page.goto(caseUrl + '?tab=details');

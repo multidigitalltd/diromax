@@ -39,6 +39,7 @@ final readonly class CaseRecord {
 	 * @param string|null                                                                              $closed_at     UTC.
 	 * @param int|null                                                                                 $lead_id       Lead (theme dx_lead post) the case was opened from.
 	 * @param int                                                                                      $plan_base     Base of the payment plan's shares, agorot; 0 for the budget's total.
+	 * @param bool                                                                                     $schedule_visible The timeline is shown to the client.
 	 */
 	public function __construct(
 		public int $id,
@@ -59,6 +60,7 @@ final readonly class CaseRecord {
 		public ?string $closed_at,
 		public ?int $lead_id = null,
 		public int $plan_base = 0,
+		public bool $schedule_visible = false,
 	) {}
 
 	/**
@@ -90,6 +92,7 @@ final readonly class CaseRecord {
 			closed_at: $row['closed_at'] ?? null,
 			lead_id: isset( $row['lead_id'] ) ? (int) $row['lead_id'] : null,
 			plan_base: (int) ( $row['plan_base'] ?? 0 ),
+			schedule_visible: '1' === (string) ( $row['schedule_visible'] ?? '0' ),
 		);
 	}
 
