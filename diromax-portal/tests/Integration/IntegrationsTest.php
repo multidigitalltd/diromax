@@ -112,6 +112,30 @@ final class IntegrationsTest extends PortalTestCase {
 		$this->assertSame( 'דירומקס', MailConfig::sender_name(), 'Cleared: the brand again.' );
 	}
 
+	/**
+	 * Regression (found by E2E phase 3): sanitize_text_field() dropped
+	 * "<x@example.org>" as a tag, so the screen saved "דירומקס" without a word.
+	 */
+	public function test_the_screen_refuses_a_sender_name_with_an_address_instead_of_trimming_it(): void {
+		$input = Actions::integrations_input(
+			array(
+				'from'      => ' portal@diromax.co.il ',
+				'from_name' => "דירומקס <x@example.org>\n",
+				'token'     => array( 'not a string' ),
+			)
+		);
+
+		$this->assertSame( 'דירומקס <x@example.org>', $input['from_name'], 'As typed, on one line.' );
+		$this->assertSame( 'portal@diromax.co.il', $input['from'] );
+		$this->assertSame( '', $input['token'], 'Only text is read.' );
+
+		$result = Integrations::save( $input );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( array( 'from_name' => 'invalid' ), $result->get_error_data()['fields'] );
+		$this->assertSame( '', Integrations::get( 'from_name' ), 'Nothing saved.' );
+		$this->assertSame( 'דירומקס השבחת נכסים', Actions::integrations_input( array( 'from_name' => "  דירומקס \t השבחת נכסים " ) )['from_name'] );
+	}
+
 	public function test_the_webhook_key_is_shown_once_and_kept_only_as_a_hash(): void {
 		$hooks = new Webhooks( $this->app );
 		$this->assertFalse( Webhooks::configured() );
