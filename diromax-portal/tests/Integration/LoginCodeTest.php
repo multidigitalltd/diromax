@@ -137,4 +137,15 @@ final class LoginCodeTest extends PortalTestCase {
 		$this->assertStringContainsString( '012345', $message->html );
 		$this->assertStringContainsString( '10 דקות', $message->text );
 	}
+
+	/**
+	 * 1.14.4: the footer of every email names the office's line of work as
+	 * the office asked, without "תיווך".
+	 */
+	public function test_the_email_footer_has_the_office_tagline(): void {
+		$html = $this->app->renderer->login_code( 'דניאל', '012345' )->html;
+
+		$this->assertStringContainsString( 'דירומקס · יזמות וניהול השבחת נכסים', $html );
+		$this->assertStringNotContainsString( 'תיווך', $html );
+	}
 }

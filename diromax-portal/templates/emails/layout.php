@@ -137,7 +137,7 @@ a{text-decoration:none;}
 	<?php endif; ?>
 
 	<tr><td class="dx-px" bgcolor="#15171c" style="background:#15171c;padding:22px 32px;text-align:right;font-family:<?php echo esc_attr( $font ); ?>;font-size:13px;line-height:1.6;color:#a8abb2;">
-		<p style="margin:0 0 6px;color:#f4f4f2;font-weight:700;"><?php esc_html_e( 'דירומקס · תיווך, יזמות וניהול השבחת נכסים', 'diromax-portal' ); ?></p>
+		<p style="margin:0 0 6px;color:#f4f4f2;font-weight:700;"><?php esc_html_e( 'דירומקס · יזמות וניהול השבחת נכסים', 'diromax-portal' ); ?></p>
 		<p style="margin:0 0 6px;">
 			<?php
 			if ( is_string( $view['case'] ?? null ) ) {
