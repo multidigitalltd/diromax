@@ -21,6 +21,7 @@ use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Service\PhotoService;
+use Diromax\Portal\Service\QuoteService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Security\Turnstile;
 use Diromax\Portal\Support\Ids;
@@ -516,7 +517,8 @@ final class Controller {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Each branch verifies its own nonce, bound to the object.
 		$step   = isset( $_POST['dx_step'] ) ? sanitize_key( wp_unslash( $_POST['dx_step'] ) ) : '';
 		$nonce  = isset( $_POST['_dx_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_dx_nonce'] ) ) : '';
-		$object = absint( $_POST['decision'] ?? ( $_POST['document'] ?? ( $_POST['request'] ?? 0 ) ) );
+		$object = absint( $_POST['decision'] ?? ( $_POST['document'] ?? ( $_POST['request'] ?? ( $_POST['comparison'] ?? 0 ) ) ) );
+		$offer  = absint( $_POST['offer'] ?? 0 );
 		$ok     = isset( $_POST['confirm'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['confirm'] ) );
 		$answer = isset( $_POST['answer'] ) ? sanitize_key( wp_unslash( $_POST['answer'] ) ) : '';
 		$note   = isset( $_POST['note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note'] ) ) : '';
@@ -536,6 +538,7 @@ final class Controller {
 			'sign'        => array( 'documents', wp_verify_nonce( $nonce, 'dx_portal_sign_doc_' . $object ) ? ( new SignatureService( $this->app ) )->sign_document( $client_case, $object, $user, $sign ) : 'expired' ),
 			'upload'      => array( 'documents', wp_verify_nonce( $nonce, 'dx_portal_upload_' . $client_case->id ) ? $this->client_upload( $client_case, $user, $title, $object ) : 'expired' ),
 			'message'     => array( 'messages', wp_verify_nonce( $nonce, 'dx_portal_message_' . $client_case->id ) ? self::sent( ( new MessageService( $this->app ) )->post( $client_case, $user, $body ) ) : 'expired' ),
+			'choose'      => array( 'quotes', wp_verify_nonce( $nonce, 'dx_portal_choose_' . $object ) ? ( new QuoteService( $this->app ) )->choose( $client_case, $object, $offer, $user, $note, $ok ) : 'expired' ),
 			default       => array( 'finance', 'failed' ),
 		};
 
@@ -548,9 +551,12 @@ final class Controller {
 			true === $result && 'sign' === $step     => 'signed',
 			true === $result && 'upload' === $step   => 'uploaded',
 			true === $result && 'message' === $step  => 'message_sent',
+			true === $result && 'choose' === $step   => 'chosen',
 			true === $result && 'documents' === $tab => 'acknowledged',
 			true === $result                         => 'approve' === $answer ? 'approved' : 'declined',
 			is_string( $result )                     => $result,
+			'choose' === $step && isset( Errors::fields( $result )['offer'] ) => 'offer',
+			'choose' === $step && in_array( $result->get_error_code(), array( 'dx_not_pending', 'dx_closed' ), true ) => 'quote_closed',
 			'message' === $step && 'dx_rate_limited' === $result->get_error_code() => 'too_many_messages',
 			'message' === $step && 'too_long' === ( Errors::fields( $result )['body'] ?? '' ) => 'message_long',
 			'message' === $step && isset( Errors::fields( $result )['body'] ) => 'message_empty',
@@ -631,6 +637,7 @@ final class Controller {
 			'signed'       => __( 'תודה. החתימה נשמרה, ומנהל הפרויקט קיבל הודעה.', 'diromax-portal' ),
 			'uploaded'     => __( 'המסמך הועלה ונשמר מוצפן. מנהל הפרויקט קיבל הודעה.', 'diromax-portal' ),
 			'message_sent' => __( 'ההודעה נשלחה למנהל הפרויקט, ונשמרה כאן בשיחה.', 'diromax-portal' ),
+			'chosen'       => __( 'תודה. הבחירה נרשמה בתיק ונשלחה למנהל הפרויקט.', 'diromax-portal' ),
 			'saved'        => __( 'השינויים נשמרו.', 'diromax-portal' ),
 			'password_set' => __( 'הסיסמה נשמרה. שאר החיבורים לחשבון נותקו, ונשלח אליך מייל אישור.', 'diromax-portal' ),
 		);
@@ -646,6 +653,8 @@ final class Controller {
 			'message_long'      => sprintf( __( 'ההודעה ארוכה מדי: עד %d תווים.', 'diromax-portal' ), MessageService::MAX_LENGTH ),
 			'message_empty'     => __( 'צריך לכתוב משהו בהודעה.', 'diromax-portal' ),
 			'closed'            => __( 'ההחלטה כבר נענתה או בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
+			'offer'             => __( 'בוחרים אחת מההצעות.', 'diromax-portal' ),
+			'quote_closed'      => __( 'הבחירה כבר נעשתה, או שההשוואה בוטלה, ולכן לא נשמר שינוי.', 'diromax-portal' ),
 			'expired'           => __( 'פג תוקף הטופס. רעננו את העמוד ונסו שוב.', 'diromax-portal' ),
 			'failed'            => __( 'לא הצלחנו לשמור. נסו שוב, או פנו למנהל הפרויקט.', 'diromax-portal' ),
 			'mismatch'          => __( 'שתי הסיסמאות לא זהות. אפשר להקליד שוב.', 'diromax-portal' ),

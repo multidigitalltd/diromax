@@ -48,7 +48,7 @@ final class MailItems {
 
 		foreach ( $events as $event ) {
 			$kind = $event['kind'];
-			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested', 'photos_added', 'schedule_changed', 'visit_published' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
+			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested', 'photos_added', 'schedule_changed', 'visit_published', 'quote_sent' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
 
 			if ( 'entry_voided' === $kind && 'entry_created' === ( $kinds[ $key ] ?? '' ) ) {
 				// Created and voided within one batch: the client never needs to hear of it.
@@ -68,6 +68,7 @@ final class MailItems {
 				'photos_added'     => $this->photos_card( $client_case, $event['object_id'] ),
 				'schedule_changed' => $this->schedule_card( $client_case ),
 				'visit_published'  => $this->visit_card( $client_case, $event['object_id'] ),
+				'quote_sent'       => $this->quote_card( $client_case, $event['object_id'], $hide_amounts ),
 				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
 			};
 
@@ -333,6 +334,46 @@ final class MailItems {
 			),
 			/* translators: %s: date. */
 			subject: sprintf( __( 'דוח ביקור באתר מ-%s', 'diromax-portal' ), $visit['date'] ),
+		);
+	}
+
+	/**
+	 * Card for quotes sent to the client to choose from (spec 24.3).
+	 *
+	 * @param CaseRecord $client_case  Case.
+	 * @param int        $id           Comparison.
+	 * @param bool       $hide_amounts Leave the prices out (the office's setting).
+	 * @return MailCard|null
+	 */
+	private function quote_card( CaseRecord $client_case, int $id, bool $hide_amounts ): ?MailCard {
+		$comparison = null;
+
+		foreach ( ( new QuoteService( $this->app ) )->for_client( $client_case ) ?? array() as $candidate ) {
+			$comparison = $id === $candidate['id'] && 'open' === $candidate['status'] ? $candidate : $comparison;
+		}
+
+		if ( null === $comparison ) {
+			// Withdrawn or already chosen before the email went out.
+			return null;
+		}
+
+		return new MailCard(
+			tone: 'orange',
+			badge: __( 'הצעות מחיר לבחירתך', 'diromax-portal' ),
+			title: (string) $comparison['title'],
+			rows: array_map(
+				static fn( array $offer ): array => array( (string) $offer['supplier'], implode( ' · ', array_filter( array( $hide_amounts ? '' : (string) $offer['amount'], (string) $offer['duration'] ) ) ) ),
+				(array) $comparison['offers']
+			),
+			amount: null,
+			note: (string) $comparison['note'],
+			stage: null,
+			link: array(
+				'label' => __( 'להשוואה ולבחירה באזור האישי', 'diromax-portal' ),
+				'url'   => Router::case_url( $client_case, 'quotes' ),
+			),
+			/* translators: %s: job. */
+			subject: sprintf( __( 'הצעות מחיר לבחירתך: %s', 'diromax-portal' ), $comparison['title'] ),
 		);
 	}
 

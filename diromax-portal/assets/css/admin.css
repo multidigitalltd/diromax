@@ -473,6 +473,13 @@
 .dxa-finding__photos img { display: block; width: 120px; height: 90px; object-fit: cover; border: 1px solid var(--a-line); }
 .dxa-finding .dxa-box { margin: 8px 0; }
 
+/* Quote comparisons (spec 24) */
+.dxa-quote { margin: 0 0 20px; }
+.dxa-quote > h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 0; }
+.dxa-quote--withdrawn { opacity: .75; }
+.dxa-offers .dxa-offer--chosen th, .dxa-offers .dxa-offer--chosen td { background: var(--a-blue-tint); }
+.dxa-quote .dxa-entry { margin-top: 12px; }
+
 /* ---------- Small screens and motion ---------- */
 @media (max-width: 1180px) {
   .dxa-dash-grid { grid-template-columns: minmax(0, 1fr); }

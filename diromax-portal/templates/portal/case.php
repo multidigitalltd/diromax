@@ -22,6 +22,7 @@ $tab_labels = array(
 	'finance'   => __( 'כספים', 'diromax-portal' ),
 	'schedule'  => __( 'לוח זמנים', 'diromax-portal' ),
 	'visits'    => __( 'ביקורים וממצאים', 'diromax-portal' ),
+	'quotes'    => __( 'הצעות מחיר', 'diromax-portal' ),
 	'decisions' => __( 'החלטות', 'diromax-portal' ),
 	'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 	'updates'   => __( 'עדכונים', 'diromax-portal' ),
@@ -46,6 +47,12 @@ if ( null === $view['schedule'] ) {
 if ( null === $view['visits'] ) {
 	unset( $tab_labels['visits'] );
 }
+
+if ( null === $view['quotes'] ) {
+	unset( $tab_labels['quotes'] );
+}
+
+$choosing = count( array_filter( (array) $view['quotes'], static fn( array $comparison ): bool => 'open' === $comparison['status'] ) );
 ?>
 <section class="dxp-head" aria-labelledby="dxp-case-title">
 	<div class="dxp-wrap">
@@ -241,6 +248,12 @@ if ( null === $view['visits'] ) {
 				<?php if ( 'updates' === $key && array() !== $view['updates'] ) : ?>
 					<span class="dxp-cnt"><?php echo esc_html( (string) count( $view['updates'] ) ); ?></span>
 				<?php endif; ?>
+				<?php if ( 'quotes' === $key && $choosing > 0 ) : ?>
+					<span class="dxp-cnt dxp-cnt--hot">
+						<?php echo esc_html( (string) $choosing ); ?>
+						<span class="dxp-sr"><?php esc_html_e( 'ממתינות לבחירה', 'diromax-portal' ); ?></span>
+					</span>
+				<?php endif; ?>
 				<?php if ( 'decisions' === $key && $waiting > 0 ) : ?>
 					<span class="dxp-cnt dxp-cnt--hot">
 						<?php echo esc_html( (string) $waiting ); ?>
@@ -256,6 +269,7 @@ if ( null === $view['visits'] ) {
 		'finance'   => 'finance',
 		'schedule'  => null === $view['schedule'] ? 'finance' : 'schedule',
 		'visits'    => null === $view['visits'] ? 'finance' : 'visits',
+		'quotes'    => null === $view['quotes'] ? 'finance' : 'quotes',
 		'decisions' => 'decisions',
 		'documents' => 'documents',
 		'updates'   => 'updates',
