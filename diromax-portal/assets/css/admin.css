@@ -64,9 +64,12 @@
 .dxa-screen .wrap.dxa .dxa-top__search input[type="search"] { width: 210px; max-width: 46vw; min-height: 36px; border-color: #8c8f94; background: #23262d; color: var(--a-white); }
 .dxa-screen .wrap.dxa .dxa-top__search input[type="search"]::placeholder { color: #b9bcc3; opacity: 1; }
 .dxa-top__user { display: flex; align-items: center; gap: 10px; margin: 0; color: #d8dadf; font-weight: 600; }
-.dxa-screen .wrap.dxa .dxa-top__link { padding: 0; border: 0; background: none; color: #d8dadf; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.dxa-screen .wrap.dxa .dxa-top__link { min-height: 32px; padding: 6px 0; border: 0; background: none; color: #d8dadf; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 .dxa-screen .wrap.dxa .dxa-top__link:hover { color: var(--a-white); }
-.dxa-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Phones: no text under 12px, and nothing wider than the screen. */
+.dxa-screen small { font-size: max(12px, .85em); }
+.dxa-screen input[type="file"] { max-width: 100%; }
+.dxa-scroll { position: relative; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .dxa-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; padding: 28px 0 22px; }
 .dxa-head__text { min-width: 0; }
@@ -138,13 +141,13 @@
 .dxa-step__n { font-family: var(--a-font-num); font-size: 18px; font-weight: 800; color: var(--a-muted); }
 .dxa-step__t { font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--a-ink); }
 .dxa-step__s { font-size: 12px; color: var(--a-muted); }
-.dxa-step__d { font-size: 11.5px; color: var(--a-muted); }
+.dxa-step__d { font-size: 12px; color: var(--a-muted); }
 .dxa-step--done { border-top-color: var(--a-blue); }
 .dxa-step--done .dxa-step__n { color: var(--a-blue); }
 .dxa-step--active { border-top-color: var(--a-orange); background: var(--a-orange-tint); }
 .dxa-step--active .dxa-step__n, .dxa-step--active .dxa-step__s { color: var(--a-orange-text); font-weight: 800; }
 .dxa-step--skipped .dxa-step__t { text-decoration: line-through; }
-.dxa-steps__edit { font-size: 13px; font-weight: 600; }
+.dxa-steps__edit { display: inline-block; padding-block: 4px; font-size: 13px; font-weight: 600; }
 
 /* ---------- Case tabs ---------- */
 .dxa-screen .wrap.dxa .dxa-tabs { display: flex; flex-wrap: wrap; margin: 0 0 24px; padding: 0; border-bottom: 2px solid var(--a-ink); }
@@ -159,7 +162,7 @@
 .dxa-tabs__n { min-width: 20px; padding: 2px 6px; background: var(--a-blue); color: var(--a-white); font-family: var(--a-font-num); font-size: 11px; font-weight: 800; text-align: center; }
 
 /* ---------- KPI tiles ---------- */
-.dxa-kpis, .dxa-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; margin: 0 0 28px; padding: 0; list-style: none; background: var(--a-line); border: 2px solid var(--a-ink); }
+.dxa-kpis, .dxa-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 1px; margin: 0 0 28px; padding: 0; list-style: none; background: var(--a-line); border: 2px solid var(--a-ink); }
 .dxa-kpis li, .dxa-tiles li { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 16px 18px; background: var(--a-white); }
 .dxa-kpis__k, .dxa-tiles__k { font-size: 12.5px; font-weight: 700; color: var(--a-muted); }
 .dxa-kpis__v, .dxa-tiles__v { font-family: var(--a-font-num); font-size: clamp(20px, 1.8vw, 26px); font-weight: 800; line-height: 1.15; color: var(--a-ink); text-align: start; }
@@ -206,7 +209,7 @@
 .dxa-welcome { position: relative; margin: 0 0 28px; padding: clamp(22px, 3vw, 40px); background: var(--a-white) var(--a-stripe) top / 100% 6px no-repeat; border: 2px solid var(--a-ink); }
 .dxa-screen .wrap.dxa .dxa-welcome h2 { margin: 6px 0 10px; font-size: clamp(22px, 2.2vw, 30px); font-weight: 900; }
 .dxa-welcome__lead { max-width: 72ch; font-size: 16px; line-height: 1.65; }
-.dxa-welcome__steps { counter-reset: dxa-step; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 22px 0; padding: 0; list-style: none; }
+.dxa-welcome__steps { counter-reset: dxa-step; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px; margin: 22px 0; padding: 0; list-style: none; }
 .dxa-welcome__steps li { counter-increment: dxa-step; margin: 0; padding: 14px 16px; background: var(--a-bg); border-top: 4px solid var(--a-blue); }
 .dxa-welcome__steps li::before { content: counter(dxa-step, decimal-leading-zero); display: block; margin-bottom: 6px; font-family: var(--a-font-num); font-size: 22px; font-weight: 800; color: var(--a-blue); }
 .dxa-welcome__steps strong { display: block; font-size: 15px; color: var(--a-ink); }
@@ -255,7 +258,7 @@
 .dxa-box--add:not([open]) { padding-bottom: 0; border: 2px solid var(--a-blue); }
 .dxa-box--add:not([open]) > summary::before { background: var(--a-blue); border-color: var(--a-blue); color: var(--a-white); }
 .dxa-screen .wrap.dxa .dxa-box--add:not([open]) > summary h2 { color: var(--a-blue); }
-.dxa-entry { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.dxa-entry { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 4px 16px; }
 .dxa-field { margin: 8px 0; }
 .dxa-field label { display: block; margin-bottom: 4px; font-weight: 700; color: var(--a-ink); }
 .dxa-field input[type="text"], .dxa-field input[type="date"], .dxa-field input[type="email"], .dxa-field select, .dxa-field textarea { width: 100%; max-width: 100%; }
@@ -295,7 +298,7 @@
 .dxa-pending__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .dxa-pending__actions form { margin: 0; }
 
-.dxa-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+.dxa-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 24px; }
 .dxa-cols > section { padding: 4px 20px 12px; background: var(--a-white); border: 1px solid var(--a-line); }
 .dxa-list { margin: 0; padding: 0; list-style: none; }
 .dxa-list li { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--a-line-soft); }
@@ -337,7 +340,7 @@
 
 /* ---------- Stage board ---------- */
 .dxa-board__intro { max-width: 760px; margin: 0 0 16px; color: var(--a-muted); }
-.dxa-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-items: start; }
+.dxa-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 12px; align-items: start; }
 .dxa-board__col { min-width: 0; background: var(--a-white); border: 1px solid var(--a-line); border-top: 4px solid var(--a-line-soft); }
 .dxa-board__col.has-cases { border-top-color: var(--a-orange); }
 .dxa-screen .wrap.dxa .dxa-board__h { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; padding: 12px 14px; font-family: var(--a-font); font-size: 14px; line-height: 1.35; border-bottom: 1px solid var(--a-line-soft); }
@@ -365,7 +368,7 @@
 /* Photo journal (spec 18.2). */
 .dxa-photos { margin: 0 0 24px; }
 .dxa-photos h3 { margin: 0 0 10px; font-size: 15px; }
-.dxa-photos__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.dxa-photos__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
 .dxa-photo { margin: 0; padding: 8px; background: var(--a-white); border: 1px solid var(--a-line); }
 .dxa-photo.is-hidden { border-style: dashed; }
 .dxa-photo a { display: block; }
@@ -409,7 +412,7 @@
 .dxa-tag-cancelled { display: inline-block; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--a-ink); background: var(--a-line-soft); }
 
 /* Payment plan (spec 21) */
-.dxa-plan-sum__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 32px; margin: 0 0 8px; }
+.dxa-plan-sum__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px 32px; margin: 0 0 8px; }
 .dxa-plan-sum__list dt { font-size: 13px; color: var(--a-muted); }
 .dxa-plan-sum__list dd { margin: 2px 0 0; font-size: 15px; }
 .dxa-plan-sum__list strong { font-family: var(--a-font-num); font-size: 20px; color: var(--a-ink); }
@@ -451,7 +454,7 @@
 .dxa-schedule input[type="date"] { max-width: 100%; }
 .dxa-schedule th[scope="row"] { font-weight: 600; }
 .dxa-milestone--done .dxa-meeting__title { color: var(--a-muted); }
-.dxa-weeks { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 24px; margin: 8px 0 16px; padding: 0; list-style: none; }
+.dxa-weeks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 8px 24px; margin: 8px 0 16px; padding: 0; list-style: none; }
 .dxa-weeks li { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; }
 @media (max-width: 600px) {
   .dxa-gantt__row { grid-template-columns: minmax(0, 1fr); gap: 2px; }

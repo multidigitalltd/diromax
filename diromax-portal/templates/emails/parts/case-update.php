@@ -107,55 +107,61 @@ if ( null !== $money ) :
 		<tr><td style="padding:22px 22px 4px;text-align:right;font-family:<?php echo esc_attr( $font ); ?>;">
 			<p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.5px;color:#9fd4e6;"><?php esc_html_e( 'המצב הכספי בתיק, אחרי העדכון', 'diromax-portal' ); ?></p>
 		</td></tr>
-		<tr><td style="padding:10px 22px 0;">
-			<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="font-family:<?php echo esc_attr( $font ); ?>;">
-				<tr>
-					<td class="dx-stack" width="50%" valign="top" style="padding:8px 0 12px 12px;text-align:right;">
-						<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'עלות עד היום', 'diromax-portal' ); ?></p>
-						<p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['cost'] ); ?></span></p>
-						<?php if ( '' !== $money['budget'] ) : ?>
-						<p style="margin:2px 0 0;font-size:13.5px;color:#d8e2f4;">
-							<?php
-							/* translators: 1: share of budget, 2: budget. */
-							echo esc_html( sprintf( __( '%1$s מתקציב של %2$s', 'diromax-portal' ), (string) $money['share'], (string) $money['budget'] ) );
-							?>
-						</p>
-						<?php endif; ?>
-					</td>
-					<td class="dx-stack" width="50%" valign="top" style="padding:8px 12px 12px 0;text-align:right;">
-						<?php if ( null !== $money['balance'] ) : ?>
-						<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'יתרה בחשבון הפרויקט', 'diromax-portal' ); ?></p>
-						<p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['balance'] ); ?></span></p>
-						<?php elseif ( null !== $money['committed'] ) : ?>
-						<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'התחייבויות פתוחות', 'diromax-portal' ); ?></p>
-						<p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['committed'] ); ?></span></p>
-						<?php endif; ?>
-					</td>
-				</tr>
+		<?php
+		// Two columns of inline blocks: side by side when the card is wide, one under the other on a phone,
+		// with or without the <style> block. Outlook on Windows gets a two-cell table instead.
+		$dx_col_open  = '<div class="dx-col" style="display:inline-block;width:100%;max-width:240px;vertical-align:top;font-size:16px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"><tr><td valign="top" style="padding:8px 0 12px 12px;text-align:right;font-family:' . esc_attr( $font ) . ';">';
+		$dx_col_close = '</td></tr></table></div>';
+		$dx_mso_split = '<!--[if mso]></td><td width="50%" valign="top"><![endif]-->';
+		$dx_mso_open  = '<!--[if mso]><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"><tr><td width="50%" valign="top"><![endif]-->';
+		$dx_mso_close = '<!--[if mso]></td></tr></table><![endif]-->';
+		?>
+		<tr><td dir="rtl" style="padding:10px 22px 0;font-size:0;text-align:right;">
+			<?php echo $dx_mso_open . $dx_col_open; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built above from constants and an escaped font. ?>
+				<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'עלות עד היום', 'diromax-portal' ); ?></p>
+				<p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['cost'] ); ?></span></p>
 				<?php if ( '' !== $money['budget'] ) : ?>
-				<tr><td colspan="2" style="padding:0 0 4px;font-size:0;line-height:0;">
-					<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"><tr>
-						<td width="<?php echo esc_attr( (string) $paid ); ?>%" height="8" bgcolor="#9fd4e6" style="height:8px;background:#9fd4e6;font-size:0;line-height:0;">&nbsp;</td>
-						<td width="<?php echo esc_attr( (string) ( 100 - $paid ) ); ?>%" height="8" bgcolor="#3a57a8" style="height:8px;background:#3a57a8;font-size:0;line-height:0;">&nbsp;</td>
-					</tr></table>
-				</td></tr>
+				<p style="margin:2px 0 0;font-size:13.5px;color:#d8e2f4;">
+					<?php
+					/* translators: 1: share of budget, 2: budget. */
+					echo esc_html( sprintf( __( '%1$s מתקציב של %2$s', 'diromax-portal' ), (string) $money['share'], (string) $money['budget'] ) );
+					?>
+				</p>
 				<?php endif; ?>
-				<tr>
-					<td class="dx-stack" width="50%" valign="top" style="padding:14px 0 18px 12px;text-align:right;">
-						<?php if ( null !== $money['balance'] && null !== $money['committed'] ) : ?>
-						<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'התחייבויות פתוחות', 'diromax-portal' ); ?></p>
-						<p style="margin:0;font-size:19px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['committed'] ); ?></span></p>
-						<?php endif; ?>
-					</td>
-					<td class="dx-stack" width="50%" valign="top" style="padding:14px 12px 18px 0;text-align:right;">
-						<?php if ( null !== $money['due'] ) : ?>
-						<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'דרישות תשלום פתוחות', 'diromax-portal' ); ?></p>
-						<p style="margin:0;font-size:19px;font-weight:800;color:#f2984b;"><span dir="ltr"><?php echo esc_html( (string) $money['due'] ); ?></span></p>
-						<?php endif; ?>
-					</td>
-				</tr>
-			</table>
+			<?php echo $dx_col_close . $dx_mso_split . $dx_col_open; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built above. ?>
+				<?php if ( null !== $money['balance'] ) : ?>
+				<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'יתרה בחשבון הפרויקט', 'diromax-portal' ); ?></p>
+				<p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['balance'] ); ?></span></p>
+				<?php elseif ( null !== $money['committed'] ) : ?>
+				<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'התחייבויות פתוחות', 'diromax-portal' ); ?></p>
+				<p style="margin:0;font-size:26px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['committed'] ); ?></span></p>
+				<?php endif; ?>
+			<?php echo $dx_col_close . $dx_mso_close; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built above. ?>
 		</td></tr>
+		<?php if ( '' !== $money['budget'] ) : ?>
+		<tr><td style="padding:4px 22px 4px;font-size:0;line-height:0;">
+			<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"><tr>
+				<td width="<?php echo esc_attr( (string) $paid ); ?>%" height="8" bgcolor="#9fd4e6" style="height:8px;background:#9fd4e6;font-size:0;line-height:0;">&nbsp;</td>
+				<td width="<?php echo esc_attr( (string) ( 100 - $paid ) ); ?>%" height="8" bgcolor="#3a57a8" style="height:8px;background:#3a57a8;font-size:0;line-height:0;">&nbsp;</td>
+			</tr></table>
+		</td></tr>
+		<?php endif; ?>
+		<?php if ( ( null !== $money['balance'] && null !== $money['committed'] ) || null !== $money['due'] ) : ?>
+		<tr><td dir="rtl" style="padding:6px 22px 6px;font-size:0;text-align:right;">
+			<?php echo $dx_mso_open . $dx_col_open; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built above. ?>
+				<?php if ( null !== $money['balance'] && null !== $money['committed'] ) : ?>
+				<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'התחייבויות פתוחות', 'diromax-portal' ); ?></p>
+				<p style="margin:0;font-size:19px;font-weight:800;color:#ffffff;"><span dir="ltr"><?php echo esc_html( (string) $money['committed'] ); ?></span></p>
+				<?php endif; ?>
+			<?php echo $dx_col_close . $dx_mso_split . $dx_col_open; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built above. ?>
+				<?php if ( null !== $money['due'] ) : ?>
+				<p style="margin:0 0 2px;font-size:14px;color:#d8e2f4;"><?php esc_html_e( 'דרישות תשלום פתוחות', 'diromax-portal' ); ?></p>
+				<p style="margin:0;font-size:19px;font-weight:800;color:#f2984b;"><span dir="ltr"><?php echo esc_html( (string) $money['due'] ); ?></span></p>
+				<?php endif; ?>
+			<?php echo $dx_col_close . $dx_mso_close; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built above. ?>
+		</td></tr>
+		<?php endif; ?>
+		<tr><td style="padding:0 0 12px;font-size:0;line-height:0;">&nbsp;</td></tr>
 	</table>
 </td></tr>
 <?php endif; ?>

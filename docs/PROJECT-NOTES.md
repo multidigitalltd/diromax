@@ -87,3 +87,8 @@ php bin/build-icons.php               # app icons for the management app, from t
 - Photos (spec 18.2): `dx_photos` plus two encrypted files each (the image, at most 2560 px, and a 640 px thumbnail), through `Service\PhotoService`. They are served by `/portal/photo/{id}/[thumb/]`, checked with `PhotoService::may_view()`. A case deletion must delete their files too (`CaseService::delete`).
 - Never put a `<form>` inside a `<p>`: the parser closes the paragraph first, so selectors and styles miss the buttons.
 - Every portal form posts back with a nonce bound to the object and answers a foreign case with 404, exactly like a missing one.
+
+- **Phones (1.15.1).**
+  - Emails are fluid without a media query: the card is `width:100%;max-width:600px` inline, the money columns of the update email are inline blocks (`.dx-col`, max 240px) that stack when the screen is narrow, and the card carries `overflow-wrap:anywhere;word-break:break-word` so a long link breaks. Only Outlook on Windows gets fixed 600px tables through `[if mso]`. Mobile and dark mode are separate `<style>` blocks.
+  - In the admin and app CSS, a scroll box (`.dxa-scroll`, `.dxp-table`, `.dx-table-wrap`) is `position: relative`: screen-reader text inside a wide RTL table is absolutely positioned and otherwise escapes the box and widens the page. Auto-fit grids use `minmax(min(Npx, 100%), 1fr)`.
+  - `tests/e2e/mobile.e2e.js` checks every site, portal and app page at 320px and 390px (fits the screen, no text under 12px) and every email the journeys sent at 320px, with and without its `<style>` blocks.

@@ -502,7 +502,30 @@ final class Controller {
 			Router::case_url( $client_case )
 		);
 
+		self::preload_first_photo( $view );
 		$this->render( 'case', $view, $client_case->title );
+	}
+
+	/**
+	 * On the photo journal, the first photo is the largest paint on a phone:
+	 * start fetching it with the page's head, before the parser reaches it.
+	 *
+	 * @param array<string, mixed> $view Case view.
+	 */
+	private static function preload_first_photo( array $view ): void {
+		$first = 'photos' === ( $view['tab'] ?? '' ) ? (string) ( $view['photos'][0]['photos'][0]['thumb'] ?? '' ) : '';
+
+		if ( '' === $first ) {
+			return;
+		}
+
+		add_action(
+			'wp_head',
+			static function () use ( $first ): void {
+				echo '<link rel="preload" as="image" href="' . esc_url( $first ) . '" fetchpriority="high">' . "\n";
+			},
+			2
+		);
 	}
 
 	/**
