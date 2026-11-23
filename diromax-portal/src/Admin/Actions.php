@@ -541,12 +541,24 @@ final class Actions {
 		// phpcs:enable
 		$input = self::budget_input( is_array( $raw ) ? $raw : array(), $move );
 
-		$this->finish( $client_case, 'budget', $this->app->case_service->save_budget( $client_case, $input, $actor ), '' !== $input['move'] ? __( 'הסדר עודכן והתקציב נשמר.', 'diromax-portal' ) : __( 'התקציב נשמר.', 'diromax-portal' ), 'budget', $input );
+		$saved = '' !== $input['move'] ? __( 'הסדר עודכן והתקציב נשמר.', 'diromax-portal' ) : __( 'התקציב נשמר.', 'diromax-portal' );
+
+		$with_vat = array_filter(
+			$input,
+			static fn( string $value, string $field ): bool => 'excluded' === $value && str_ends_with( $field, '.vat' ) && '' !== trim( $input[ substr( $field, 0, -4 ) . '.planned' ] ?? '' ),
+			ARRAY_FILTER_USE_BOTH
+		);
+
+		if ( array() !== $with_vat ) {
+			$saved .= ' ' . __( 'לסכומים שסומנו "+ מע״מ" נוסף מע״מ, והם מוצגים עכשיו כוללים מע״מ.', 'diromax-portal' );
+		}
+
+		$this->finish( $client_case, 'budget', $this->app->case_service->save_budget( $client_case, $input, $actor ), $saved, 'budget', $input );
 	}
 
 	/**
 	 * The budget form as flat fields: "{key}.label", "{key}.planned",
-	 * "{key}.remove", "add.{section}.label", "add.*.label", "move".
+	 * "{key}.vat", "{key}.remove", "add.{section}.label", "add.*.label", "move".
 	 *
 	 * @param array<mixed> $raw  $_POST['budget'], unslashed.
 	 * @param string       $move "{key}:up" or "{key}:down" from the arrow buttons.
@@ -567,7 +579,7 @@ final class Actions {
 
 				$prefix = 'add' === $group ? 'add.' . $key : $key;
 
-				foreach ( array( 'label', 'planned', 'remove' ) as $name ) {
+				foreach ( array( 'label', 'planned', 'vat', 'remove' ) as $name ) {
 					if ( isset( $fields[ $name ] ) && is_string( $fields[ $name ] ) ) {
 						$input[ $prefix . '.' . $name ] = sanitize_text_field( $fields[ $name ] );
 					}

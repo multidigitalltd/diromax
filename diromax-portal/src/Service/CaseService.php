@@ -391,7 +391,8 @@ final class CaseService {
 				$taken[ $key ] = true;
 
 				return $key;
-			}
+			},
+			Settings::all()['vat_rate']
 		);
 
 		if ( array() !== $result['errors'] ) {

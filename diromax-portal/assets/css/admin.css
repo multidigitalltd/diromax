@@ -278,6 +278,8 @@
 .dxa-budget__add th { padding-inline-start: 28px; }
 .dxa-budget__new th, .dxa-budget__new td { border-top: 2px dashed var(--a-line); }
 .dxa-budget__total { display: block; margin-top: 4px; color: var(--a-muted); }
+.dxa-budget td .dxa-amount { max-width: 140px; vertical-align: middle; }
+.dxa-budget__vat { margin-inline-start: 6px; min-height: 32px; vertical-align: middle; }
 .dxa-budget__moves { display: inline-flex; gap: 4px; }
 .dxa-budget__moves .button { min-width: 32px; min-height: 32px; }
 .dxa-budget tfoot th, .dxa-budget tfoot td { border-top: 2px solid var(--a-ink); }
