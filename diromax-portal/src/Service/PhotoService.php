@@ -135,6 +135,61 @@ final class PhotoService {
 	}
 
 	/**
+	 * Keep one photo of a site finding (spec 23): it joins the journal like
+	 * any other, under the case's current stage, and the client sees it only
+	 * when the finding is shown.
+	 *
+	 * @param CaseRecord           $client_case Case.
+	 * @param array<string, mixed> $file        One $_FILES item.
+	 * @param string               $caption     Caption.
+	 * @param bool                 $visible     Shown to the client.
+	 * @param int                  $actor       Acting user.
+	 * @return int|WP_Error Photo ID.
+	 */
+	public function attach( CaseRecord $client_case, array $file, string $caption, bool $visible, int $actor ): int|WP_Error {
+		if ( ! $this->app->policy->can_manage_case( $actor, $client_case ) ) {
+			return Errors::forbidden();
+		}
+
+		$blocked = $this->app->document_service->storage_error();
+
+		if ( null !== $blocked ) {
+			return $blocked;
+		}
+
+		$id = $this->store_one(
+			$client_case,
+			$file,
+			array(
+				'stage'    => StageProgress::lead( $client_case->stages ),
+				'taken_on' => '',
+				'caption'  => mb_substr( Text::line( $caption ), 0, 300 ),
+				'visible'  => $visible,
+			),
+			substr( Ids::public_id(), 0, 16 ),
+			$actor
+		);
+
+		if ( $id instanceof WP_Error ) {
+			return Errors::invalid( array( 'photo' => 'type' ) );
+		}
+
+		$this->app->audit->record(
+			'photos.added',
+			$client_case->id,
+			'photo',
+			$id,
+			array(
+				'count'   => 1,
+				'visible' => $visible,
+			),
+			$this->app->clock->mysql()
+		);
+
+		return $id;
+	}
+
+	/**
 	 * Show a photo to the clients, or keep it internal.
 	 *
 	 * @param CaseRecord $client_case Case.

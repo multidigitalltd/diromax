@@ -43,7 +43,7 @@ final class Router {
 	private const RULES_OPTION = 'dx_portal_rules';
 
 	/** Tabs of the client's case page. */
-	public const CASE_TABS = array( 'finance', 'schedule', 'documents', 'updates', 'decisions', 'photos', 'messages' );
+	public const CASE_TABS = array( 'finance', 'schedule', 'visits', 'documents', 'updates', 'decisions', 'photos', 'messages' );
 
 	/** Views the router accepts. */
 	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc', 'manage', 'report', 'sign', 'signfile', 'photo', 'thumb', 'meeting' );

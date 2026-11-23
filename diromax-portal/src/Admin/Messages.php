@@ -61,6 +61,8 @@ final class Messages {
 			'base:invalid'          => __( 'סכום הבסיס צריך להיות מספר, או ריק כדי לחשב מסך התקציב.', 'diromax-portal' ),
 			'start_on:no_weeks'     => __( 'עדיין לא נקבעו משכי שלבים בהגדרות, ולכן אין ממה לחשב.', 'diromax-portal' ),
 			'label:too_many'        => __( 'הגעתם למספר אבני הדרך המרבי בתיק (60).', 'diromax-portal' ),
+			'visit_on:future'       => __( 'תאריך הביקור לא יכול להיות בעתיד.', 'diromax-portal' ),
+			'photo:type'            => __( 'הצילום לא התקבל: צריך JPG, PNG או WEBP עד 20MB.', 'diromax-portal' ),
 		);
 
 		if ( isset( $specific[ $field . ':' . $code ] ) ) {

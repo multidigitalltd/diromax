@@ -31,6 +31,7 @@ use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
 use Diromax\Portal\Service\UpdateService;
+use Diromax\Portal\Service\VisitService;
 use Diromax\Portal\Settings;
 use Diromax\Portal\Support\Integrations;
 use WP_Error;
@@ -97,6 +98,14 @@ final class Actions {
 		'update_milestone'    => array( array( 'milestone_id', 'label', 'stage', 'date', 'note' ), array() ),
 		'delete_milestone'    => array( array( 'milestone_id' ), array() ),
 		'milestone_done'      => array( array( 'milestone_id', 'done' ), array() ),
+		'add_visit'           => array( array( 'visit_on', 'attendees', 'visible', 'notify' ), array( 'summary' ) ),
+		'update_visit'        => array( array( 'visit_id', 'visit_on', 'attendees', 'visible', 'notify' ), array( 'summary' ) ),
+		'delete_visit'        => array( array( 'visit_id' ), array() ),
+		'add_finding'         => array( array( 'visit_id', 'title', 'location', 'severity', 'supplier', 'due_on', 'visible' ), array() ),
+		'update_finding'      => array( array( 'finding_id', 'title', 'location', 'severity', 'supplier', 'due_on', 'visible' ), array() ),
+		'fix_finding'         => array( array( 'finding_id', 'fix_note' ), array() ),
+		'reopen_finding'      => array( array( 'finding_id' ), array() ),
+		'delete_finding'      => array( array( 'finding_id' ), array() ),
 	);
 
 	/** Transient prefix holding a new webhook key until the next page shows it. */
@@ -205,6 +214,14 @@ final class Actions {
 			'add_milestone'       => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->add_milestone( $client_case, $input, $actor ), __( 'אבן הדרך נוספה.', 'diromax-portal' ), 'milestone', $input ),
 			'update_milestone'    => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->update_milestone( $client_case, absint( $input['milestone_id'] ), $input, $actor ), __( 'אבן הדרך עודכנה.', 'diromax-portal' ), 'milestone' . absint( $input['milestone_id'] ), $input ),
 			'delete_milestone'    => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->delete_milestone( $client_case, absint( $input['milestone_id'] ), $actor ), __( 'אבן הדרך נמחקה.', 'diromax-portal' ) ),
+			'add_visit'           => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->add_visit( $client_case, $input, $actor ), '1' === $input['notify'] && '1' === $input['visible'] ? __( 'הביקור נשמר, והלקוח יקבל עליו עדכון במייל.', 'diromax-portal' ) : __( 'הביקור נשמר. עכשיו אפשר להוסיף לו ממצאים.', 'diromax-portal' ), 'visit', $input ),
+			'update_visit'        => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->update_visit( $client_case, absint( $input['visit_id'] ), $input, $actor ), __( 'הביקור עודכן.', 'diromax-portal' ), 'visit' . absint( $input['visit_id'] ), $input ),
+			'delete_visit'        => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->delete_visit( $client_case, absint( $input['visit_id'] ), $actor ), __( 'הביקור והממצאים שלו נמחקו.', 'diromax-portal' ) ),
+			'add_finding'         => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->add_finding( $client_case, absint( $input['visit_id'] ), $input, self::file( 'photo' ), $actor ), __( 'הממצא נוסף.', 'diromax-portal' ), 'finding' . absint( $input['visit_id'] ), $input ),
+			'update_finding'      => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->update_finding( $client_case, absint( $input['finding_id'] ), $input, $actor ), __( 'הממצא עודכן.', 'diromax-portal' ), 'edit' . absint( $input['finding_id'] ), $input ),
+			'fix_finding'         => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->fix( $client_case, absint( $input['finding_id'] ), $input['fix_note'], self::file( 'after_photo' ), $actor ), __( 'הממצא סומן כתוקן.', 'diromax-portal' ), 'fix' . absint( $input['finding_id'] ), $input ),
+			'reopen_finding'      => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->reopen( $client_case, absint( $input['finding_id'] ), $actor ), __( 'הממצא נפתח מחדש.', 'diromax-portal' ) ),
+			'delete_finding'      => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->delete_finding( $client_case, absint( $input['finding_id'] ), $actor ), __( 'הממצא נמחק.', 'diromax-portal' ) ),
 			'milestone_done'      => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->set_done( $client_case, absint( $input['milestone_id'] ), '1' === $input['done'], $actor ), '1' === $input['done'] ? __( 'אבן הדרך סומנה כהושגה.', 'diromax-portal' ) : __( 'אבן הדרך חזרה לפתוחות.', 'diromax-portal' ) ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};

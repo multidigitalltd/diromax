@@ -181,6 +181,30 @@ final class MorningSummary {
 			);
 		}
 
+		$findings = $this->app->visits->overdue( $all ? null : $user_id, $today );
+
+		if ( array() !== $findings ) {
+			$cards[] = new MailCard(
+				tone: 'orange',
+				badge: __( 'ממצאים מהשטח', 'diromax-portal' ),
+				/* translators: %d: number of findings. */
+				title: sprintf( _n( 'ממצא %d עבר את מועד התיקון', '%d ממצאים עברו את מועד התיקון', count( $findings ), 'diromax-portal' ), count( $findings ) ),
+				rows: array_map(
+					static fn( array $row ): array => array(
+						$row['finding']['title'],
+						/* translators: 1: case, 2: supplier, 3: due date. */
+						trim( sprintf( __( '%1$s · %2$s · עד %3$s', 'diromax-portal' ), $row['case_title'], $row['finding']['supplier'], Labels::date( $row['finding']['due_on'] ) ) ),
+					),
+					array_slice( $findings, 0, 30 )
+				),
+				amount: null,
+				note: '',
+				stage: null,
+				link: null,
+				subject: '',
+			);
+		}
+
 		if ( array() !== $late ) {
 			$cards[] = new MailCard(
 				tone: 'ink',

@@ -48,7 +48,7 @@ final class MailItems {
 
 		foreach ( $events as $event ) {
 			$kind = $event['kind'];
-			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested', 'photos_added', 'schedule_changed' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
+			$key  = in_array( $kind, array( 'update_published', 'document_added', 'request_reminder', 'decision_created', 'doc_requested', 'photos_added', 'schedule_changed', 'visit_published' ), true ) ? $kind . ':' . $event['object_id'] : 'entry:' . $event['object_id'];
 
 			if ( 'entry_voided' === $kind && 'entry_created' === ( $kinds[ $key ] ?? '' ) ) {
 				// Created and voided within one batch: the client never needs to hear of it.
@@ -67,6 +67,7 @@ final class MailItems {
 				'doc_requested'    => $this->doc_request_card( $client_case, $event['object_id'] ),
 				'photos_added'     => $this->photos_card( $client_case, $event['object_id'] ),
 				'schedule_changed' => $this->schedule_card( $client_case ),
+				'visit_published'  => $this->visit_card( $client_case, $event['object_id'] ),
 				default            => $this->entry_card( $client_case, $kind, $event['object_id'], $hide_amounts ),
 			};
 
@@ -288,6 +289,50 @@ final class MailItems {
 				'url'   => Router::case_url( $client_case, 'schedule' ),
 			),
 			subject: __( 'עדכון בלוח הזמנים של הפרויקט', 'diromax-portal' ),
+		);
+	}
+
+	/**
+	 * Card for a site visit shown to the client (spec 23.4): the date, the
+	 * summary, and the findings still open.
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param int        $id          Visit.
+	 * @return MailCard|null
+	 */
+	private function visit_card( CaseRecord $client_case, int $id ): ?MailCard {
+		$view  = ( new VisitService( $this->app ) )->for_client( $client_case );
+		$visit = null;
+
+		foreach ( null === $view ? array() : $view['visits'] as $candidate ) {
+			$visit = $id === $candidate['id'] ? $candidate : $visit;
+		}
+
+		if ( null === $visit ) {
+			// Hidden or deleted before the email went out.
+			return null;
+		}
+
+		$open = array_values( array_filter( (array) $visit['findings'], static fn( array $finding ): bool => 'open' === $finding['status'] ) );
+
+		return new MailCard(
+			tone: 'ink',
+			badge: __( 'ביקור באתר', 'diromax-portal' ),
+			/* translators: %s: date. */
+			title: sprintf( __( 'דוח ביקור באתר מ-%s', 'diromax-portal' ), $visit['date'] ),
+			rows: array_map(
+				static fn( array $finding ): array => array( (string) $finding['title'], '' !== $finding['due_label'] ? sprintf( /* translators: %s: date. */ __( 'לתיקון עד %s', 'diromax-portal' ), $finding['due_label'] ) : __( 'פתוח', 'diromax-portal' ) ),
+				array_slice( $open, 0, 12 )
+			),
+			amount: null,
+			note: (string) $visit['summary'],
+			stage: null,
+			link: array(
+				'label' => __( 'לדוח המלא באזור האישי', 'diromax-portal' ),
+				'url'   => Router::case_url( $client_case, 'visits' ),
+			),
+			/* translators: %s: date. */
+			subject: sprintf( __( 'דוח ביקור באתר מ-%s', 'diromax-portal' ), $visit['date'] ),
 		);
 	}
 

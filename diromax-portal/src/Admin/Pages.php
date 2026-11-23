@@ -34,6 +34,7 @@ use Diromax\Portal\Service\ScheduleService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
+use Diromax\Portal\Service\VisitService;
 use Diromax\Portal\Settings;
 use Diromax\Portal\Support\Integrations;
 
@@ -51,7 +52,7 @@ final class Pages {
 	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'tasks', 'meetings', 'details', 'schedule', 'members', 'budget', 'finance', 'plan', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
+	public const TABS = array( 'overview', 'tasks', 'meetings', 'details', 'schedule', 'visits', 'members', 'budget', 'finance', 'plan', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -132,6 +133,7 @@ final class Pages {
 			'tasks'      => $this->app->tasks->open_for( $user, 0 === $manager, null, 20 ),
 			'meetings'   => $this->app->meetings->starting_between( $this->app->clock->mysql(), $this->app->clock->mysql_in( 7 * DAY_IN_SECONDS ), $scope ),
 			'drafts'     => $this->app->plan->drafts( $scope ),
+			'findings'   => $this->app->visits->overdue( $scope, $today ),
 		);
 	}
 
@@ -479,6 +481,12 @@ final class Pages {
 				'today'  => $this->app->clock->today(),
 				'closed' => CaseStatus::Closed === $client_case->status,
 			),
+			'visits'    => ( new VisitService( $this->app ) )->for_staff( $client_case ) + array(
+				'severities' => VisitService::severities(),
+				'today'      => $this->app->clock->today(),
+				'closed'     => CaseStatus::Closed === $client_case->status,
+				'key_ready'  => $this->app->store->is_configured(),
+			),
 			'plan'      => ( new PlanService( $this->app ) )->for_staff( $client_case ) + array(
 				'budget_total' => $this->app->budget->tree( $client_case->id )->total(),
 				'stages'       => Stages::names(),
@@ -601,6 +609,7 @@ final class Pages {
 			'photos'    => $this->app->photos->count_for_case( $client_case->id, false ),
 			'meetings'  => $this->app->meetings->count_upcoming( $client_case->id, $this->app->clock->mysql() ),
 			'plan'      => $this->app->plan->count_drafts( $client_case->id ),
+			'visits'    => $this->app->visits->count_open( $client_case->id ),
 		);
 	}
 
@@ -675,6 +684,7 @@ final class Pages {
 			'meetings'  => __( 'פגישות', 'diromax-portal' ),
 			'details'   => __( 'פרטי התיק', 'diromax-portal' ),
 			'schedule'  => __( 'לוח זמנים', 'diromax-portal' ),
+			'visits'    => __( 'ביקורים וממצאים', 'diromax-portal' ),
 			'members'   => __( 'לקוחות', 'diromax-portal' ),
 			'budget'    => __( 'תקציב', 'diromax-portal' ),
 			'finance'   => __( 'כספים', 'diromax-portal' ),
