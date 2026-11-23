@@ -4,7 +4,7 @@ Theme URI: https://diromax.co.il
 Author: Multi Digital
 Author URI: https://multidigital.co.il
 Description: ערכת עיצוב לאתר דירומקס — תיווך, יזמות וניהול השבחת נכסים. RTL מלא, נגישות לפי ת"י 5568 ו-WCAG 2.2 AA, ללא תלות בתוספים וללא ספריות צד ג'.
-Version: 2.2.2
+Version: 2.2.3
 Requires at least: 6.3
 Tested up to: 7.0
 Requires PHP: 8.0
@@ -382,7 +382,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--dx-blue-text) !i
 /* ============================================================
    12. COMPARISON TABLE
    ============================================================ */
-.dx-table-wrap { border: 2px solid var(--dx-ink); background: var(--dx-bg); overflow-x: auto; }
+.dx-table-wrap { position: relative; border: 2px solid var(--dx-ink); background: var(--dx-bg); overflow-x: auto; }
 .dx-table { width: 100%; min-width: 720px; }
 .dx-table th { text-align: right; padding: 20px 24px; border-bottom: 2px solid var(--dx-ink); }
 .dx-table th.dx-th-stage { font-size: 14px; font-weight: 800; letter-spacing: 0.05em; color: var(--dx-muted); width: 24%; }
@@ -486,7 +486,7 @@ textarea.dx-input { resize: vertical; }
 .dx-row { display: flex; justify-content: space-between; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--dx-line); }
 .dx-row:last-child { border-bottom: 2px solid var(--dx-ink); }
 .dx-row__k { font-size: 14px; font-weight: 800; letter-spacing: 0.04em; color: var(--dx-muted); }
-.dx-row__v { font-family: var(--dx-font-num); font-size: 19px; font-weight: 800; direction: ltr; }
+.dx-row__v { display: inline-block; padding-block: 4px; font-family: var(--dx-font-num); font-size: 19px; font-weight: 800; direction: ltr; }
 .dx-row__v--text { font-family: var(--dx-font-body); font-size: 17px; font-weight: 700; direction: rtl; }
 .dx-row__v--mail { font-family: var(--dx-font-body); font-size: 16px; font-weight: 700; }
 .dx-rows--flat { border-top: 2px solid var(--dx-ink); margin: 22px 0; }
@@ -589,9 +589,9 @@ textarea.dx-input { resize: vertical; }
 .dx-footer__links a { font-size: 16px; font-weight: 500; color: var(--dx-footer-fg); }
 .dx-footer__links a:hover  { color: var(--dx-orange); }
 .dx-footer__links a:active { color: var(--dx-orange-active); }
-.dx-footer__phone { font-family: var(--dx-font-num); font-size: 19px; font-weight: 800; color: #fff; direction: ltr; }
+.dx-footer__phone { display: inline-block; padding-block: 4px; font-family: var(--dx-font-num); font-size: 19px; font-weight: 800; color: #fff; direction: ltr; }
 .dx-footer__bottom { padding-top: 24px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font-size: 13.5px; color: var(--dx-footer-muted); }
-.dx-footer__credit { color: var(--dx-footer-muted); text-decoration: underline; text-underline-offset: 3px; }
+.dx-footer__credit { display: inline-block; padding-block: 4px; color: var(--dx-footer-muted); text-decoration: underline; text-underline-offset: 3px; }
 .dx-footer__credit:hover { color: var(--dx-orange); }
 .dx-footer__linkbtn { font: inherit; font-size: 16px; font-weight: 500; color: var(--dx-footer-fg); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 24px; }
 .dx-footer__linkbtn:hover { color: var(--dx-orange); }

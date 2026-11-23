@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DX_VERSION', '2.2.2' );
+define( 'DX_VERSION', '2.2.3' );
 define( 'DX_DIR', get_template_directory() );
 define( 'DX_URI', get_template_directory_uri() );
 

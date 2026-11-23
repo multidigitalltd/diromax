@@ -184,6 +184,11 @@ jobs:
         working-directory: diromax-portal/tests/e2e
         run: node phase10.e2e.js "$RUNNER_TEMP/e2e"
 
+      # Phones: every page at 320px and 390px, and every email sent above, with and without its <style>.
+      - name: Phones - pages and emails fit the screen
+        working-directory: diromax-portal/tests/e2e
+        run: node mobile.e2e.js "$RUNNER_TEMP/e2e"
+
       # Standard 9.1-9.2: Lighthouse on the key pages, phone and desktop. Over budget fails the job.
       - name: Performance budget (Lighthouse)
         working-directory: diromax-portal/tests/e2e

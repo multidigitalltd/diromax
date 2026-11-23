@@ -2,9 +2,15 @@
 /**
  * Email layout: brand strip, header, headline, body part, button, manager card, footer.
  *
- * Built for email clients: tables, inline styles, 600px, RTL on every table,
- * a VML button for Outlook. The <style> block holds only what cannot be
- * inlined (mobile and dark mode); clients that strip it still render correctly.
+ * Built for email clients: tables, inline styles, RTL on every table, a VML
+ * button for Outlook. Fluid: the card is 100% wide up to 600px, and the
+ * money columns are inline blocks that fall one under the other when the
+ * screen is narrow, so a phone app that strips <style> (Gmail with a
+ * non-Google account, some Outlook apps) still shows it at the screen's
+ * width; Outlook on Windows gets fixed 600px tables through [if mso]. Long
+ * words and links break instead of widening the card. The <style> blocks
+ * hold only what cannot be inlined, mobile and dark mode apart, so a client
+ * that drops one keeps the other.
  *
  * Every value is escaped here, at the point of output.
  *
@@ -36,7 +42,9 @@ $headline = (string) ( $view['headline'] ?? '' );
 <style>
 body{margin:0;padding:0;-webkit-text-size-adjust:100%;}
 a{text-decoration:none;}
-@media (max-width:620px){.dx-container{width:100%!important}.dx-px{padding-left:20px!important;padding-right:20px!important}.dx-stack{display:block!important;width:100%!important;box-sizing:border-box}.dx-h1{font-size:25px!important}}
+@media (max-width:620px){.dx-container{width:100%!important}.dx-px{padding-left:20px!important;padding-right:20px!important}.dx-col{display:block!important;max-width:100%!important}.dx-h1{font-size:25px!important}}
+</style>
+<style>
 @media (prefers-color-scheme:dark){.dx-page{background:#0f1115!important}.dx-card{background:#171a20!important;border-color:#c9ccd2!important}.dx-item{background:#1d2129!important;border-color:#c9ccd2!important}.dx-text{color:#f4f4f2!important}.dx-body{color:#d0d2d6!important}.dx-muted{color:#a8abb2!important}.dx-line{border-color:#3a3d44!important}.dx-link{color:#9fd4e6!important}}
 </style>
 </head>
@@ -46,7 +54,7 @@ a{text-decoration:none;}
 <table role="presentation" class="dx-page" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl" bgcolor="#eae9e6" style="background:#eae9e6;">
 <tr><td align="center" style="padding:28px 12px;">
 <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" dir="rtl"><tr><td><![endif]-->
-<table role="presentation" class="dx-container dx-card" width="600" cellpadding="0" cellspacing="0" border="0" dir="rtl" bgcolor="#ffffff" style="width:600px;max-width:600px;background:#ffffff;border:2px solid #15171c;">
+<table role="presentation" class="dx-container dx-card" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl" bgcolor="#ffffff" style="width:100%;max-width:600px;background:#ffffff;border:2px solid #15171c;overflow-wrap:anywhere;word-break:break-word;">
 
 	<tr><td style="font-size:0;line-height:0;">
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"><tr>

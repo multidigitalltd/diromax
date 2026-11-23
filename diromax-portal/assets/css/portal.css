@@ -80,7 +80,7 @@
 /* Upcoming meetings (spec 20.1) */
 .dxp-meets { padding: 20px 0 0; }
 .dxp-meets__k { font-size: 13px; font-weight: 800; letter-spacing: .06em; color: var(--p-muted); margin: 0 0 8px; }
-.dxp-meets__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.dxp-meets__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); }
 .dxp-meet { background: var(--p-white); border: 2px solid var(--p-ink); border-inline-start-width: 8px; border-inline-start-color: var(--p-blue); padding: 14px 16px; }
 .dxp-meet p { margin: 0 0 6px; }
 .dxp-meet__when { font-weight: 800; color: var(--p-ink); }
@@ -151,7 +151,8 @@
 .dxp-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; margin-bottom: 18px; }
 .dxp-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
 .dxp-status { font-size: 14px; color: var(--p-muted); margin: 0 0 10px; }
-.dxp-table { border: 2px solid var(--p-ink); background: var(--p-white); overflow-x: auto; }
+.dxp input[type="file"], .dxp-file { max-width: 100%; }
+.dxp-table { position: relative; border: 2px solid var(--p-ink); background: var(--p-white); overflow-x: auto; }
 .dxp-table table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .dxp-table caption { text-align: start; padding: 14px 18px; font-weight: 800; font-size: 16px; border-bottom: 2px solid var(--p-ink); background: var(--p-bg); }
 .dxp-table th { text-align: start; font-size: 13px; font-weight: 800; letter-spacing: .04em; color: var(--p-muted); padding: 12px 14px; border-bottom: 2px solid var(--p-ink); white-space: nowrap; }
@@ -317,7 +318,7 @@
 .dxp-hint { display: block; font-size: 14px; color: var(--p-muted); margin-top: 6px; }
 .dxp-alt { margin-top: 28px; border-top: 2px solid var(--p-ink); padding-top: 16px; }
 .dxp-alt summary { cursor: pointer; font-weight: 800; min-height: 24px; }
-.dxp-account a { font-weight: 700; }
+.dxp-account a { display: inline-block; padding-block: 6px; font-weight: 700; }
 
 /* finance tools */
 .dxp-tools__btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
@@ -369,7 +370,7 @@
 /* Photo journal (spec 18.2). */
 .dxp-photos { margin: 0 0 32px; }
 .dxp-photos h3 { display: flex; gap: 10px; align-items: baseline; margin: 0 0 14px; font-size: 18px; }
-.dxp-photos__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.dxp-photos__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
 .dxp-photo { margin: 0; }
 .dxp-photo a { display: block; border: 2px solid var(--p-ink); background: var(--p-line); }
 .dxp-photo a:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 2px; }
@@ -433,7 +434,7 @@
 .dxr-table small { display: block; color: var(--p-muted); }
 .dxr-table .is-void td { color: var(--p-muted); text-decoration: line-through; }
 .dxr-num { text-align: end !important; white-space: nowrap; }
-.dxr-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 0; }
+.dxr-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 10px; margin: 0; }
 .dxr-kpis div { padding: 10px 12px; border: 1px solid var(--p-line); }
 .dxr-kpis dt { font-size: 13px; color: var(--p-muted); }
 .dxr-kpis dd { margin: 2px 0 0; font-size: 18px; color: var(--p-ink); }
