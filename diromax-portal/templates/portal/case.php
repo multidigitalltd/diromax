@@ -20,6 +20,7 @@ $request    = $view['request'];
 $current    = (string) $view['tab'];
 $tab_labels = array(
 	'finance'   => __( 'כספים', 'diromax-portal' ),
+	'schedule'  => __( 'לוח זמנים', 'diromax-portal' ),
 	'decisions' => __( 'החלטות', 'diromax-portal' ),
 	'documents' => __( 'הסכם ומסמכים', 'diromax-portal' ),
 	'updates'   => __( 'עדכונים', 'diromax-portal' ),
@@ -35,6 +36,10 @@ if ( array() === $view['decisions'] ) {
 
 if ( array() === $view['photos'] ) {
 	unset( $tab_labels['photos'] );
+}
+
+if ( null === $view['schedule'] ) {
+	unset( $tab_labels['schedule'] );
 }
 ?>
 <section class="dxp-head" aria-labelledby="dxp-case-title">
@@ -244,6 +249,7 @@ if ( array() === $view['photos'] ) {
 	<?php
 	$panel = array(
 		'finance'   => 'finance',
+		'schedule'  => null === $view['schedule'] ? 'finance' : 'schedule',
 		'decisions' => 'decisions',
 		'documents' => 'documents',
 		'updates'   => 'updates',

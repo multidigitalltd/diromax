@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\PaymentPlan;
+use Diromax\Portal\Domain\Timeline;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -54,6 +55,17 @@ $header   = array(
 				</td>
 			</tr>
 		</table>
+
+		<h3 id="dxa-schedule-weeks"><?php esc_html_e( 'משך טיפוסי של כל שלב (לוח זמנים לתיק חדש)', 'diromax-portal' ); ?></h3>
+		<p class="description" id="dxa-weeks-help"><?php esc_html_e( 'בשבועות. בלשונית "לוח זמנים" בתיק בוחרים תאריך התחלה, והתאריכים של כל שלב מחושבים מהמשכים האלה, שלב אחרי שלב. שלב עם 0 לא מחושב. אחרי החישוב אפשר לשנות כל תאריך.', 'diromax-portal' ); ?></p>
+		<ul class="dxa-weeks" aria-describedby="dxa-weeks-help">
+			<?php foreach ( (array) $view['stages'] as $stage_number => $stage_name ) : ?>
+				<li>
+					<label for="<?php echo esc_attr( 'dxa-weeks-' . $stage_number ); ?>"><?php echo esc_html( $stage_number . '. ' . $stage_name ); ?></label>
+					<input type="number" dir="ltr" class="small-text" id="<?php echo esc_attr( 'dxa-weeks-' . $stage_number ); ?>" name="<?php echo esc_attr( 'settings[schedule_weeks][' . $stage_number . ']' ); ?>" value="<?php echo esc_attr( (string) ( $settings['schedule_weeks'][ $stage_number ] ?? 0 ) ); ?>" min="0" max="<?php echo esc_attr( (string) Timeline::MAX_WEEKS ); ?>">
+				</li>
+			<?php endforeach; ?>
+		</ul>
 
 		<h3 id="dxa-plan-template"><?php esc_html_e( 'תוכנית תשלומים לתיק חדש', 'diromax-portal' ); ?></h3>
 		<p class="description" id="dxa-plan-help"><?php esc_html_e( 'התשלומים שכל תיק חדש מתחיל איתם. אחוז מחושב מהבסיס של התיק (סך התקציב, או סכום שקובעים בתיק). בתוך התיק אפשר לשנות, להוסיף תשלום בתאריך, ולמחוק. כדי למחוק שורה כאן, מרוקנים את השם ואת הסכום. שינוי כאן לא משנה תיקים קיימים.', 'diromax-portal' ); ?></p>

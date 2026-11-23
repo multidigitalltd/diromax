@@ -172,6 +172,10 @@ jobs:
         working-directory: diromax-portal/tests/e2e
         run: node phase7.e2e.js "$RUNNER_TEMP/e2e"
 
+      - name: Release 1.12.0 - client timeline
+        working-directory: diromax-portal/tests/e2e
+        run: node phase8.e2e.js "$RUNNER_TEMP/e2e"
+
       # Standard 9.1-9.2: Lighthouse on the key pages, phone and desktop. Over budget fails the job.
       - name: Performance budget (Lighthouse)
         working-directory: diromax-portal/tests/e2e

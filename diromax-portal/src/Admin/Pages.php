@@ -30,6 +30,7 @@ use Diromax\Portal\Service\MorningSummary;
 use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\PlanService;
 use Diromax\Portal\Service\Postmark;
+use Diromax\Portal\Service\ScheduleService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Service\TaskService;
@@ -50,7 +51,7 @@ final class Pages {
 	private const BOARD_LIMIT = 500;
 
 	/** Case screen tabs. */
-	public const TABS = array( 'overview', 'tasks', 'meetings', 'details', 'members', 'budget', 'finance', 'plan', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
+	public const TABS = array( 'overview', 'tasks', 'meetings', 'details', 'schedule', 'members', 'budget', 'finance', 'plan', 'decisions', 'updates', 'photos', 'messages', 'documents', 'log' );
 
 	/**
 	 * Constructor.
@@ -473,6 +474,11 @@ final class Pages {
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only: opens one request's "mark as paid" form.
 				'settle'    => isset( $_GET['settle'] ) ? absint( $_GET['settle'] ) : 0,
 			),
+			'schedule'  => ( new ScheduleService( $this->app ) )->for_staff( $client_case ) + array(
+				'stages' => Stages::names(),
+				'today'  => $this->app->clock->today(),
+				'closed' => CaseStatus::Closed === $client_case->status,
+			),
 			'plan'      => ( new PlanService( $this->app ) )->for_staff( $client_case ) + array(
 				'budget_total' => $this->app->budget->tree( $client_case->id )->total(),
 				'stages'       => Stages::names(),
@@ -668,6 +674,7 @@ final class Pages {
 			'tasks'     => __( 'משימות', 'diromax-portal' ),
 			'meetings'  => __( 'פגישות', 'diromax-portal' ),
 			'details'   => __( 'פרטי התיק', 'diromax-portal' ),
+			'schedule'  => __( 'לוח זמנים', 'diromax-portal' ),
 			'members'   => __( 'לקוחות', 'diromax-portal' ),
 			'budget'    => __( 'תקציב', 'diromax-portal' ),
 			'finance'   => __( 'כספים', 'diromax-portal' ),

@@ -10,6 +10,7 @@
 
 declare( strict_types = 1 );
 
+use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Admin\Form;
 use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Service\Labels;
@@ -44,7 +45,8 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 	<?php require __DIR__ . '/../parts/case-fields.php'; ?>
 
 	<h2><?php esc_html_e( 'שלבי התהליך', 'diromax-portal' ); ?></h2>
-	<p class="description"><?php esc_html_e( 'לכל שלב סטטוס משלו, ואפשר לסמן כמה שלבים "בתהליך" באותו זמן. תאריכי ההתחלה והסיום נרשמים ביום השמירה. היעד פנימי: הלקוח לא רואה אותו, ושלב שעבר אותו ולא הושלם מסומן.', 'diromax-portal' ); ?></p>
+	<p class="description"><?php esc_html_e( 'לכל שלב סטטוס משלו, ואפשר לסמן כמה שלבים "בתהליך" באותו זמן. תאריכי ההתחלה והסיום בפועל נרשמים ביום השמירה. שלב שעבר את היעד ולא הושלם מסומן.', 'diromax-portal' ); ?>
+		<a href="<?php echo esc_url( Admin::case_url( $case->id, 'schedule' ) ); ?>"><?php esc_html_e( 'את היעד של כל שלב, ואת לוח הזמנים ללקוח, קובעים בלשונית "לוח זמנים".', 'diromax-portal' ); ?></a></p>
 	<div class="dxa-stages" id="dxa-stages">
 		<?php foreach ( $view['stages'] as $number => $name ) : ?>
 			<?php
@@ -72,18 +74,21 @@ $lead = null === $case->lead_id ? null : get_post( $case->lead_id );
 						<label for="<?php echo esc_attr( $dxa_id ); ?>"><?php echo esc_html( (string) $dxa_label ); ?></label>
 					<?php endforeach; ?>
 				</span>
-				<span class="dxa-stage-row__due">
-					<label for="dxa-stage-due-<?php echo esc_attr( (string) $number ); ?>"><?php esc_html_e( 'יעד', 'diromax-portal' ); ?></label>
-					<input type="date" id="dxa-stage-due-<?php echo esc_attr( (string) $number ); ?>" name="stage_due[<?php echo esc_attr( (string) $number ); ?>]" value="<?php echo esc_attr( (string) $dxa_state['due'] ); ?>"<?php echo $dxa_late ? ' aria-describedby="dxa-stage-late-' . esc_attr( (string) $number ) . '"' : ''; ?>>
-					<?php if ( $dxa_late ) : ?>
-						<span class="dxa-late" id="dxa-stage-late-<?php echo esc_attr( (string) $number ); ?>"><?php esc_html_e( 'עבר את היעד', 'diromax-portal' ); ?></span>
-					<?php endif; ?>
-				</span>
+				<?php if ( null !== $dxa_state['due'] ) : ?>
+					<span class="dxa-stage-row__due">
+						<?php
+						/* translators: %s: due date. */
+						echo esc_html( sprintf( __( 'יעד: %s', 'diromax-portal' ), Labels::date( $dxa_state['due'] ) ) );
+						?>
+						<?php if ( $dxa_late ) : ?>
+							<span class="dxa-late"><?php esc_html_e( 'עבר את היעד', 'diromax-portal' ); ?></span>
+						<?php endif; ?>
+					</span>
+				<?php endif; ?>
 			</fieldset>
 		<?php endforeach; ?>
 	</div>
 	<?php $form->print_error( 'stages' ); ?>
-	<?php $form->print_error( 'stage_due' ); ?>
 	<?php submit_button( __( 'שמירת פרטי התיק', 'diromax-portal' ) ); ?>
 </form>
 
