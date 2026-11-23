@@ -13,6 +13,7 @@ use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Data\Schema;
 use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Service\Retention;
+use Diromax\Portal\Settings;
 
 final class CaseServiceTest extends PortalTestCase {
 
@@ -209,6 +210,45 @@ final class CaseServiceTest extends PortalTestCase {
 		);
 		$this->assertSame( 4200000, $this->app->budget->tree( $case->id )->total() );
 		$this->assertNull( $this->app->budget->tree( $case->id )->find( 'unknown' ), 'Only lines of the case are changed.' );
+	}
+
+	/**
+	 * 1.15.0: "+ מע״מ" next to an amount adds VAT at the rate in the
+	 * settings, once, on this save.
+	 */
+	public function test_budget_amounts_typed_before_vat_get_the_rate_from_the_settings(): void {
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager );
+
+		$this->assertTrue(
+			$this->app->case_service->save_budget(
+				$case,
+				array(
+					'fees.planned'    => '10,000',
+					'fees.vat'        => 'excluded',
+					'reserve.planned' => '5,000',
+				),
+				$manager
+			)
+		);
+		$tree = $this->app->budget->tree( $case->id );
+		$this->assertSame( 1180000, $tree->find( 'fees' )['planned'] ?? 0, 'At the default 18%.' );
+		$this->assertSame( 500000, $tree->find( 'reserve' )['planned'] ?? 0 );
+
+		update_option( Settings::OPTION, array( 'vat_rate' => 1700 ) + Settings::all() );
+		$this->assertTrue(
+			$this->app->case_service->save_budget(
+				$case,
+				array(
+					'reserve.planned' => '1,000',
+					'reserve.vat'     => 'excluded',
+				),
+				$manager
+			)
+		);
+		$tree = $this->app->budget->tree( $case->id );
+		$this->assertSame( 117000, $tree->find( 'reserve' )['planned'] ?? 0, 'At the rate set in the settings.' );
+		$this->assertSame( 1180000, $tree->find( 'fees' )['planned'] ?? 0, 'An amount saved before keeps its VAT: nothing is added twice.' );
 	}
 
 	public function test_deleting_a_closed_case_removes_its_rows_and_files(): void {

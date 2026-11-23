@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Tests\Unit;
 
 use Diromax\Portal\Domain\BudgetTree;
+use Diromax\Portal\Domain\Money;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -132,6 +133,69 @@ final class BudgetTreeTest extends TestCase {
 			),
 			$tree->find( 'n2' )
 		);
+	}
+
+	/**
+	 * 1.15.0: an amount typed before VAT gets VAT added once, on this save;
+	 * the amount kept is the total, like the ledger's.
+	 */
+	public function test_an_amount_typed_before_vat_is_kept_with_vat(): void {
+		$result = self::tree()->edit(
+			array(
+				'survey.planned'      => '10,000',
+				'survey.vat'          => 'excluded',
+				'structure.planned'   => '5,000',
+				'structure.vat'       => 'included',
+				'consultants.planned' => '',
+				'consultants.vat'     => 'excluded',
+				'add.fees.label'      => 'היטל השבחה',
+				'add.fees.planned'    => '1,000.50',
+				'add.fees.vat'        => 'excluded',
+				'add.*.label'         => 'שיווק',
+				'add.*.planned'       => '200',
+				'add.*.vat'           => 'excluded',
+			),
+			array(),
+			self::keys(),
+			1800
+		);
+
+		$this->assertSame( array(), $result['errors'] );
+		$tree = $result['tree'];
+		$this->assertSame( 1180000, $tree->find( 'survey' )['planned'] ?? 0, '10,000 + 18% VAT.' );
+		$this->assertSame( 500000, $tree->find( 'structure' )['planned'] ?? 0, 'Already including VAT: as typed.' );
+		$this->assertSame( 0, $tree->find( 'consultants' )['planned'] ?? -1, 'Empty stays empty.' );
+		$this->assertSame( 118059, $tree->find( 'n1' )['planned'] ?? 0, 'A new sub-section: 1,000.50 + 180.09.' );
+		$this->assertSame( 23600, $tree->find( 'n2' )['planned'] ?? 0, 'A new section.' );
+		$this->assertSame(
+			500000,
+			$tree->edit(
+				array(
+					'structure.planned' => '5,000',
+					'structure.vat'     => 'nonsense',
+				),
+				array(),
+				self::keys(),
+				1800
+			)['tree']->find( 'structure' )['planned'] ?? 0,
+			'Anything but "excluded" is taken as including VAT.'
+		);
+	}
+
+	public function test_vat_cannot_take_an_amount_past_the_largest(): void {
+		$largest = Money::MAX;
+		$result  = self::tree()->edit(
+			array(
+				'survey.planned' => Money::input( $largest ),
+				'survey.vat'     => 'excluded',
+			),
+			array(),
+			self::keys(),
+			1800
+		);
+
+		$this->assertSame( array( 'survey.planned' => 'invalid' ), $result['errors'] );
+		$this->assertSame( array(), self::tree()->edit( array( 'survey.planned' => Money::input( $largest ) ), array(), self::keys(), 1800 )['errors'], 'Including VAT, the largest amount itself is fine.' );
 	}
 
 	public function test_removing_a_sub_section_moves_its_entries_to_the_section(): void {

@@ -467,6 +467,7 @@ final class Pages {
 				'tree'   => $this->app->budget->tree( $client_case->id ),
 				'in_use' => $this->app->ledger->count_by_category( $client_case->id ),
 				'lines'  => $this->app->case_service->summary( $client_case, false )->categories,
+				'vat'    => Settings::all()['vat_rate'],
 			),
 			'finance'   => array(
 				'rows'      => $this->app->ledger->for_case( $client_case->id, false ),

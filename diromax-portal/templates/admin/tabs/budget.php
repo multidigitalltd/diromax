@@ -20,6 +20,7 @@ $form   = new Form( $view['flash'], 'budget' );
 $tree   = $view['tree']; // BudgetTree.
 $in_use = $view['in_use']; // Entries per key.
 $lines  = $view['lines']; // Rolled-up numbers per key, from the case summary.
+$vat    = (int) $view['vat']; // VAT rate, basis points.
 
 /**
  * One text input with its hidden label and its error.
@@ -41,6 +42,30 @@ $dx_budget_input = static function ( string $field, string $name, string $value,
 	<?php if ( '' !== $error ) : ?>
 		<p class="dxa-error" id="<?php echo esc_attr( $id ); ?>-error"><?php echo esc_html( $error ); ?></p>
 	<?php endif; ?>
+	<?php
+};
+
+/**
+ * Whether the amount next to it already includes VAT. It always shows
+ * "includes" again after a save: the amount kept is the total.
+ *
+ * @param string $line  Line prefix ("{key}", "add.{key}", "add.*").
+ * @param string $name  Form name.
+ * @param string $label Line label, for the accessible name.
+ */
+$dx_budget_vat = static function ( string $line, string $name, string $label ) use ( $form ): void {
+	$id = 'dxa-budget-' . str_replace( array( '.', '*' ), array( '-', 'new' ), $line ) . '-vat';
+	?>
+	<label class="screen-reader-text" for="<?php echo esc_attr( $id ); ?>">
+		<?php
+		/* translators: %s: budget line. */
+		echo esc_html( sprintf( __( 'מע״מ בסכום של %s', 'diromax-portal' ), $label ) );
+		?>
+	</label>
+	<select id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>" class="dxa-budget__vat">
+		<option value="included"><?php esc_html_e( 'כולל מע״מ', 'diromax-portal' ); ?></option>
+		<option value="excluded"<?php selected( $form->old( $line . '.vat', 'included' ), 'excluded' ); ?>><?php esc_html_e( '+ מע״מ', 'diromax-portal' ); ?></option>
+	</select>
 	<?php
 };
 
@@ -98,7 +123,13 @@ $dx_budget_actual = static function ( string $key ) use ( $lines ): void {
 
 $dx_sections = $tree->sections();
 ?>
-<p class="dxa-intro"><?php esc_html_e( 'הסעיפים של התיק הזה. אפשר לשנות שם וסכום, להוסיף או למחוק סעיפים וסעיפי משנה, ולשנות סדר. הסכומים כוללים מע״מ. הלקוח רואה כל סעיף עם הסה״כ שלו, וסעיפי המשנה נפתחים בלחיצה. סעיף בלי סכום ובלי תנועות לא מוצג ללקוח.', 'diromax-portal' ); ?></p>
+<p class="dxa-intro"><?php esc_html_e( 'הסעיפים של התיק הזה. אפשר לשנות שם וסכום, להוסיף או למחוק סעיפים וסעיפי משנה, ולשנות סדר. הלקוח רואה כל סעיף עם הסה״כ שלו, וסעיפי המשנה נפתחים בלחיצה. סעיף בלי סכום ובלי תנועות לא מוצג ללקוח.', 'diromax-portal' ); ?></p>
+<p class="dxa-intro">
+	<?php
+	/* translators: %s: VAT rate, e.g. 18%. */
+	echo esc_html( sprintf( __( 'הסכומים נשמרים כוללים מע״מ, כמו התנועות. סכום לפני מע״מ: בוחרים "+ מע״מ" לידו, ובשמירה מתווסף מע״מ של %s.', 'diromax-portal' ), rtrim( rtrim( number_format( $vat / 100, 2, '.', '' ), '0' ), '.' ) . '%' ) );
+	?>
+</p>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="form-budget" class="dxa-budget-form">
 	<input type="hidden" name="action" value="dx_portal_save_budget">
 	<input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>">
@@ -130,6 +161,7 @@ $dx_sections = $tree->sections();
 						<?php
 						/* translators: %s: section. */
 						$dx_budget_input( $dx_key . '.planned', 'budget[lines][' . $dx_key . '][planned]', $dx_section['planned'] > 0 ? Money::input( $dx_section['planned'] ) : '', sprintf( array() === $dx_children ? __( 'סכום מתוכנן: %s', 'diromax-portal' ) : __( 'סכום כללי (מחוץ לסעיפי המשנה): %s', 'diromax-portal' ), $dx_section['label'] ), true );
+						$dx_budget_vat( $dx_key, 'budget[lines][' . $dx_key . '][vat]', $dx_section['label'] );
 						?>
 						<?php if ( array() !== $dx_children ) : ?>
 							<small class="dxa-budget__total">
@@ -170,6 +202,7 @@ $dx_sections = $tree->sections();
 							<?php
 							/* translators: %s: sub-section. */
 							$dx_budget_input( $dx_child_key . '.planned', 'budget[lines][' . $dx_child_key . '][planned]', $dx_child['planned'] > 0 ? Money::input( $dx_child['planned'] ) : '', sprintf( __( 'סכום מתוכנן: %s', 'diromax-portal' ), $tree->label( $dx_child_key ) ), true );
+							$dx_budget_vat( $dx_child_key, 'budget[lines][' . $dx_child_key . '][vat]', $tree->label( $dx_child_key ) );
 							?>
 						</td>
 						<td><?php $dx_budget_actual( $dx_child_key ); ?></td>
@@ -194,6 +227,8 @@ $dx_sections = $tree->sections();
 						<?php
 						/* translators: %s: section. */
 						$dx_budget_input( 'add.' . $dx_key . '.planned', 'budget[add][' . $dx_key . '][planned]', '', sprintf( __( 'סכום לסעיף המשנה החדש ב%s', 'diromax-portal' ), $dx_section['label'] ), true );
+						/* translators: %s: section. */
+						$dx_budget_vat( 'add.' . $dx_key, 'budget[add][' . $dx_key . '][vat]', sprintf( __( 'סעיף המשנה החדש ב%s', 'diromax-portal' ), $dx_section['label'] ) );
 						?>
 					</td>
 					<td colspan="3"><small class="dxa-muted"><?php esc_html_e( 'סעיף משנה חדש: שם וסכום, ושמירה.', 'diromax-portal' ); ?></small></td>
@@ -203,7 +238,12 @@ $dx_sections = $tree->sections();
 		<tbody class="dxa-budget__new">
 			<tr>
 				<th scope="row"><?php $dx_budget_input( 'add.*.label', 'budget[add][*][label]', '', __( 'סעיף חדש', 'diromax-portal' ), false ); ?></th>
-				<td><?php $dx_budget_input( 'add.*.planned', 'budget[add][*][planned]', '', __( 'סכום לסעיף החדש', 'diromax-portal' ), true ); ?></td>
+				<td>
+					<?php
+					$dx_budget_input( 'add.*.planned', 'budget[add][*][planned]', '', __( 'סכום לסעיף החדש', 'diromax-portal' ), true );
+					$dx_budget_vat( 'add.*', 'budget[add][*][vat]', __( 'הסעיף החדש', 'diromax-portal' ) );
+					?>
+				</td>
 				<td colspan="3"><small class="dxa-muted"><?php esc_html_e( 'סעיף חדש בסוף הרשימה.', 'diromax-portal' ); ?></small></td>
 			</tr>
 		</tbody>

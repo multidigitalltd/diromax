@@ -48,7 +48,7 @@ function dx_content_defaults( $group ) {
 				'sticky_wa'        => 'וואטסאפ',
 				'sticky_cta'       => 'בדיקת פוטנציאל',
 				'footer_improve'   => 'ניהול השבחת נכסים',
-				'footer_tagline'   => 'דירומקס — תיווך, יזמות וניהול השבחת נכסים. לקבל את המקסימום מהנכס.',
+				'footer_tagline'   => 'דירומקס — יזמות וניהול השבחת נכסים. לקבל את המקסימום מהנכס.',
 				'footer_col_site'  => 'האתר',
 				'footer_col_mail'  => 'יצירת קשר',
 				'footer_col_info'  => 'מידע',

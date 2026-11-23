@@ -243,10 +243,15 @@ final class BudgetTree {
 	/**
 	 * Apply the budget form.
 	 *
-	 * Input is flat: "{key}.label", "{key}.planned", "{key}.remove" for each
-	 * line; "add.{section}.label" / ".planned" for a new sub-section;
-	 * "add.*.label" / ".planned" for a new section; "move" = "{key}:up" or
-	 * "{key}:down". A line missing from the input keeps its values.
+	 * Input is flat: "{key}.label", "{key}.planned", "{key}.vat",
+	 * "{key}.remove" for each line; "add.{section}.label" / ".planned" /
+	 * ".vat" for a new sub-section; "add.*.label" / ".planned" / ".vat" for a
+	 * new section; "move" = "{key}:up" or "{key}:down". A line missing from
+	 * the input keeps its values.
+	 *
+	 * Planned amounts are kept including VAT, like the ledger's totals they
+	 * are compared with. "{...}.vat" = "excluded" says the amount typed is
+	 * before VAT: VAT at the given rate is added once, on this save.
 	 *
 	 * Removing a section removes its sub-sections and is refused while any
 	 * of them has entries. Removing a sub-section moves its entries to its
@@ -255,9 +260,10 @@ final class BudgetTree {
 	 * @param array<string, string> $input   Form fields, sanitized as text.
 	 * @param array<string, int>    $in_use  Entries per key.
 	 * @param callable(): string    $new_key Makes a key not used in the case.
+	 * @param int                   $vat_rate VAT rate for amounts typed before VAT, basis points.
 	 * @return array{tree:self, moved:array<string, string>, errors:array<string, string>}
 	 */
-	public function edit( array $input, array $in_use, callable $new_key ): array {
+	public function edit( array $input, array $in_use, callable $new_key, int $vat_rate = 0 ): array {
 		$errors   = array();
 		$moved    = array();
 		$sections = array();
@@ -270,7 +276,7 @@ final class BudgetTree {
 
 			if ( ! $remove ) {
 				$edited['label']   = self::label_input( $input, $key . '.label', $line['label'], $errors );
-				$edited['planned'] = self::amount_input( $input, $key . '.planned', $line['planned'], $errors );
+				$edited['planned'] = self::amount_input( $input, $key, $line['planned'], $errors, $vat_rate );
 			}
 
 			if ( '' === $line['parent'] ) {
@@ -300,8 +306,8 @@ final class BudgetTree {
 			}
 		}
 
-		$this->add_children( $input, $sections, $children, $new_key, $errors );
-		$this->add_section( $input, $sections, $new_key, $errors );
+		$this->add_children( $input, $sections, $children, $new_key, $errors, $vat_rate );
+		$this->add_section( $input, $sections, $new_key, $errors, $vat_rate );
 
 		$kept = array_filter( $sections, static fn( array $section ): bool => ! isset( $section['remove'] ) );
 
@@ -351,8 +357,9 @@ final class BudgetTree {
 	 * @param array<string, array<int, array<string, mixed>>> $children Sub-sections per section, by reference.
 	 * @param callable(): string                              $new_key  Key maker.
 	 * @param array<string, string>                           $errors   Errors, by reference.
+	 * @param int                                             $vat_rate VAT rate, basis points.
 	 */
-	private function add_children( array $input, array $sections, array &$children, callable $new_key, array &$errors ): void {
+	private function add_children( array $input, array $sections, array &$children, callable $new_key, array &$errors, int $vat_rate ): void {
 		foreach ( $sections as $key => $section ) {
 			$field = 'add.' . $key;
 			$label = Text::line( (string) ( $input[ $field . '.label' ] ?? '' ) );
@@ -365,7 +372,7 @@ final class BudgetTree {
 				'key'     => $new_key(),
 				'parent'  => $key,
 				'label'   => self::label_input( $input, $field . '.label', '', $errors ),
-				'planned' => self::amount_input( $input, $field . '.planned', 0, $errors ),
+				'planned' => self::amount_input( $input, $field, 0, $errors, $vat_rate ),
 				'field'   => $field,
 			);
 		}
@@ -378,8 +385,9 @@ final class BudgetTree {
 	 * @param array<string, array<string, mixed>> $sections Sections, by reference.
 	 * @param callable(): string                  $new_key  Key maker.
 	 * @param array<string, string>               $errors   Errors, by reference.
+	 * @param int                                 $vat_rate VAT rate, basis points.
 	 */
-	private function add_section( array $input, array &$sections, callable $new_key, array &$errors ): void {
+	private function add_section( array $input, array &$sections, callable $new_key, array &$errors, int $vat_rate ): void {
 		$field = 'add.' . self::NEW_SECTION;
 		$label = Text::line( (string) ( $input[ $field . '.label' ] ?? '' ) );
 
@@ -396,7 +404,7 @@ final class BudgetTree {
 				'key'     => $key,
 				'parent'  => '',
 				'label'   => self::label_input( $input, $field . '.label', '', $errors ),
-				'planned' => self::amount_input( $input, $field . '.planned', 0, $errors ),
+				'planned' => self::amount_input( $input, $field, 0, $errors, $vat_rate ),
 			),
 			'field' => $field,
 		);
@@ -501,15 +509,18 @@ final class BudgetTree {
 	}
 
 	/**
-	 * A planned amount from the form: empty is zero.
+	 * A planned amount from the form, including VAT: empty is zero.
 	 *
 	 * @param array<string, string> $input    Form.
-	 * @param string                $field    Field.
+	 * @param string                $line     Line prefix: "{key}", "add.{section}" or "add.*".
 	 * @param int                   $fallback When the field is missing.
 	 * @param array<string, string> $errors   Errors, by reference.
+	 * @param int                   $vat_rate VAT rate, basis points, when "{line}.vat" is "excluded".
 	 * @return int Agorot.
 	 */
-	private static function amount_input( array $input, string $field, int $fallback, array &$errors ): int {
+	private static function amount_input( array $input, string $line, int $fallback, array &$errors, int $vat_rate ): int {
+		$field = $line . '.planned';
+
 		if ( ! array_key_exists( $field, $input ) ) {
 			return $fallback;
 		}
@@ -521,6 +532,10 @@ final class BudgetTree {
 		}
 
 		$amount = Money::parse( $raw );
+
+		if ( null !== $amount && $amount >= 0 && $amount <= Money::MAX && VatMode::Excluded->value === ( $input[ $line . '.vat' ] ?? '' ) ) {
+			$amount = Vat::split( $amount, VatMode::Excluded, $vat_rate )['total'];
+		}
 
 		if ( null === $amount || $amount < 0 || $amount > Money::MAX ) {
 			$errors[ $field ] = 'invalid';

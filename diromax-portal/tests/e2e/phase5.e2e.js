@@ -58,6 +58,20 @@ async function submit(page, selector) {
   await submit(page, 'button[name="move"][value="research:down"]');
   check('a section moves down', (await page.locator('.dxa-budget__head .dxa-budget__name').first().inputValue()) === 'אדריכלות ותכנון');
 
+  // Release 1.15.0: an amount typed before VAT. "+ מע״מ" adds VAT once; the amount kept is the total.
+  const marketing = () => page.locator('tr.dxa-budget__head', { has: page.locator('input.dxa-budget__name[value="שיווק דיגיטלי"]') });
+  await marketing().locator('.dxa-amount').fill('1,000');
+  await marketing().locator('select.dxa-budget__vat').selectOption('excluded');
+  await submit(page, '.dxa-budget__top button');
+  check('"+ מע״מ" adds VAT on saving, and the line shows the total again', (await marketing().locator('.dxa-amount').inputValue()) === '1180' && (await marketing().locator('select.dxa-budget__vat').inputValue()) === 'included' && (await page.textContent('.notice-success')).includes('נוסף מע״מ'), await marketing().locator('.dxa-amount').inputValue());
+  check('every amount has its VAT choice, with a label', (await page.locator('select.dxa-budget__vat').count()) === (await page.locator('.dxa-budget .dxa-amount').count()) && (await page.locator('label[for="' + (await marketing().locator('select.dxa-budget__vat').getAttribute('id')) + '"]').count()) === 1);
+  await axe(page, 'budget with the VAT choice');
+  await submit(page, '.dxa-budget__top button');
+  check('saving again adds no VAT twice', (await marketing().locator('.dxa-amount').inputValue()) === '1180' && !(await page.textContent('.notice-success')).includes('נוסף מע״מ'));
+  await marketing().locator('.dxa-amount').fill('');
+  await submit(page, '.dxa-budget__top button');
+  check('…and the amount can be cleared again', (await marketing().locator('.dxa-amount').inputValue()) === '');
+
   // An expense charged to the new sub-section.
   await page.goto(caseUrl + '?tab=finance&add=1');
   const picked = await page.$$eval('#dxa-entry-category optgroup[label="יועצים ומדידות"] option', (options) => options.map(o => o.textContent.trim()));
