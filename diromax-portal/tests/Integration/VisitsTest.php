@@ -346,6 +346,51 @@ final class VisitsTest extends PortalTestCase {
 		$this->assertSame( 'dx_closed', $this->code( $service->add_visit( $closed, $this->visit_input(), $manager ) ) );
 	}
 
+	public function test_editing_a_shown_visit_can_send_the_report(): void {
+		// Regression (PR #19 review): the email box was ignored unless the visit had just been made visible.
+		[ $case, $manager, , $visit ] = $this->visited();
+		$service                      = new VisitService( $this->app );
+		$this->assertIsInt( $service->add_finding( $case, $visit, self::finding_input(), null, $manager ) );
+		$this->assertSame( 0, $this->app->notifier->pending( $case )['count'] );
+
+		$this->assertTrue( $service->update_visit( $case, $visit, $this->visit_input( array( 'notify' => '1' ) ), $manager ) );
+		$this->assertSame( 1, $this->app->notifier->pending( $case )['count'] );
+	}
+
+	public function test_hiding_a_visit_hides_every_finding_photo_beyond_the_screen_list(): void {
+		// Regression (PR #19 review): photo visibility followed the capped list of 500 findings.
+		[ $case, $manager, , $visit ] = $this->visited();
+		$photo                        = ( new \Diromax\Portal\Service\PhotoService( $this->app ) )->attach( $case, $this->jpeg(), 'הממצא האחרון', true, $manager );
+		$this->assertIsInt( $photo );
+
+		for ( $i = 0; $i < 500; $i++ ) {
+			$this->app->visits->insert_finding(
+				$case->id,
+				$visit,
+				array(
+					'title'    => 'ממצא ' . $i,
+					'severity' => 'low',
+					'visible'  => true,
+				),
+				$this->clock->mysql()
+			);
+		}
+		$this->app->visits->insert_finding(
+			$case->id,
+			$visit,
+			array(
+				'title'    => 'הממצא האחרון',
+				'severity' => 'low',
+				'visible'  => true,
+				'photo_id' => $photo,
+			),
+			$this->clock->mysql()
+		);
+
+		$this->assertTrue( ( new VisitService( $this->app ) )->update_visit( $case, $visit, $this->visit_input( array( 'visible' => '' ) ), $manager ) );
+		$this->assertFalse( $this->app->photos->find( $photo )['visible'] ?? true );
+	}
+
 	public function test_deleting_a_visit_or_its_case_removes_the_findings(): void {
 		global $wpdb;
 		[ $case, $manager, , $visit ] = $this->visited();

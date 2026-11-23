@@ -203,6 +203,30 @@ final class VisitRepository {
 	}
 
 	/**
+	 * Every finding of one visit, with no display limit: what the photo
+	 * visibility follows.
+	 *
+	 * @param int $visit_id Visit.
+	 * @return array<int, array{id:int, visible:bool, photo_id:int|null, after_photo_id:int|null}>
+	 */
+	public function photos_of_visit( int $visit_id ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare( 'SELECT id, visible, photo_id, after_photo_id FROM %i WHERE visit_id = %d', Schema::table( 'findings' ), $visit_id ),
+			ARRAY_A
+		);
+
+		return array_map(
+			static fn( array $row ): array => array(
+				'id'             => (int) $row['id'],
+				'visible'        => '1' === (string) $row['visible'],
+				'photo_id'       => null === $row['photo_id'] ? null : (int) $row['photo_id'],
+				'after_photo_id' => null === $row['after_photo_id'] ? null : (int) $row['after_photo_id'],
+			),
+			(array) $rows
+		);
+	}
+
+	/**
 	 * Open findings past their due date, in active cases, with their case.
 	 *
 	 * @param int|null $manager Only this manager's cases; null for all.

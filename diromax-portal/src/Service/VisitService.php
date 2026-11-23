@@ -107,7 +107,8 @@ final class VisitService {
 
 		$this->sync_photos( $client_case, $id );
 		$this->app->audit->record( 'visit.updated', $client_case->id, 'visit', $id, array( 'date' => $checked['fields']['visit_on'] ), $this->app->clock->mysql() );
-		$this->announce( $client_case, $id, $checked['fields']['visible'] && ! $visit['visible'], $input );
+		// Shown after the save and the box ticked: the manager may send the report once its findings are in.
+		$this->announce( $client_case, $id, $checked['fields']['visible'], $input );
 
 		return true;
 	}
@@ -464,11 +465,8 @@ final class VisitService {
 	private function sync_photos( CaseRecord $client_case, int $visit_id ): void {
 		$visit = $this->visit( $client_case, $visit_id );
 
-		foreach ( $this->app->visits->findings_for( $client_case->id, false ) as $finding ) {
-			if ( $finding['visit_id'] !== $visit_id ) {
-				continue;
-			}
-
+		// Every finding of the visit, not the screen's capped list: a photo left out would stay shown.
+		foreach ( $this->app->visits->photos_of_visit( $visit_id ) as $finding ) {
 			foreach ( array( $finding['photo_id'], $finding['after_photo_id'] ) as $photo_id ) {
 				if ( null !== $photo_id ) {
 					$this->app->photos->set_visible( $photo_id, $finding['visible'] && (bool) ( $visit['visible'] ?? false ) );
