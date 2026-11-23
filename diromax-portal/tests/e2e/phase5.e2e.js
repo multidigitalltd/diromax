@@ -60,7 +60,9 @@ async function submit(page, selector) {
 
   // An expense charged to the new sub-section.
   await page.goto(caseUrl + '?tab=finance&add=1');
-  check('the budget picker groups each section with its sub-sections', (await page.locator('#dxa-entry-category optgroup[label="יועצים ומדידות"] option').count()) >= 7);
+  const picked = await page.$$eval('#dxa-entry-category optgroup[label="יועצים ומדידות"] option', (options) => options.map(o => o.textContent.trim()));
+  check('the budget picker groups a section with its sub-sections, listing only lines with a budget', picked.length === 2 && picked.includes('יועצים ומדידות (כללי)') && picked.includes('יועץ תנועה'), JSON.stringify(picked));
+  check('a section without a budget is left out of the picker', (await page.locator('#dxa-entry-category option', { hasText: 'שיווק דיגיטלי' }).count()) === 0 && (await page.textContent('#form-entry')).includes('מוצגים רק סעיפים שיש להם תקציב'));
   await page.fill('#dxa-entry-description', 'ספירת תנועה בצומת');
   await page.fill('#dxa-entry-amount', '1500');
   await page.fill('#dxa-entry-payee', 'יועץ תנועה בע״מ');

@@ -106,9 +106,12 @@ $value      = static fn( string $field, string $fallback ) => $form->old( $field
 		<label for="<?php echo esc_attr( $form->id( 'category' ) ); ?>"><?php esc_html_e( 'סעיף בתקציב', 'diromax-portal' ); ?></label>
 		<select <?php echo $form->attrs( 'category' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in Form::attrs(). ?>>
 			<option value=""><?php esc_html_e( '— בחירה —', 'diromax-portal' ); ?></option>
-			<?php echo BudgetSelect::options( $view['budget'], $value( 'category', $entry->category ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in BudgetSelect::options(). ?>
+			<?php echo BudgetSelect::options( $view['budget'], $value( 'category', $entry->category ?? '' ), true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in BudgetSelect::options(). ?>
 		</select>
 		<?php $form->print_error( 'category' ); ?>
+		<?php if ( $view['budget']->total() > 0 ) : ?>
+			<span class="description"><?php esc_html_e( 'מוצגים רק סעיפים שיש להם תקציב. סעיף אחר מוסיפים או מעדכנים בלשונית "תקציב".', 'diromax-portal' ); ?></span>
+		<?php endif; ?>
 	</p>
 
 	<p class="dxa-field" data-dxa-for="expense">
