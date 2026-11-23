@@ -17,6 +17,7 @@ use Diromax\Portal\Service\DecisionService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\LoginCodeService;
+use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Service\PhotoService;
@@ -64,6 +65,7 @@ final class Controller {
 			'doc'    => $this->document(),
 			'photo'  => $this->photo( false ),
 			'thumb'  => $this->photo( true ),
+			'meeting' => $this->meeting_file(),
 			'report' => $this->report(),
 			'sign'     => $this->sign(),
 			'signfile' => $this->sign_file(),
@@ -709,8 +711,31 @@ final class Controller {
 	}
 
 	/**
-	 * The printable report of a case: what the viewer may see, nothing more.
+	 * A meeting's calendar file, for the case's staff and invited clients (spec 20.1).
 	 */
+	private function meeting_file(): void {
+		$user        = $this->require_login();
+		$id          = (string) get_query_var( Router::ARG );
+		$meeting     = Ids::is_public_id( $id ) ? $this->app->meetings->find_by_public_id( $id ) : null;
+		$client_case = null === $meeting ? null : $this->app->cases->find( $meeting['case_id'] );
+		$account     = get_userdata( $user );
+		$service     = new MeetingService( $this->app );
+
+		if ( null === $meeting || null === $client_case || ! $account || ! $service->may_view( $client_case, $meeting, $user ) ) {
+			$this->not_found();
+			return;
+		}
+
+		status_header( 200 );
+		header( 'Content-Type: text/calendar; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="meeting.ics"' );
+		header( 'Cache-Control: private, no-store' );
+		echo $service->ics( $client_case, $meeting, $account ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- An iCalendar file, escaped for its format by Ics.
+	}
+
+		/**
+		 * The printable report of a case: what the viewer may see, nothing more.
+		 */
 	private function report(): void {
 		$user        = $this->require_login();
 		$id          = (string) get_query_var( Router::ARG );

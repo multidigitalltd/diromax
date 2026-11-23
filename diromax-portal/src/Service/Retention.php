@@ -146,6 +146,7 @@ final class Retention {
 			$removed += $this->app->members->remove_user( (int) $user->ID );
 			$removed += $this->app->mail_log->anonymize_user( (int) $user->ID );
 			$removed += $this->app->messages->remove_user( (int) $user->ID );
+			$removed += $this->app->meetings->remove_user( (int) $user->ID );
 			$this->app->audit->record( 'privacy.erased', null, 'user', (int) $user->ID, array( 'rows' => $removed ), $this->app->clock->mysql() );
 		}
 

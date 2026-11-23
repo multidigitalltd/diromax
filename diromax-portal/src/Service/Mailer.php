@@ -23,10 +23,10 @@ final class Mailer {
 	/**
 	 * Send an HTML email with a plain-text alternative.
 	 *
-	 * @param string                                                                                $to      Recipient address.
-	 * @param MailMessage                                                                           $message Message.
-	 * @param \WP_User|null                                                                         $manager Project manager: sender name and Reply-To.
-	 * @param array{reply_to?:string, reply_name?:string, from_name?:string, attachments?:string[]} $options Reply-To address and name instead of the manager's (replies into the case), sender name, files to attach.
+	 * @param string                                                                                     $to      Recipient address.
+	 * @param MailMessage                                                                                $message Message.
+	 * @param \WP_User|null                                                                              $manager Project manager: sender name and Reply-To.
+	 * @param array{reply_to?:string, reply_name?:string, from_name?:string, attachments?:array<string>} $options Reply-To address and name instead of the manager's (replies into the case), sender name, files to attach.
 	 * @return bool
 	 */
 	public static function send( string $to, MailMessage $message, ?\WP_User $manager, array $options = array() ): bool {

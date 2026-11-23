@@ -34,10 +34,10 @@ final class Router {
 	public const CASE_ID = 'dx_manage_case';
 
 	/** Staff screens. */
-	public const SCREENS = array( 'dashboard', 'cases', 'board', 'new', 'settings', 'case', 'manifest' );
+	public const SCREENS = array( 'dashboard', 'cases', 'board', 'new', 'settings', 'forecast', 'case', 'manifest' );
 
 	/** Bump when the rules change, so an updated plugin refreshes them once. */
-	public const RULES_VERSION = '6';
+	public const RULES_VERSION = '7';
 
 	/** Option holding the rules version last flushed. */
 	private const RULES_OPTION = 'dx_portal_rules';
@@ -46,7 +46,7 @@ final class Router {
 	public const CASE_TABS = array( 'finance', 'documents', 'updates', 'decisions', 'photos', 'messages' );
 
 	/** Views the router accepts. */
-	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc', 'manage', 'report', 'sign', 'signfile', 'photo', 'thumb' );
+	public const VIEWS = array( 'home', 'login', 'logout', 'account', 'case', 'doc', 'manage', 'report', 'sign', 'signfile', 'photo', 'thumb', 'meeting' );
 
 	/**
 	 * Register the rewrite rules.
@@ -60,11 +60,12 @@ final class Router {
 		add_rewrite_rule( '^' . $base . '/case/([a-f0-9]{24})/report/?$', 'index.php?' . self::VIEW . '=report&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/photo/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=photo&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/photo/([a-f0-9]{24})/thumb/?$', 'index.php?' . self::VIEW . '=thumb&' . self::ARG . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/meeting/([a-f0-9]{24})/?$', 'index.php?' . self::VIEW . '=meeting&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/sign/([A-Za-z0-9_-]{43})/?$', 'index.php?' . self::VIEW . '=sign&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/sign/([A-Za-z0-9_-]{43})/file/?$', 'index.php?' . self::VIEW . '=signfile&' . self::ARG . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=dashboard', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/manifest\\.webmanifest$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=manifest', 'top' );
-		add_rewrite_rule( '^' . $base . '/manage/(cases|board|new|settings)/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $base . '/manage/(cases|board|new|settings|forecast)/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=$matches[1]', 'top' );
 		add_rewrite_rule( '^' . $base . '/manage/case/([0-9]{1,10})/?$', 'index.php?' . self::VIEW . '=manage&' . self::SCREEN . '=case&' . self::CASE_ID . '=$matches[1]', 'top' );
 
 		// Replacing the plugin by upload does not run activation: refresh once per rules version.
@@ -225,6 +226,16 @@ final class Router {
 		}
 
 		return self::url( 'photo', $public_id ) . ( $thumb ? 'thumb/' : '' );
+	}
+
+	/**
+	 * A meeting's calendar file (spec 20.1).
+	 *
+	 * @param string $public_id Meeting public ID.
+	 * @return string
+	 */
+	public static function meeting_url( string $public_id ): string {
+		return self::url( 'meeting', $public_id );
 	}
 
 	/**

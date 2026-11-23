@@ -242,6 +242,48 @@ final class MailRenderer {
 	}
 
 	/**
+	 * A meeting: invitation, change, cancellation or reminder, with the
+	 * calendar file attached by the sender (spec 20.1).
+	 *
+	 * @param CaseRecord $client_case Case.
+	 * @param string     $name        Recipient's name.
+	 * @param MailCard   $card        The meeting.
+	 * @param string     $kind        invite, update, cancel, remind_tomorrow or remind_today.
+	 * @param string     $url         The case in the portal.
+	 * @return MailMessage
+	 */
+	public function meeting( CaseRecord $client_case, string $name, MailCard $card, string $kind, string $url ): MailMessage {
+		$intro = match ( $kind ) {
+			'update'          => __( 'פרטי הפגישה השתנו. הקובץ המצורף מעדכן אותה ביומן שלך.', 'diromax-portal' ),
+			'cancel'          => __( 'הפגישה בוטלה. הקובץ המצורף מסיר אותה מהיומן שלך.', 'diromax-portal' ),
+			'remind_tomorrow' => __( 'תזכורת: הפגישה מחר.', 'diromax-portal' ),
+			'remind_today'    => __( 'תזכורת: הפגישה היום.', 'diromax-portal' ),
+			default           => __( 'הוזמנת לפגישה בתיק. כדי להוסיף אותה ליומן, פותחים את הקובץ המצורף.', 'diromax-portal' ),
+		};
+		$view = $this->base(
+			$client_case,
+			array(
+				'preheader' => $card->title,
+				/* translators: 1: case number, 2: case address. */
+				'eyebrow'   => sprintf( __( 'תיק %1$s · %2$s', 'diromax-portal' ), $client_case->number, $client_case->title ),
+				'headline'  => $card->badge,
+				'greeting'  => $name,
+				'intro'     => $intro,
+				'body'      => 'case-update',
+				'items'     => array( $card ),
+				'stages'    => Stages::names(),
+				'summary'   => null,
+				'cta'       => array(
+					'label' => __( 'לתיק באזור האישי', 'diromax-portal' ),
+					'url'   => $url,
+				),
+			)
+		);
+
+		return $this->message( $card->subject . ' · ' . $client_case->title, $view );
+	}
+
+	/**
 	 * The staff morning summary.
 	 *
 	 * @param string     $name  Recipient's name.
@@ -257,7 +299,7 @@ final class MailRenderer {
 				'eyebrow'   => __( 'תיקי לקוחות · סיכום בוקר', 'diromax-portal' ),
 				'headline'  => __( 'מה מחכה לך היום', 'diromax-portal' ),
 				'greeting'  => $name,
-				'intro'     => __( 'המשימות שלך שהגיע מועדן, והשלבים שעברו את היעד בתיקים שלך.', 'diromax-portal' ),
+				'intro'     => __( 'המשימות שלך שהגיע מועדן, הפגישות של היום ומחר, והשלבים שעברו את היעד בתיקים שלך.', 'diromax-portal' ),
 				'body'      => 'case-update',
 				'items'     => $cards,
 				'stages'    => Stages::names(),

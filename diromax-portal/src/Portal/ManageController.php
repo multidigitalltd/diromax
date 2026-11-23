@@ -13,6 +13,7 @@ use Diromax\Portal\Admin\Admin;
 use Diromax\Portal\Admin\Flash;
 use Diromax\Portal\Admin\Pages;
 use Diromax\Portal\Plugin;
+use Diromax\Portal\Service\ForecastService;
 use Diromax\Portal\Support\AssetFile;
 
 defined( 'ABSPATH' ) || exit;
@@ -72,6 +73,7 @@ final class ManageController {
 			'board'    => $this->render( 'admin/board', $pages->board_data( $user ), __( 'לוח שלבים', 'diromax-portal' ) ),
 			'new'      => $this->render( 'admin/case-new', $pages->new_case_data( $user ), __( 'תיק חדש', 'diromax-portal' ) ),
 			'settings' => $this->settings( $pages, $user ),
+			'forecast' => $this->forecast( $user ),
 			'case'     => $this->case_screen( $pages, $user ),
 			default    => $this->render( 'admin/dashboard', $pages->dashboard_data( $user ) + array( 'flash' => Flash::take() ), __( 'לוח בקרה', 'diromax-portal' ) ),
 		};
@@ -93,11 +95,27 @@ final class ManageController {
 	}
 
 	/**
-	 * One case. A case the user may not manage answers like a missing one.
+	 * Payments forecast: administrators only, as in wp-admin.
 	 *
-	 * @param Pages $pages View models.
-	 * @param int   $user  User.
+	 * @param int $user User.
 	 */
+	private function forecast( int $user ): void {
+		$view = ( new ForecastService( $this->app ) )->view( $user );
+
+		if ( $view instanceof \WP_Error ) {
+			$this->not_found();
+			return;
+		}
+
+		$this->render( 'admin/forecast', $view, __( 'תחזית תשלומים', 'diromax-portal' ) );
+	}
+
+		/**
+		 * One case. A case the user may not manage answers like a missing one.
+		 *
+		 * @param Pages $pages View models.
+		 * @param int   $user  User.
+		 */
 	private function case_screen( Pages $pages, int $user ): void {
 		$client_case = $this->app->cases->find( absint( get_query_var( Router::CASE_ID ) ) );
 

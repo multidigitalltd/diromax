@@ -59,14 +59,61 @@ final class DashboardRepository {
 	}
 
 	/**
-	 * Count and sum of the same requests as requests_due(), without the
-	 * display limit, for the dashboard totals.
+	 * Every open payment request the clients see, in active cases, for the
+	 * payments forecast (spec 20.2).
 	 *
-	 * @param int    $manager Manager, 0 for all.
-	 * @param string $from    First due date, inclusive (Y-m-d).
-	 * @param string $to      Last due date, inclusive (Y-m-d).
-	 * @return array{count:int, total:int}
+	 * @param int $batch Rows read per query.
+	 * @return array<int, array{id:int, case_id:int, number:string, case_title:string, description:string, total:int, due_date:string|null, to_diromax:bool, payee:string}>
 	 */
+	public function open_requests( int $batch = 1000 ): array {
+		$batch  = max( 1, $batch );
+		$rows   = array();
+		$offset = 0;
+
+		// Read in pages so no request is ever left out of the totals (PR #16 review).
+		do {
+			$page    = $this->rows(
+				$this->db->prepare(
+					"SELECT l.id, c.id AS case_id, c.number, c.title AS case_title, l.description, l.total, l.due_date, l.pay_to, l.payee
+					   FROM %i l INNER JOIN %i c ON c.id = l.case_id
+					  WHERE l.type = 'request' AND l.status = 'open' AND l.voided_at IS NULL AND l.visible = 1 AND c.status = 'active'
+					  ORDER BY l.due_date IS NULL, l.due_date, l.id LIMIT %d OFFSET %d",
+					Schema::table( 'ledger' ),
+					Schema::table( 'cases' ),
+					$batch,
+					$offset
+				)
+			);
+			$rows    = array_merge( $rows, $page );
+			$offset += $batch;
+			$full    = count( $page ) === $batch;
+		} while ( $full );
+
+		return array_map(
+			static fn( array $row ): array => array(
+				'id'          => (int) $row['id'],
+				'case_id'     => (int) $row['case_id'],
+				'number'      => (string) $row['number'],
+				'case_title'  => (string) $row['case_title'],
+				'description' => (string) $row['description'],
+				'total'       => (int) $row['total'],
+				'due_date'    => null === $row['due_date'] || '' === $row['due_date'] ? null : (string) $row['due_date'],
+				'to_diromax'  => 'diromax' === $row['pay_to'],
+				'payee'       => (string) $row['payee'],
+			),
+			$rows
+		);
+	}
+
+		/**
+		 * Count and sum of the same requests as requests_due(), without the
+		 * display limit, for the dashboard totals.
+		 *
+		 * @param int    $manager Manager, 0 for all.
+		 * @param string $from    First due date, inclusive (Y-m-d).
+		 * @param string $to      Last due date, inclusive (Y-m-d).
+		 * @return array{count:int, total:int}
+		 */
 	public function requests_due_total( int $manager, string $from, string $to ): array {
 		$row = $this->db->get_row(
 			$this->db->prepare(
