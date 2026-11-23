@@ -13,8 +13,6 @@ const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const out = (n) => path.join(S, 'e2e', n);
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? '  — ' + detail : '')); };
-const mailFiles = () => new Set(fs.readdirSync(path.join(S, 'mails')));
-const mailsSince = (seen) => [...mailFiles()].filter(f => !seen.has(f)).sort().map(f => JSON.parse(fs.readFileSync(path.join(S, 'mails', f), 'utf8')));
 // A date in the site's time zone, some days from now.
 const localDate = (days) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date(Date.now() + days * 864e5));
 const shown = (ymd) => ymd.split('-').reverse().join('.');
@@ -103,11 +101,11 @@ async function submit(page, selector) {
   await page.check('#form-schedule input[name="notify"]');
   await submit(page, '#form-schedule [type=submit]');
   check('saving with "email the client" says so', (await page.textContent('.notice-success')).includes('יקבל עליו עדכון במייל') && (await page.textContent('.dxa-schedule')).includes('במקור: ' + shown(end2)));
-  const before = mailFiles();
+  // The client switched to the daily digest in phase2, so the change waits in the batch: read it in the email preview.
   await page.goto(caseUrl + '?tab=overview');
-  await submit(page, 'form:has(input[value="dx_portal_send_now"]) [type=submit]');
-  const mails = mailsSince(before);
-  check('the client gets the change by email, with the date first given and the note', mails.some(m => m.to === 'cohen@example.org' && m.message.includes('לוח הזמנים של הפרויקט עודכן') && m.message.includes('במקור ' + shown(end2)) && m.message.includes('הוועדה המקומית דחתה את הדיון')), JSON.stringify(mails.map(m => [m.to, m.subject])));
+  const preview = await page.request.get(await page.getAttribute('a[href*="dx_portal_preview"]', 'href'));
+  const email = await preview.text();
+  check('the change waits in the client\'s email, with the date first given and the note', preview.status() === 200 && email.includes('לוח הזמנים של הפרויקט עודכן') && email.includes('במקור ' + shown(end2)) && email.includes('הוועדה המקומית דחתה את הדיון'));
 
   await client.goto(portalCase + '?tab=schedule');
   check('the client sees the new date, the first one and why', (await client.textContent('.dxp-sched')).includes(shown(moved)) && (await client.textContent('.dxp-sched__moved')).includes('במקור: ' + shown(end2)) && (await client.textContent('.dxp-sched__moved')).includes('הוועדה המקומית דחתה את הדיון'));
