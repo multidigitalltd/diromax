@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Diromax\Portal\Service;
 
 use Diromax\Portal\Domain\Text;
+use Diromax\Portal\Support\MailConfig;
 use Diromax\Portal\Support\MailTrace;
 
 defined( 'ABSPATH' ) || exit;
@@ -36,9 +37,10 @@ final class Mailer {
 			return false;
 		}
 
+		$brand     = MailConfig::sender_name();
 		$from_name = $manager
-			? sprintf( /* translators: %s: project manager name. */ __( 'דירומקס · %s', 'diromax-portal' ), Text::line( (string) $manager->display_name ) )
-			: __( 'דירומקס', 'diromax-portal' );
+			? sprintf( /* translators: 1: sender name from the settings, 2: project manager name. */ __( '%1$s · %2$s', 'diromax-portal' ), $brand, Text::line( (string) $manager->display_name ) )
+			: $brand;
 
 		if ( isset( $options['from_name'] ) && '' !== Text::line( $options['from_name'] ) ) {
 			$from_name = Text::line( $options['from_name'] );
@@ -50,7 +52,7 @@ final class Mailer {
 
 		if ( '' !== $address ) {
 			// Text::line strips line breaks, so no header can be injected (standard 4.2.11).
-			$name      = Text::line( (string) ( $options['reply_name'] ?? ( $manager ? $manager->display_name : __( 'דירומקס', 'diromax-portal' ) ) ) );
+			$name      = Text::line( (string) ( $options['reply_name'] ?? ( $manager ? $manager->display_name : $brand ) ) );
 			$headers[] = 'Reply-To: ' . str_replace( array( '"', '<', '>', ',' ), '', $name ) . ' <' . sanitize_email( $address ) . '>';
 		}
 
@@ -71,5 +73,19 @@ final class Mailer {
 			remove_action( 'phpmailer_init', $set_alt );
 			MailTrace::$text = '';
 		}
+	}
+
+	/**
+	 * The sender name of WordPress's own email (a password reset, a notice)
+	 * and of any plugin that leaves the default: the name from the settings,
+	 * not "WordPress". A name another plugin set is kept.
+	 *
+	 * @param mixed $name Name so far.
+	 * @return string
+	 */
+	public static function site_name( $name ): string {
+		$name = (string) $name;
+
+		return 'WordPress' === $name ? MailConfig::sender_name() : $name;
 	}
 }

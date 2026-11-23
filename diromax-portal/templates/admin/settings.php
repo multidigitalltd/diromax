@@ -292,7 +292,7 @@ $header   = array(
 		<tr>
 			<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>
 			<td>
-				<input type="<?php echo esc_attr( $type ); ?>" id="<?php echo esc_attr( $id ); ?>" name="integrations[<?php echo esc_attr( $name ); ?>]" class="regular-text" dir="ltr" autocomplete="off" spellcheck="false"
+				<input type="<?php echo esc_attr( $type ); ?>" id="<?php echo esc_attr( $id ); ?>" name="integrations[<?php echo esc_attr( $name ); ?>]" class="regular-text" dir="<?php echo esc_attr( 'from_name' === $name ? 'auto' : 'ltr' ); ?>" autocomplete="off" spellcheck="false"
 					value="<?php echo esc_attr( $secret ? '' : $dx_form->old( $name, (string) $field['value'] ) ); ?>"
 					<?php echo $secret && $field['set'] ? 'placeholder="' . esc_attr__( '•••••••• (שמור. ריק: בלי שינוי)', 'diromax-portal' ) . '"' : ''; ?>
 					<?php disabled( $field['locked'] || ( $secret && ! $mail['key_ready'] ) ); ?>
@@ -333,6 +333,7 @@ $header   = array(
 			<?php
 			$dx_input( 'token', __( 'Server API Token', 'diromax-portal' ), 'password', __( 'ב-Postmark: Servers ← השרת ← API Tokens.', 'diromax-portal' ) );
 			$dx_input( 'from', __( 'כתובת השולח', 'diromax-portal' ), 'email', __( 'מהדומיין שאומת ב-Postmark. ריק: הכתובת הרגילה של האתר.', 'diromax-portal' ) );
+			$dx_input( 'from_name', __( 'שם השולח', 'diromax-portal' ), 'text', __( 'השם שהנמען רואה, בכל המיילים של האתר, גם בלי Postmark. מייל בשם מנהל הפרויקט יוצא כ"השם · שם המנהל". ריק: דירומקס.', 'diromax-portal' ) );
 			$dx_input( 'stream', __( 'זרם השליחה', 'diromax-portal' ), 'text', __( 'ריק: outbound.', 'diromax-portal' ) );
 			$dx_input( 'inbound', __( 'כתובת הדואר הנכנס', 'diromax-portal' ), 'email', __( 'מ-Default Inbound Stream ← Settings. ריק: תשובות של לקוחות מגיעות ישירות למנהל הפרויקט.', 'diromax-portal' ) );
 			?>

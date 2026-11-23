@@ -95,6 +95,47 @@ final class IntegrationsTest extends PortalTestCase {
 		$this->assertFalse( Integrations::is_set( 'token' ) );
 	}
 
+	public function test_the_sender_name_is_saved_and_a_name_that_could_break_a_header_is_refused(): void {
+		$this->assertSame( 'דירומקס', MailConfig::sender_name(), 'Empty: the brand.' );
+		$this->assertSame( array( 'from_name' ), Integrations::save( array( 'from_name' => 'דירומקס בע״מ' ) ), 'Hebrew, with gershayim.' );
+		$this->assertSame( 'דירומקס בע״מ', MailConfig::sender_name() );
+		$this->assertSame( array( 'from_name' ), Integrations::save( array( 'from_name' => str_repeat( 'א', Integrations::MAX_FROM_NAME ) ) ) );
+
+		foreach ( array( 'דירומקס <x@example.org>', 'דירומקס, בע"מ', 'office@diromax', 'a;b', 'a\\b', str_repeat( 'א', Integrations::MAX_FROM_NAME + 1 ) ) as $bad ) {
+			$result = Integrations::save( array( 'from_name' => $bad ) );
+			$this->assertInstanceOf( WP_Error::class, $result, $bad );
+			$this->assertSame( array( 'from_name' => 'invalid' ), $result->get_error_data()['fields'], $bad );
+		}
+
+		$this->assertSame( str_repeat( 'א', Integrations::MAX_FROM_NAME ), MailConfig::sender_name(), 'Nothing saved on an error.' );
+		$this->assertSame( array( 'from_name' ), Integrations::save( array( 'from_name' => '' ) ) );
+		$this->assertSame( 'דירומקס', MailConfig::sender_name(), 'Cleared: the brand again.' );
+	}
+
+	/**
+	 * Regression (found by E2E phase 3): sanitize_text_field() dropped
+	 * "<x@example.org>" as a tag, so the screen saved "דירומקס" without a word.
+	 */
+	public function test_the_screen_refuses_a_sender_name_with_an_address_instead_of_trimming_it(): void {
+		$input = Actions::integrations_input(
+			array(
+				'from'      => ' portal@diromax.co.il ',
+				'from_name' => "דירומקס <x@example.org>\n",
+				'token'     => array( 'not a string' ),
+			)
+		);
+
+		$this->assertSame( 'דירומקס <x@example.org>', $input['from_name'], 'As typed, on one line.' );
+		$this->assertSame( 'portal@diromax.co.il', $input['from'] );
+		$this->assertSame( '', $input['token'], 'Only text is read.' );
+
+		$result = Integrations::save( $input );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( array( 'from_name' => 'invalid' ), $result->get_error_data()['fields'] );
+		$this->assertSame( '', Integrations::get( 'from_name' ), 'Nothing saved.' );
+		$this->assertSame( 'דירומקס השבחת נכסים', Actions::integrations_input( array( 'from_name' => "  דירומקס \t השבחת נכסים " ) )['from_name'] );
+	}
+
 	public function test_the_webhook_key_is_shown_once_and_kept_only_as_a_hash(): void {
 		$hooks = new Webhooks( $this->app );
 		$this->assertFalse( Webhooks::configured() );

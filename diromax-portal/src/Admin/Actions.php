@@ -12,6 +12,7 @@ namespace Diromax\Portal\Admin;
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\BudgetTemplate;
 use Diromax\Portal\Domain\PaymentPlan;
+use Diromax\Portal\Domain\Text;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\CsvExport;
@@ -886,15 +887,8 @@ final class Actions {
 			wp_die( esc_html__( 'אין הרשאה.', 'diromax-portal' ), '', array( 'response' => 403 ) );
 		}
 
-		$raw   = isset( $_POST['integrations'] ) && is_array( $_POST['integrations'] ) ? wp_unslash( $_POST['integrations'] ) : array();
-		$input = array();
-
-		foreach ( array_keys( Integrations::FIELDS ) as $name ) {
-			// Secrets are compared and sealed as typed: sanitize_text_field() only trims and drops tags, which no valid key has.
-			$input[ $name ]            = sanitize_text_field( (string) ( $raw[ $name ] ?? '' ) );
-			$input[ $name . '_clear' ] = isset( $raw[ $name . '_clear' ] ) ? '1' : '';
-		}
-
+		$raw    = isset( $_POST['integrations'] ) && is_array( $_POST['integrations'] ) ? wp_unslash( $_POST['integrations'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is cleaned in integrations_input(), then checked by Integrations::save().
+		$input  = self::integrations_input( $raw );
 		$result = Integrations::save( $input );
 
 		if ( $result instanceof WP_Error ) {
@@ -906,6 +900,29 @@ final class Actions {
 		}
 
 		self::redirect( Admin::page_url( Admin::PAGE_SETTINGS ) . '#dxa-mail-title' );
+	}
+
+	/**
+	 * The integration fields as posted, cleaned for Integrations::save().
+	 *
+	 * Secrets are compared and sealed as typed: sanitize_text_field() only
+	 * trims and drops tags, which no valid key has. The sender name keeps
+	 * what was typed, on one line, so a name like "Office <a@b.c>" is
+	 * refused on its field instead of saved as "Office" without a word.
+	 *
+	 * @param array<mixed> $raw Unslashed POST array.
+	 * @return array<string, string>
+	 */
+	public static function integrations_input( array $raw ): array {
+		$input = array();
+
+		foreach ( array_keys( Integrations::FIELDS ) as $name ) {
+			$value                     = is_scalar( $raw[ $name ] ?? null ) ? (string) $raw[ $name ] : '';
+			$input[ $name ]            = 'from_name' === $name ? Text::line( $value ) : sanitize_text_field( $value );
+			$input[ $name . '_clear' ] = isset( $raw[ $name . '_clear' ] ) ? '1' : '';
+		}
+
+		return $input;
 	}
 
 	/**

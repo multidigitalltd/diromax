@@ -38,6 +38,7 @@ final class Integrations {
 	public const FIELDS = array(
 		'token'            => array( 'DX_POSTMARK_TOKEN', true ),
 		'from'             => array( 'DX_POSTMARK_FROM', false ),
+		'from_name'        => array( 'DX_POSTMARK_FROM_NAME', false ),
 		'stream'           => array( 'DX_POSTMARK_STREAM', false ),
 		'inbound'          => array( 'DX_POSTMARK_INBOUND', false ),
 		'turnstile_site'   => array( 'DX_TURNSTILE_SITE_KEY', false ),
@@ -46,6 +47,9 @@ final class Integrations {
 
 	/** The webhook key's constant. */
 	private const WEBHOOK_CONSTANT = 'DX_POSTMARK_WEBHOOK_KEY';
+
+	/** Longest sender name, in characters. */
+	public const MAX_FROM_NAME = 60;
 
 	/** Shortest webhook key accepted from wp-config.php. */
 	public const MIN_WEBHOOK_KEY = 32;
@@ -209,6 +213,8 @@ final class Integrations {
 		$valid = match ( $name ) {
 			'from', 'inbound' => false !== is_email( $value ),
 			'stream'          => 1 === preg_match( '/^[a-z0-9_-]{1,50}$/', $value ),
+			// A display name only: nothing that could open an address or a second header.
+			'from_name'       => 1 === preg_match( '/^[^<>"\\\\,;@\p{Cc}]{1,' . self::MAX_FROM_NAME . '}$/u', $value ),
 			default           => 1 === preg_match( '/^[A-Za-z0-9._-]{10,200}$/', $value ),
 		};
 

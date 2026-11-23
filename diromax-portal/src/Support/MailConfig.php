@@ -17,8 +17,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * Settings: token, the server API token (DX_POSTMARK_TOKEN), a secret kept
  * sealed; from, the sender address on a verified domain (DX_POSTMARK_FROM);
- * stream, default "outbound" (DX_POSTMARK_STREAM); inbound, the server's
- * inbound address (DX_POSTMARK_INBOUND).
+ * from_name, the name recipients see (DX_POSTMARK_FROM_NAME), used with or
+ * without Postmark; stream, default "outbound" (DX_POSTMARK_STREAM);
+ * inbound, the server's inbound address (DX_POSTMARK_INBOUND).
  *
  * The webhook key is only ever compared as a hash: Integrations::webhook_hash().
  * The dx_portal_mail_config filter can supply a value instead (tests, or a
@@ -27,12 +28,23 @@ defined( 'ABSPATH' ) || exit;
 final class MailConfig {
 
 	/** Settings read through here. */
-	private const NAMES = array( 'token', 'from', 'stream', 'inbound' );
+	private const NAMES = array( 'token', 'from', 'from_name', 'stream', 'inbound' );
+
+	/**
+	 * The name the site's email goes out under: the setting, or the brand.
+	 *
+	 * @return string
+	 */
+	public static function sender_name(): string {
+		$name = self::get( 'from_name' );
+
+		return '' !== $name ? $name : __( 'דירומקס', 'diromax-portal' );
+	}
 
 	/**
 	 * One setting, trimmed; '' when not set.
 	 *
-	 * @param string $name token, from, stream or inbound.
+	 * @param string $name token, from, from_name, stream or inbound.
 	 * @return string
 	 */
 	public static function get( string $name ): string {
