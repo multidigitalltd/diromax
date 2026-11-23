@@ -25,13 +25,14 @@ $dx_shown = 0;
 				<span class="dxp-num"><?php echo esc_html( (string) $dx_stage['number'] ); ?></span>
 				<?php echo esc_html( (string) $dx_stage['name'] ); ?>
 			</h3>
+			<?php // The first photo is the page's largest paint: fetched first. Only the first row loads at once; the rest wait to be scrolled to. ?>
 			<ul class="dxp-photos__grid">
 				<?php foreach ( $dx_stage['photos'] as $dx_photo ) : ?>
 					<?php ++$dx_shown; ?>
 					<li>
 						<figure class="dxp-photo">
 							<a href="<?php echo esc_url( (string) $dx_photo['full'] ); ?>" target="_blank" rel="noopener">
-								<img src="<?php echo esc_url( (string) $dx_photo['thumb'] ); ?>" width="<?php echo esc_attr( (string) $dx_photo['width'] ); ?>" height="<?php echo esc_attr( (string) $dx_photo['height'] ); ?>" alt="<?php echo esc_attr( (string) $dx_photo['alt'] ); ?>" decoding="async"<?php echo $dx_shown > 4 ? ' loading="lazy"' : ''; ?>>
+								<img src="<?php echo esc_url( (string) $dx_photo['thumb'] ); ?>" width="<?php echo esc_attr( (string) $dx_photo['width'] ); ?>" height="<?php echo esc_attr( (string) $dx_photo['height'] ); ?>" alt="<?php echo esc_attr( (string) $dx_photo['alt'] ); ?>" decoding="async"<?php echo 1 === $dx_shown ? ' fetchpriority="high"' : ( $dx_shown > 2 ? ' loading="lazy"' : '' ); ?>>
 								<span class="dxp-sr"><?php esc_html_e( '(נפתח בגודל מלא בחלון חדש)', 'diromax-portal' ); ?></span>
 							</a>
 							<figcaption>
