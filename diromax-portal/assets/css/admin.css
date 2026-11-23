@@ -439,6 +439,7 @@
 .dxa-gantt__track .dxa-gantt__today { position: absolute; inset-block: 0; width: 2px; background: var(--a-orange); }
 .dxa-gantt__track .dxa-gantt__mark { position: absolute; inset-block-start: 5px; width: 12px; height: 12px; margin-inline-start: -6px; background: var(--a-ink); transform: rotate(45deg); }
 .dxa-gantt__track .dxa-gantt__mark--done { background: var(--a-teal-deep); }
+.dxa-gantt__track .dxa-gantt__due { position: absolute; inset-block-start: 1px; width: 4px; height: 12px; margin-inline-start: -2px; background: var(--a-blue); }
 .dxa-gantt__row--skipped .dxa-gantt__name { color: var(--a-muted); text-decoration: line-through; }
 .dxa-gantt__legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 12px; color: var(--a-muted); }
 .dxa-gantt__legend i { display: inline-block; width: 14px; height: 8px; margin-inline-end: 6px; vertical-align: 1px; }

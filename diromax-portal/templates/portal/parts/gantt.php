@@ -36,6 +36,9 @@ $dx_style = static fn( ?array $span ): string => null === $span ? '' : sprintf( 
 				<i class="<?php echo esc_attr( $dx_g . '-gantt__today' ); ?>" style="<?php echo esc_attr( 'inset-inline-start:' . $layout['today'] . '%' ); ?>"></i>
 				<?php if ( null !== $dx_place && null !== $dx_place['plan'] ) : ?>
 					<i class="<?php echo esc_attr( $dx_g . '-gantt__plan' ); ?>" style="<?php echo esc_attr( $dx_style( $dx_place['plan'] ) ); ?>"></i>
+				<?php elseif ( null !== $dx_place && null !== $dx_place['mark'] ) : ?>
+					<?php // A planned end with no planned start: the end alone, as a tick. ?>
+					<i class="<?php echo esc_attr( $dx_g . '-gantt__due' ); ?>" style="<?php echo esc_attr( 'inset-inline-start:' . $dx_place['mark'] . '%' ); ?>"></i>
 				<?php endif; ?>
 				<?php if ( null !== $dx_place && null !== $dx_place['actual'] ) : ?>
 					<i class="<?php echo esc_attr( $dx_g . '-gantt__actual' ); ?>" style="<?php echo esc_attr( $dx_style( $dx_place['actual'] ) ); ?>"></i>

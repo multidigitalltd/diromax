@@ -335,7 +335,8 @@ final class ScheduleService {
 			// The first date the client is shown: set when the timeline is published, or when a date is added to a published one.
 			$first  = $first ?? ( $visible ? $end : null );
 			$fields = array(
-				'starts_on'     => $starts[ $stage ] ?? ( $row['starts_on'] ?? null ),
+				// A stage given with no start clears it; a stage not given keeps its own.
+				'starts_on'     => array_key_exists( $stage, $starts ) ? $starts[ $stage ] : ( $row['starts_on'] ?? null ),
 				'first_ends_on' => $first,
 				'note'          => self::note_for( $end, $first, $was_visible && $before[ $stage ] !== $end, $note, $row['note'] ?? '' ),
 			);

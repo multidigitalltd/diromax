@@ -217,6 +217,7 @@
 .dxp-gantt__track .dxp-gantt__today { position: absolute; inset-block: 0; width: 2px; background: var(--p-orange); }
 .dxp-gantt__track .dxp-gantt__mark { position: absolute; inset-block-start: 6px; width: 12px; height: 12px; margin-inline-start: -6px; background: var(--p-ink); transform: rotate(45deg); }
 .dxp-gantt__track .dxp-gantt__mark--done { background: var(--p-teal-deep); }
+.dxp-gantt__track .dxp-gantt__due { position: absolute; inset-block-start: 1px; width: 4px; height: 12px; margin-inline-start: -2px; background: var(--p-blue); }
 .dxp-gantt__legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 13px; color: var(--p-muted); }
 .dxp-gantt__legend i { display: inline-block; width: 14px; height: 8px; margin-inline-end: 6px; vertical-align: 1px; }
 .dxp-gantt__legend .dxp-gantt__plan { background: var(--p-blue-tint); box-shadow: inset 0 0 0 1px var(--p-blue); }

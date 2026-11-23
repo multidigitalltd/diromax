@@ -386,6 +386,49 @@ final class ScheduleTest extends PortalTestCase {
 		$this->assertTrue( $staff['visible'] );
 	}
 
+	public function test_a_cleared_start_stays_cleared(): void {
+		// Regression (PR #18 review): an emptied start fell back to the stored one.
+		[ $case, $manager ] = $this->planned();
+		$service            = new ScheduleService( $this->app );
+
+		$this->assertTrue(
+			$service->save(
+				$case,
+				array(
+					1 => '',
+					2 => '2027-01-01',
+				),
+				array(
+					1 => '2026-12-31',
+					2 => '2027-03-31',
+				),
+				self::options( true ),
+				$manager
+			)
+		);
+		$rows = $service->for_staff( $this->fresh( $case ) )['rows'];
+		$this->assertSame( array( null, '2027-01-01' ), array( $rows[0]['start'], $rows[1]['start'] ) );
+	}
+
+	public function test_a_stage_with_only_a_due_date_is_drawn(): void {
+		// Regression (PR #18 review): a planned end with no planned start (as in cases from before 1.12.0) drew nothing.
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager, $this->client() );
+		$this->assertInstanceOf( CaseRecord::class, $this->app->case_service->set_dues( $case, array( 3 => '2027-02-01' ), $manager ) );
+		$this->assertTrue( ( new ScheduleService( $this->app ) )->save( $this->fresh( $case ), array(), array( 3 => '2027-02-01' ), self::options( true ), $manager ) );
+
+		$schedule = ( new ScheduleService( $this->app ) )->for_client( $this->fresh( $case ) );
+		$this->assertNotNull( $schedule );
+		$layout          = $schedule['layout'];
+		$rows            = $schedule['rows'];
+		$dx_gantt_prefix = 'dxp';
+		ob_start();
+		require DX_PORTAL_DIR . 'templates/portal/parts/gantt.php';
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, substr_count( $html, 'class="dxp-gantt__due"' ) );
+	}
+
 	public function test_deleting_a_case_removes_its_timeline(): void {
 		global $wpdb;
 		[ $case, $manager ] = $this->planned();
