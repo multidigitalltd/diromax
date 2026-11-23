@@ -181,7 +181,6 @@
 .dxa-card--empty { order: 1; border-top-color: var(--a-line-soft); padding-bottom: 2px; }
 .dxa-screen .wrap.dxa .dxa-card--empty h2 { font-size: 14px; color: var(--a-muted); }
 .dxa-card--empty p { margin: 0 0 12px; color: var(--a-muted); }
-.dxa-card--quiet { background: transparent; border-style: dashed; border-top-width: 1px; }
 .dxa-card__more { margin: 12px 0 0; font-weight: 700; }
 .dxa-count { display: inline-block; min-width: 22px; padding: 2px 7px; background: var(--a-blue); color: var(--a-white); font-family: var(--a-font-num); font-size: 12px; font-weight: 800; text-align: center; }
 .dxa-card--hot .dxa-count { background: var(--a-orange); color: var(--a-on-orange); }

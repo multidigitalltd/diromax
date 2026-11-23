@@ -195,7 +195,7 @@ async function signIn(page, user, pass, redirect) {
   check('the client is signed in to the portal', client.url().includes('/portal/') && !client.url().includes('/login/'), client.url());
   await client.goto(BASE + '/portal/manage/');
   check('a client is sent back to the portal', !client.url().includes('/manage/') && client.url().includes('/portal/'), client.url());
-  r = await client.request.post(BASE + '/wp-admin/admin-post.php', { form: { action: 'dx_portal_demo_case', _wpnonce: 'x' } });
+  r = await client.request.post(BASE + '/wp-admin/admin-post.php', { form: { action: 'dx_portal_save_settings', _wpnonce: 'x' } });
   check('a client cannot use the staff actions', r.status() >= 400);
 
   // ---------- Home screen ----------

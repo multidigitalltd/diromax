@@ -246,22 +246,17 @@ async function dismissPrivacy(page) {
   await mp.screenshot({ path: out('35-portal-account-mobile.png'), fullPage: true });
   await m.close();
 
-  // The sample case, from the dashboard: a full case, and no email at all.
+  // The dashboard: no sample case to create (removed in 1.14.2), the totals and the activity feed.
   await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
-  const mailsBeforeDemo = mailFiles();
-  await admin.click('form:has(input[value="dx_portal_demo_case"]) button[type=submit]');
-  await admin.waitForLoadState('networkidle');
-  check('sample case opens on its overview with a notice', (await admin.textContent('h1')).includes('תיק לדוגמה') && (await admin.textContent('.notice-success')).includes('נוצר תיק לדוגמה'));
-  const demoActive = await admin.locator('.dxa-step--active .dxa-step__n').allTextContents();
-  check('sample case: stages 05 and 06 in progress together, neither claimed as the one current step', demoActive.join(',') === '05,06' && (await admin.locator('.dxa-step[aria-current]').count()) === 0, demoActive.join(','));
-  await axe(admin, 'case header, stages and tabs', '.dxa');
-  await admin.goto(BASE + '/wp-admin/admin.php?page=dx-dashboard');
-  const demoDash = await admin.textContent('.dxa-dash');
-  check('dashboard: totals band, the sample case listed, its overdue request flagged', (await admin.locator('.dxa-kpis li').count()) === 6 && demoDash.includes('תיק לדוגמה') && demoDash.includes('השלמת אגרות לוועדה'));
+  check('the dashboard offers no sample case', (await admin.locator('input[value="dx_portal_demo_case"]').count()) === 0 && !(await admin.textContent('#wpbody')).includes('תיק לדוגמה'));
+  const noDemo = await admin.request.post(BASE + '/wp-admin/admin-post.php', { form: { action: 'dx_portal_demo_case' } });
+  check('the sample case action is gone', noDemo.status() === 400, String(noDemo.status()));
+  check('dashboard: totals band and the active case listed', (await admin.locator('.dxa-kpis li').count()) === 6 && (await admin.textContent('.dxa-dash')).includes('רח׳ הזית 14'));
   check('dashboard: recent activity across the manager\'s cases', (await admin.locator('.dxa-feed li').count()) > 0);
   await axe(admin, 'dashboard with totals and activity', '.dxa');
   await admin.screenshot({ path: out('36-admin-dashboard-upgraded.png'), fullPage: true });
-  check('the sample case sent no email', mailFiles().size === mailsBeforeDemo.size);
+  await admin.goto(tab('overview'));
+  await axe(admin, 'case header, stages and tabs', '.dxa');
 
   check('no script errors or failed assets', errors.length === 0, errors.join(' | '));
   fs.writeFileSync(out('phase2-results.json'), JSON.stringify(results, null, 2));

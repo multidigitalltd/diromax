@@ -16,7 +16,6 @@ use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
 use Diromax\Portal\Service\CsvExport;
 use Diromax\Portal\Service\DecisionService;
-use Diromax\Portal\Service\DemoCase;
 use Diromax\Portal\Service\DocRequestService;
 use Diromax\Portal\Service\Errors;
 use Diromax\Portal\Service\ForecastService;
@@ -144,7 +143,6 @@ final class Actions {
 		add_action( 'admin_post_dx_portal_test_mail', array( $this, 'test_mail' ) );
 		add_action( 'admin_post_dx_portal_save_integrations', array( $this, 'save_integrations' ) );
 		add_action( 'admin_post_dx_portal_new_webhook_key', array( $this, 'new_webhook_key' ) );
-		add_action( 'admin_post_dx_portal_demo_case', array( $this, 'demo_case' ) );
 		add_action( 'admin_post_dx_portal_download', array( $this, 'download' ) );
 		add_action( 'admin_post_dx_portal_preview', array( $this, 'preview' ) );
 		add_action( 'admin_post_dx_portal_export', array( $this, 'export' ) );
@@ -412,24 +410,6 @@ final class Actions {
 		header( 'X-Robots-Tag: noindex, nofollow' );
 		include DX_PORTAL_DIR . 'templates/admin/certificate.php';
 		exit;
-	}
-
-	/**
-	 * Create the sample case (dashboard button on a fresh install).
-	 */
-	public function demo_case(): void {
-		check_admin_referer( 'dx_portal_demo_case' );
-		self::return_to_sender();
-
-		$result = ( new DemoCase( $this->app ) )->create( get_current_user_id() );
-
-		if ( $result instanceof WP_Error ) {
-			Flash::set( 'error', $result->get_error_message() );
-			self::redirect( Admin::page_url( Admin::PAGE_DASHBOARD ) );
-		}
-
-		Flash::set( 'success', __( 'נוצר תיק לדוגמה עם תקציב, תנועות, דרישות תשלום, עדכונים והחלטה. אין בו לקוחות, ולכן לא נשלח שום מייל. כדי למחוק אותו: סוגרים את התיק בלשונית "פרטי התיק", ומנהל מערכת מוחק אותו שם.', 'diromax-portal' ) );
-		self::redirect( Admin::case_url( $result->id ) );
 	}
 
 	/**

@@ -69,7 +69,7 @@ $header = array(
 		<p class="dxa-allclear">
 			<?php
 			echo '' === $view['search'] && '' === $view['status']
-				? esc_html__( 'עדיין אין תיקים. אפשר לפתוח את הראשון מ"תיק חדש", או ליצור תיק לדוגמה בלוח הבקרה.', 'diromax-portal' )
+				? esc_html__( 'עדיין אין תיקים. אפשר לפתוח את הראשון מ"תיק חדש".', 'diromax-portal' )
 				: esc_html__( 'לא נמצאו תיקים. אפשר לחפש לפי חלק מהכתובת או לפי מספר התיק.', 'diromax-portal' );
 			?>
 		</p>
