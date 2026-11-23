@@ -16,6 +16,7 @@ use Diromax\Portal\Portal\Webhooks;
 use Diromax\Portal\Security\LoginGate;
 use Diromax\Portal\Security\ClientGuard;
 use Diromax\Portal\Service\DailyJobs;
+use Diromax\Portal\Service\Mailer;
 use Diromax\Portal\Service\PasswordService;
 use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\Retention;
@@ -62,6 +63,8 @@ final class Hooks {
 
 		( new LoginGate( $app ) )->register();
 		( new Postmark() )->register();
+		// Early, so the portal's own name (Mailer::send) and other plugins' names still win.
+		add_filter( 'wp_mail_from_name', array( Mailer::class, 'site_name' ), 5 );
 		( new Webhooks( $app ) )->register();
 		// The theme's lead form uses the same Turnstile keys, set on the portal's settings screen.
 		add_filter( 'dx_turnstile_site_key', static fn(): string => Integrations::get( 'turnstile_site' ) );

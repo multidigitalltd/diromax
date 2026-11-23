@@ -156,6 +156,27 @@ final class PostmarkTest extends PortalTestCase {
 		$this->assertSame( '', MailTrace::$text, 'The text is cleared after the send.' );
 	}
 
+	public function test_the_sender_name_from_the_settings_is_on_every_email(): void {
+		$this->through_postmark();
+		$this->config['from']      = 'portal@diromax.co.il';
+		$this->config['from_name'] = 'דירומקס השבחת נכסים';
+		$manager                   = get_userdata( $this->manager() );
+
+		$this->assertTrue( Mailer::send( 'cohen@example.org', new MailMessage( 'עדכון בתיק', '<p>שלום</p>', 'שלום' ), $manager ? $manager : null ) );
+		$this->assertSame( 'דירומקס השבחת נכסים · דניאל לוי <portal@diromax.co.il>', $this->sent()['From'] );
+
+		$this->assertTrue( Mailer::send( 'cohen@example.org', new MailMessage( 'קוד כניסה', '<p>123456</p>', '123456' ), null ) );
+		$this->assertSame( 'דירומקס השבחת נכסים <portal@diromax.co.il>', $this->sent()['From'] );
+
+		$this->assertTrue( wp_mail( 'admin@example.org', 'איפוס סיסמה', 'קישור לאיפוס' ) );
+		$this->assertSame( 'דירומקס השבחת נכסים <portal@diromax.co.il>', $this->sent()['From'], 'WordPress\'s own email, not "WordPress".' );
+		$this->assertSame( 'Contact Form', apply_filters( 'wp_mail_from_name', 'Contact Form' ), 'A name another plugin set is kept.' );
+	}
+
+	public function test_without_a_sender_name_wordpress_email_goes_out_under_the_brand(): void {
+		$this->assertSame( 'דירומקס', apply_filters( 'wp_mail_from_name', 'WordPress' ), 'With or without Postmark.' );
+	}
+
 	public function test_mail_from_other_plugins_goes_through_the_api_too(): void {
 		$this->through_postmark();
 		$this->config['from'] = 'portal@diromax.co.il';

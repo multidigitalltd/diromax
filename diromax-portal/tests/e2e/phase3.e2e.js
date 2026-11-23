@@ -255,8 +255,15 @@ function localDate(offsetDays) {
   check('a bad sender address is refused on its field', (await adminPage.textContent('.notice-error')).includes('לא נשמרו') && (await adminPage.getAttribute('#dxa-integrations-from', 'aria-invalid')) === 'true');
   await axe(adminPage, 'settings with a field error');
   await adminPage.fill('#dxa-integrations-from', 'portal@example.org');
+  await adminPage.fill('#dxa-integrations-from_name', 'דירומקס <x@example.org>');
   await adminPage.click('form:has(input[value="dx_portal_save_integrations"]) [type=submit]');
   await adminPage.waitForLoadState('load');
+  check('a sender name that could hide an address is refused on its field', (await adminPage.getAttribute('#dxa-integrations-from_name', 'aria-invalid')) === 'true' && (await adminPage.textContent('#dxa-integrations-from_name-help')).includes('עד 60 תווים'));
+  await adminPage.fill('#dxa-integrations-from', 'portal@example.org');
+  await adminPage.fill('#dxa-integrations-from_name', 'דירומקס השבחת נכסים');
+  await adminPage.click('form:has(input[value="dx_portal_save_integrations"]) [type=submit]');
+  await adminPage.waitForLoadState('load');
+  check('the sender name is saved, in Hebrew, right to left', (await adminPage.inputValue('#dxa-integrations-from_name')) === 'דירומקס השבחת נכסים' && (await adminPage.getAttribute('#dxa-integrations-from_name', 'dir')) === 'auto');
   check('the sender address is saved from the screen', (await adminPage.textContent('.notice-success')).includes('ההגדרות נשמרו') && (await adminPage.inputValue('#dxa-integrations-from')) === 'portal@example.org');
   check('the token field is a password field and empty', (await adminPage.getAttribute('#dxa-integrations-token', 'type')) === 'password' && (await adminPage.inputValue('#dxa-integrations-token')) === '');
   before = mailFiles();

@@ -30,6 +30,7 @@ final class Messages {
 			'entry_date:invalid'    => __( 'התאריך לא תקין. אפשר לבחור תאריך מלוח השנה.', 'diromax-portal' ),
 			'email:staff_account'   => __( 'הכתובת שייכת לחשבון של הצוות. ללקוח צריך כתובת נפרדת.', 'diromax-portal' ),
 			'email:invalid'         => __( 'כתובת הדוא״ל לא תקינה.', 'diromax-portal' ),
+			'from_name:invalid'     => __( 'שם השולח: עד 60 תווים, בלי הסימנים < > " , ; @.', 'diromax-portal' ),
 			'file:missing'          => __( 'לא נבחר קובץ, או שההעלאה נכשלה.', 'diromax-portal' ),
 			'file:too_large'        => __( 'הקובץ גדול מ-20MB.', 'diromax-portal' ),
 			'file:type'             => __( 'סוג הקובץ לא נתמך. אפשר להעלות PDF, JPG, PNG, WEBP, DOCX או XLSX.', 'diromax-portal' ),
