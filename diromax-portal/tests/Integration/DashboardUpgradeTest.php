@@ -1,6 +1,6 @@
 <?php
 /**
- * The sample case, the dashboard totals and the activity feed across cases.
+ * The dashboard totals and the activity feed across cases.
  *
  * @package Diromax\Portal
  */
@@ -9,46 +9,22 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Tests\Integration;
 
+use Diromax\Portal\Admin\Actions;
 use Diromax\Portal\Admin\Pages;
 use Diromax\Portal\Data\CaseRecord;
 use Diromax\Portal\Domain\CaseStatus;
-use Diromax\Portal\Service\DemoCase;
-use WP_Error;
 
 final class DashboardUpgradeTest extends PortalTestCase {
 
-	public function test_the_sample_case_has_every_kind_of_record_and_sends_nothing(): void {
-		$manager = $this->manager();
+	/**
+	 * 1.14.2: the sample case is gone, button and action both.
+	 */
+	public function test_there_is_no_sample_case_action(): void {
+		( new Actions( $this->app ) )->register();
 
-		$case = ( new DemoCase( $this->app ) )->create( $manager );
-
-		$this->assertInstanceOf( CaseRecord::class, $case );
-		$this->assertTrue( DemoCase::is_demo( $case ) );
-		$this->assertSame( $manager, $case->manager_id );
-		$this->assertSame( 6, $case->stage, 'The last update started stage 6 alongside stage 5.' );
-		$this->assertSame( array( 'done', 'active', 'active' ), array( $case->stages[4]['status'], $case->stages[5]['status'], $case->stages[6]['status'] ) );
-		$this->assertCount( 8, $this->app->ledger->for_case( $case->id, false ) );
-		$this->assertSame( 48000000, $this->app->budget->tree( $case->id )->total() );
-		$this->assertCount( 3, $this->app->updates->for_case( $case->id, false ) );
-		$this->assertCount( 1, $this->app->decisions->for_case( $case->id ) );
-		$this->assertSame( array(), $this->app->members->for_case( $case->id ), 'No clients, so nobody gets email.' );
-
-		$summary = $case->summary ?? array();
-		$this->assertSame( 4650000, $summary['open_requests'], 'Two open requests: 6,500 + 40,000.' );
-		$this->assertSame( 4500000, $summary['committed'] );
-
-		$view = ( new Pages( $this->app ) )->dashboard_data( $manager );
-		$this->assertSame( array( 'השלמת אגרות לוועדה' ), array_column( $view['overdue'], 'description' ), 'One request is four days late.' );
-		$this->assertSame( array( 'בחירת ספק חלונות' ), array_column( $view['decisions'], 'title' ) );
-
-		$this->app->notifier->process_case( $case->id, true );
-		$this->assertSame( array(), $this->mails );
-	}
-
-	public function test_only_staff_can_create_a_sample_case(): void {
-		$this->assertInstanceOf( WP_Error::class, ( new DemoCase( $this->app ) )->create( $this->client() ) );
-		$this->assertInstanceOf( WP_Error::class, ( new DemoCase( $this->app ) )->create( 0 ) );
-		$this->assertFalse( $this->app->cases->any_for( null ) );
+		$this->assertNotFalse( has_action( 'admin_post_dx_portal_save_settings' ), 'The other actions are still registered.' );
+		$this->assertFalse( has_action( 'admin_post_dx_portal_demo_case' ) );
+		$this->assertFalse( class_exists( 'Diromax\\Portal\\Service\\DemoCase' ) );
 	}
 
 	public function test_the_totals_count_active_cases_only(): void {

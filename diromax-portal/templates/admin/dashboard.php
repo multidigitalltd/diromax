@@ -85,9 +85,7 @@ $header    = array(
 			</ol>
 			<div class="dxa-welcome__actions">
 				<a class="dxa-btn dxa-btn--primary" href="<?php echo esc_url( Admin::page_url( Admin::PAGE_NEW ) ); ?>"><?php esc_html_e( 'פתיחת תיק ראשון', 'diromax-portal' ); ?></a>
-				<?php require __DIR__ . '/parts/demo-button.php'; ?>
 			</div>
-			<p class="dxa-muted"><?php esc_html_e( 'התיק לדוגמה מגיע מלא: תקציב, תנועות, דרישת תשלום באיחור, עדכונים והחלטה שממתינה ללקוח. אין בו לקוחות, ולכן לא יוצא ממנו שום מייל.', 'diromax-portal' ); ?></p>
 		</section>
 	<?php else : ?>
 		<?php $dash_totals = $view['totals']; ?>
@@ -541,14 +539,6 @@ $header    = array(
 				</ul>
 			<?php endif; ?>
 		</section>
-
-		<?php if ( $view['has_cases'] ) : ?>
-			<section class="dxa-card dxa-card--plain dxa-card--quiet" aria-labelledby="dxa-dash-demo">
-				<h2 id="dxa-dash-demo"><?php esc_html_e( 'תיק לדוגמה', 'diromax-portal' ); ?></h2>
-				<p><?php esc_html_e( 'תיק מלא לניסיון: תקציב, תנועות, דרישות תשלום, עדכונים והחלטה. בלי לקוחות ובלי מיילים.', 'diromax-portal' ); ?></p>
-				<?php require __DIR__ . '/parts/demo-button.php'; ?>
-			</section>
-		<?php endif; ?>
 	</aside>
 	</div>
 </div>
