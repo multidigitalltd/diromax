@@ -179,8 +179,8 @@ final class Actions {
 			'upload_photos'       => $this->upload_photos( $client_case, $input, $actor ),
 			'photo_visibility'    => $this->finish( $client_case, 'photos', ( new PhotoService( $this->app ) )->set_visible( $client_case, absint( $input['photo_id'] ), '1' === $input['visible'], $actor ), '1' === $input['visible'] ? __( 'הצילום מוצג ללקוח.', 'diromax-portal' ) : __( 'הצילום הוסתר מהלקוח.', 'diromax-portal' ) ),
 			'delete_photo'        => $this->finish( $client_case, 'photos', ( new PhotoService( $this->app ) )->delete( $client_case, absint( $input['photo_id'] ), $actor ), __( 'הצילום נמחק.', 'diromax-portal' ) ),
-			'add_meeting'         => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->create( $client_case, $input, self::participants(), $actor ), '1' === $input['notify'] ? __( 'הפגישה נקבעה, וההזמנות נשלחו.', 'diromax-portal' ) : __( 'הפגישה נקבעה.', 'diromax-portal' ), 'meeting', $input ),
-			'update_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->update( $client_case, absint( $input['meeting_id'] ), $input, self::participants(), $actor ), __( 'הפגישה עודכנה.', 'diromax-portal' ), 'meeting' . absint( $input['meeting_id'] ), $input ),
+			'add_meeting'         => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->create( $client_case, $input, self::participants(), $actor ), '1' === $input['notify'] ? __( 'הפגישה נקבעה, וההזמנות נשלחו.', 'diromax-portal' ) : __( 'הפגישה נקבעה.', 'diromax-portal' ), 'meeting', self::meeting_old( $input ) ),
+			'update_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->update( $client_case, absint( $input['meeting_id'] ), $input, self::participants(), $actor ), __( 'הפגישה עודכנה.', 'diromax-portal' ), 'meeting' . absint( $input['meeting_id'] ), self::meeting_old( $input ) ),
 			'cancel_meeting'      => $this->finish( $client_case, 'meetings', ( new MeetingService( $this->app ) )->cancel( $client_case, absint( $input['meeting_id'] ), '1' === $input['notify'], $actor ), __( 'הפגישה בוטלה.', 'diromax-portal' ) ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};
@@ -874,10 +874,22 @@ final class Actions {
 	}
 
 	/**
-	 * The clients ticked on a meeting form.
+	 * A meeting form's values to show again after an error, the ticked
+	 * clients included: losing them would uninvite everyone on the next
+	 * save (PR #16 review).
 	 *
-	 * @return int[]
+	 * @param array<string, string> $input Form fields.
+	 * @return array<string, string>
 	 */
+	private static function meeting_old( array $input ): array {
+		return $input + array( 'participants' => implode( ',', self::participants() ) );
+	}
+
+		/**
+		 * The clients ticked on a meeting form.
+		 *
+		 * @return int[]
+		 */
 	private static function participants(): array {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Called after check_admin_referer(); each value goes through absint() below.
 		$raw = isset( $_POST['participants'] ) && is_array( $_POST['participants'] ) ? wp_unslash( $_POST['participants'] ) : array();

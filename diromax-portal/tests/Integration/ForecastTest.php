@@ -76,6 +76,21 @@ final class ForecastTest extends PortalTestCase {
 		$this->assertSame( array( $case_a->id ), array_column( array_filter( $view['variance'], static fn( array $row ): bool => $row['over'] ), 'case_id' ), 'The case that spent over its budget.' );
 	}
 
+	public function test_every_request_is_read_whatever_the_page_size(): void {
+		$manager = $this->manager();
+		$case    = $this->case_for( $manager );
+
+		foreach ( array( '2026-12-01', '2026-11-10', '2027-01-01', '2026-11-25', '2026-11-30' ) as $index => $due ) {
+			$this->request( $case, $manager, $due, (string) ( 100 + $index ), 'diromax' );
+		}
+
+		$all = $this->app->dashboard->open_requests( 2 );
+
+		$this->assertCount( 5, $all, 'Pages of two, nothing left out.' );
+		$this->assertSame( array( '2026-11-10', '2026-11-25', '2026-11-30', '2026-12-01', '2027-01-01' ), array_column( $all, 'due_date' ) );
+		$this->assertSame( $all, $this->app->dashboard->open_requests() );
+	}
+
 	public function test_only_administrators_get_the_screen_and_the_csv(): void {
 		$manager = $this->manager();
 		$service = new ForecastService( $this->app );

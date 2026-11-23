@@ -231,6 +231,34 @@ final class MeetingsTest extends PortalTestCase {
 		$this->assertSame( 'dx_not_found', ( $service->update( $other, $id, self::form(), array(), $manager ) )->get_error_code(), 'A meeting is changed only through its own case.' );
 	}
 
+	public function test_after_an_error_the_ticked_clients_stay_ticked(): void {
+		[ $case, $manager, $owner, $partner, $quiet ] = $this->family();
+		wp_set_current_user( $manager );
+		$service = new MeetingService( $this->app );
+		$id      = $service->create( $case, self::form(), array( $owner, $partner ), $manager );
+		$this->assertIsInt( $id );
+
+		// The edit form came back with an error, after only the partner and the quiet viewer were ticked.
+		$view          = ( new Pages( $this->app ) )->case_data( $case, $manager, 'meetings' );
+		$view['flash'] = array(
+			'type'    => 'error',
+			'message' => 'x',
+			'fields'  => array( 'date' => 'past' ),
+			'old'     => self::form( array( 'participants' => $partner . ',' . $quiet ) ),
+			'form'    => 'meeting' . $id,
+		);
+		$case          = $view['case'];
+		ob_start();
+		include DX_PORTAL_DIR . 'templates/admin/tabs/meetings.php';
+		$html = (string) ob_get_clean();
+
+		$edit = substr( $html, (int) strpos( $html, 'id="form-meeting' . $id . '"' ) );
+		$this->assertMatchesRegularExpression( '/value="' . $partner . '" checked/', $edit );
+		$this->assertMatchesRegularExpression( '/value="' . $quiet . '" checked/', $edit );
+		$this->assertDoesNotMatchRegularExpression( '/value="' . $owner . '" checked/', $edit, 'As sent, not as saved.' );
+		$this->assertStringContainsString( 'open', substr( $edit, 0, 120 ), 'The form with the error is open.' );
+	}
+
 	public function test_staff_see_the_coming_meetings_and_the_case_deletion_takes_them(): void {
 		global $wpdb;
 

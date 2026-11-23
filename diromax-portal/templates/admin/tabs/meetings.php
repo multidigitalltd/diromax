@@ -26,8 +26,11 @@ $earlier  = array_values( array_filter( $meetings, static fn( array $meeting ): 
  * @param array<string, mixed>|null $meeting Meeting being edited.
  */
 $dx_meeting_fields = static function ( Form $form, ?array $meeting ) use ( $view, $people ): void {
-	$value   = static fn( string $field, string $fallback ): string => $form->old( $field, $fallback );
-	$invited = $form->failed() ? array() : array_map( 'intval', (array) ( $meeting['participants'] ?? array_keys( array_filter( $people, static fn( array $person ): bool => $person['emails'] ) ) ) );
+	$value = static fn( string $field, string $fallback ): string => $form->old( $field, $fallback );
+	// After an error, the clients ticked when it was sent; else the meeting's, or everyone who gets email.
+	$invited = $form->failed()
+		? array_map( 'intval', array_filter( explode( ',', $form->old( 'participants' ) ) ) )
+		: array_map( 'intval', (array) ( $meeting['participants'] ?? array_keys( array_filter( $people, static fn( array $person ): bool => $person['emails'] ) ) ) );
 	?>
 	<p class="dxa-field dxa-field--wide">
 		<label for="<?php echo esc_attr( $form->id( 'title' ) ); ?>"><?php esc_html_e( 'נושא', 'diromax-portal' ); ?></label>
