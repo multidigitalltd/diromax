@@ -456,6 +456,23 @@
   .dxa-gantt__row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 
+/* Site visits and findings (spec 23) */
+.dxa-visit-counts { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0 0 16px; padding: 0; list-style: none; font-weight: 600; }
+.dxa-visit { margin: 0 0 20px; }
+.dxa-visit > h2 { margin-top: 0; }
+.dxa-visit__summary { padding: 8px 12px; background: var(--a-bg); }
+.dxa-findings { margin: 12px 0; padding: 0; list-style: none; border-top: 1px solid var(--a-line-soft); }
+.dxa-finding { margin: 0; padding: 12px 0 12px; border-bottom: 1px solid var(--a-line-soft); border-inline-start: 4px solid var(--a-orange); padding-inline-start: 12px; }
+.dxa-finding--low { border-inline-start-color: var(--a-line); }
+.dxa-finding--high { border-inline-start-color: var(--a-red); }
+.dxa-finding--fixed { border-inline-start-color: var(--a-teal-deep); }
+.dxa-finding__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.dxa-finding__head h3 { margin: 0; font-size: 15px; }
+.dxa-finding--fixed .dxa-finding__head h3 { color: var(--a-muted); }
+.dxa-finding__photos { display: flex; flex-wrap: wrap; gap: 8px; }
+.dxa-finding__photos img { display: block; width: 120px; height: 90px; object-fit: cover; border: 1px solid var(--a-line); }
+.dxa-finding .dxa-box { margin: 8px 0; }
+
 /* ---------- Small screens and motion ---------- */
 @media (max-width: 1180px) {
   .dxa-dash-grid { grid-template-columns: minmax(0, 1fr); }

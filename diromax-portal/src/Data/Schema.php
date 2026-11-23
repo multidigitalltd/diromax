@@ -23,13 +23,13 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '10';
+	public const VERSION = '11';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
 
 	/** Every table, without prefix. */
-	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages', 'photos', 'meetings', 'meeting_people', 'plan', 'schedule' );
+	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages', 'photos', 'meetings', 'meeting_people', 'plan', 'schedule', 'visits', 'findings' );
 
 	/**
 	 * Full table name.
@@ -120,6 +120,8 @@ final class Schema {
 		$people  = self::table( 'meeting_people' );
 		$plan    = self::table( 'plan' );
 		$sched   = self::table( 'schedule' );
+		$visits  = self::table( 'visits' );
+		$finds   = self::table( 'findings' );
 
 		return array(
 			"CREATE TABLE {$cases} (
@@ -529,6 +531,42 @@ final class Schema {
   PRIMARY KEY  (id),
   KEY case_kind (case_id,kind,stage)
 ) {$c};",
+			"CREATE TABLE {$visits} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  visit_on date NOT NULL,
+  attendees varchar(300) NOT NULL DEFAULT '',
+  summary text NOT NULL,
+  visible tinyint(1) NOT NULL DEFAULT 1,
+  created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY case_date (case_id,visit_on)
+) {$c};",
+			"CREATE TABLE {$finds} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  visit_id bigint(20) unsigned DEFAULT NULL,
+  title varchar(160) NOT NULL,
+  location varchar(120) NOT NULL DEFAULT '',
+  severity varchar(10) NOT NULL DEFAULT 'medium',
+  supplier varchar(120) NOT NULL DEFAULT '',
+  due_on date DEFAULT NULL,
+  status varchar(10) NOT NULL DEFAULT 'open',
+  fixed_on date DEFAULT NULL,
+  fix_note varchar(300) NOT NULL DEFAULT '',
+  visible tinyint(1) NOT NULL DEFAULT 1,
+  photo_id bigint(20) unsigned DEFAULT NULL,
+  after_photo_id bigint(20) unsigned DEFAULT NULL,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY case_status (case_id,status,due_on),
+  KEY visit_id (visit_id),
+  KEY photo_id (photo_id),
+  KEY after_photo_id (after_photo_id)
+) {$c};",
 		);
 	}
 
@@ -580,6 +618,11 @@ final class Schema {
 			'dx_plan_case'      => array( 'plan', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_plan_request'   => array( 'plan', 'FOREIGN KEY (request_id) REFERENCES ' . self::table( 'ledger' ) . ' (id) ON DELETE SET NULL' ),
 			'dx_schedule_case'  => array( 'schedule', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_visits_case'    => array( 'visits', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_findings_case'  => array( 'findings', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_findings_visit' => array( 'findings', 'FOREIGN KEY (visit_id) REFERENCES ' . self::table( 'visits' ) . ' (id) ON DELETE CASCADE' ),
+			'dx_findings_photo' => array( 'findings', 'FOREIGN KEY (photo_id) REFERENCES ' . self::table( 'photos' ) . ' (id) ON DELETE SET NULL' ),
+			'dx_findings_after' => array( 'findings', 'FOREIGN KEY (after_photo_id) REFERENCES ' . self::table( 'photos' ) . ' (id) ON DELETE SET NULL' ),
 		);
 	}
 

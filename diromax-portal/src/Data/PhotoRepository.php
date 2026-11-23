@@ -62,6 +62,39 @@ final class PhotoRepository {
 	}
 
 	/**
+	 * Photos of a case by ID, in one query.
+	 *
+	 * @param int   $case_id Case.
+	 * @param int[] $ids     Photos.
+	 * @return array<int, PhotoRow> ID => photo; photos of other cases are left out.
+	 */
+	public function find_many( int $case_id, array $ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+
+		if ( array() === $ids ) {
+			return array();
+		}
+
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE case_id = %d AND id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')',
+				Schema::table( 'photos' ),
+				$case_id,
+				...$ids
+			),
+			ARRAY_A
+		);
+		$map  = array();
+
+		foreach ( (array) $rows as $row ) {
+			$photo               = self::map( $row );
+			$map[ $photo['id'] ] = $photo;
+		}
+
+		return $map;
+	}
+
+	/**
 	 * One photo by its public ID.
 	 *
 	 * @param string $public_id Public ID.

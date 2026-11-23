@@ -265,6 +265,14 @@ final class Labels {
 			'schedule.milestone_done'     => __( 'אבן דרך הושגה', 'diromax-portal' ),
 			'schedule.milestone_reopened' => __( 'אבן דרך חזרה לפתוחות', 'diromax-portal' ),
 			'schedule.milestone_deleted'  => __( 'נמחקה אבן דרך', 'diromax-portal' ),
+			'visit.added'                 => __( 'נרשם ביקור באתר', 'diromax-portal' ),
+			'visit.updated'               => __( 'עודכן ביקור באתר', 'diromax-portal' ),
+			'visit.deleted'               => __( 'נמחק ביקור באתר', 'diromax-portal' ),
+			'finding.added'               => __( 'נרשם ממצא', 'diromax-portal' ),
+			'finding.updated'             => __( 'עודכן ממצא', 'diromax-portal' ),
+			'finding.fixed'               => __( 'ממצא סומן כתוקן', 'diromax-portal' ),
+			'finding.reopened'            => __( 'ממצא נפתח מחדש', 'diromax-portal' ),
+			'finding.deleted'             => __( 'נמחק ממצא', 'diromax-portal' ),
 		);
 	}
 

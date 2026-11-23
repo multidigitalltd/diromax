@@ -32,6 +32,7 @@ use Diromax\Portal\Data\SignRequestRepository;
 use Diromax\Portal\Data\TaskRepository;
 use Diromax\Portal\Data\TokenRepository;
 use Diromax\Portal\Data\UpdateRepository;
+use Diromax\Portal\Data\VisitRepository;
 use Diromax\Portal\Security\AccessPolicy;
 use Diromax\Portal\Security\Capabilities;
 use Diromax\Portal\Security\DocumentStore;
@@ -196,6 +197,13 @@ final class Plugin {
 	 * @var ScheduleRepository
 	 */
 	public readonly ScheduleRepository $schedule;
+
+	/**
+	 * Site visits and findings.
+	 *
+	 * @var VisitRepository
+	 */
+	public readonly VisitRepository $visits;
 	/**
 	 * Team tasks.
 	 *
@@ -295,6 +303,7 @@ final class Plugin {
 		$this->meetings         = new MeetingRepository( $wpdb );
 		$this->plan             = new PlanRepository( $wpdb );
 		$this->schedule         = new ScheduleRepository( $wpdb );
+		$this->visits           = new VisitRepository( $wpdb );
 		$this->policy           = new AccessPolicy( $this->members, $clock );
 		$this->store            = new DocumentStore();
 		$this->limiter          = new RateLimiter( $clock );
