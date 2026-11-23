@@ -24,6 +24,7 @@ use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PhotoService;
 use Diromax\Portal\Service\PlanService;
+use Diromax\Portal\Service\QuoteService;
 use Diromax\Portal\Service\Postmark;
 use Diromax\Portal\Service\ReminderService;
 use Diromax\Portal\Service\ScheduleService;
@@ -106,6 +107,12 @@ final class Actions {
 		'fix_finding'         => array( array( 'finding_id', 'fix_note' ), array() ),
 		'reopen_finding'      => array( array( 'finding_id' ), array() ),
 		'delete_finding'      => array( array( 'finding_id' ), array() ),
+		'create_quote'        => array( array( 'title', 'category', 'due_on' ), array( 'note' ) ),
+		'add_offer'           => array( array( 'comparison_id', 'supplier', 'amount', 'duration', 'note', 'recommended' ), array() ),
+		'delete_offer'        => array( array( 'offer_id' ), array() ),
+		'send_quote'          => array( array( 'comparison_id', 'notify' ), array() ),
+		'withdraw_quote'      => array( array( 'comparison_id' ), array() ),
+		'commit_quote'        => array( array( 'comparison_id', 'funding' ), array() ),
 	);
 
 	/** Transient prefix holding a new webhook key until the next page shows it. */
@@ -222,6 +229,12 @@ final class Actions {
 			'fix_finding'         => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->fix( $client_case, absint( $input['finding_id'] ), $input['fix_note'], self::file( 'after_photo' ), $actor ), __( 'הממצא סומן כתוקן.', 'diromax-portal' ), 'fix' . absint( $input['finding_id'] ), $input ),
 			'reopen_finding'      => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->reopen( $client_case, absint( $input['finding_id'] ), $actor ), __( 'הממצא נפתח מחדש.', 'diromax-portal' ) ),
 			'delete_finding'      => $this->finish( $client_case, 'visits', ( new VisitService( $this->app ) )->delete_finding( $client_case, absint( $input['finding_id'] ), $actor ), __( 'הממצא נמחק.', 'diromax-portal' ) ),
+			'create_quote'        => $this->finish( $client_case, 'quotes', ( new QuoteService( $this->app ) )->create( $client_case, $input, $actor ), __( 'ההשוואה נוצרה. עכשיו מוסיפים את ההצעות.', 'diromax-portal' ), 'quote', $input ),
+			'add_offer'           => $this->finish( $client_case, 'quotes', ( new QuoteService( $this->app ) )->add_offer( $client_case, absint( $input['comparison_id'] ), $input, self::file( 'quote_file' ), $actor ), __( 'ההצעה נוספה.', 'diromax-portal' ), 'offer' . absint( $input['comparison_id'] ), $input ),
+			'delete_offer'        => $this->finish( $client_case, 'quotes', ( new QuoteService( $this->app ) )->delete_offer( $client_case, absint( $input['offer_id'] ), $actor ), __( 'ההצעה הוסרה.', 'diromax-portal' ) ),
+			'send_quote'          => $this->finish( $client_case, 'quotes', ( new QuoteService( $this->app ) )->send( $client_case, absint( $input['comparison_id'] ), '1' === $input['notify'], $actor ), '1' === $input['notify'] ? __( 'ההשוואה נשלחה ללקוח לבחירה, במייל ובאזור האישי.', 'diromax-portal' ) : __( 'ההשוואה מוצגת ללקוח לבחירה באזור האישי.', 'diromax-portal' ), 'send' . absint( $input['comparison_id'] ), $input ),
+			'withdraw_quote'      => $this->finish( $client_case, 'quotes', ( new QuoteService( $this->app ) )->withdraw( $client_case, absint( $input['comparison_id'] ), $actor ), __( 'ההשוואה בוטלה.', 'diromax-portal' ) ),
+			'commit_quote'        => $this->finish( $client_case, 'quotes', ( new QuoteService( $this->app ) )->commit( $client_case, absint( $input['comparison_id'] ), $input['funding'], $actor ), __( 'ההצעה שנבחרה נרשמה בכספים כהתחייבות.', 'diromax-portal' ), 'commit' . absint( $input['comparison_id'] ), $input ),
 			'milestone_done'      => $this->finish( $client_case, 'schedule', ( new ScheduleService( $this->app ) )->set_done( $client_case, absint( $input['milestone_id'] ), '1' === $input['done'], $actor ), '1' === $input['done'] ? __( 'אבן הדרך סומנה כהושגה.', 'diromax-portal' ) : __( 'אבן הדרך חזרה לפתוחות.', 'diromax-portal' ) ),
 			default               => wp_die( esc_html__( 'פעולה לא מוכרת.', 'diromax-portal' ), '', array( 'response' => 400 ) ),
 		};

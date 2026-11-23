@@ -63,6 +63,9 @@ final class Messages {
 			'label:too_many'        => __( 'הגעתם למספר אבני הדרך המרבי בתיק (60).', 'diromax-portal' ),
 			'visit_on:future'       => __( 'תאריך הביקור לא יכול להיות בעתיד.', 'diromax-portal' ),
 			'photo:type'            => __( 'הצילום לא התקבל: צריך JPG, PNG או WEBP עד 20MB.', 'diromax-portal' ),
+			'send:too_few'          => __( 'כדי לשלוח ללקוח צריך לפחות שתי הצעות.', 'diromax-portal' ),
+			'supplier:too_many'     => __( 'הגעתם למספר ההצעות המרבי בהשוואה (6).', 'diromax-portal' ),
+			'category:required'     => __( 'כדי לרשום התחייבות, ההשוואה צריכה סעיף בתקציב.', 'diromax-portal' ),
 		);
 
 		if ( isset( $specific[ $field . ':' . $code ] ) ) {

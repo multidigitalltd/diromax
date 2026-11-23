@@ -89,6 +89,39 @@ final class DocumentRepository {
 	}
 
 	/**
+	 * Documents of a case by ID, in one query.
+	 *
+	 * @param int   $case_id Case.
+	 * @param int[] $ids     Documents.
+	 * @return array<int, DocumentRecord> ID => document; documents of other cases are left out.
+	 */
+	public function find_many( int $case_id, array $ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+
+		if ( array() === $ids ) {
+			return array();
+		}
+
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE case_id = %d AND id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')',
+				Schema::table( 'documents' ),
+				$case_id,
+				...$ids
+			),
+			ARRAY_A
+		);
+		$map  = array();
+
+		foreach ( (array) $rows as $row ) {
+			$document             = DocumentRecord::from_row( $row );
+			$map[ $document->id ] = $document;
+		}
+
+		return $map;
+	}
+
+	/**
 	 * Document by public identifier.
 	 *
 	 * @param string $public_id Public ID.

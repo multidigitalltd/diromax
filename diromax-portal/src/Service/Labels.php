@@ -273,6 +273,13 @@ final class Labels {
 			'finding.fixed'               => __( 'ממצא סומן כתוקן', 'diromax-portal' ),
 			'finding.reopened'            => __( 'ממצא נפתח מחדש', 'diromax-portal' ),
 			'finding.deleted'             => __( 'נמחק ממצא', 'diromax-portal' ),
+			'quote.created'               => __( 'נפתחה השוואת הצעות מחיר', 'diromax-portal' ),
+			'quote.offer_added'           => __( 'נוספה הצעת מחיר', 'diromax-portal' ),
+			'quote.offer_deleted'         => __( 'הוסרה הצעת מחיר', 'diromax-portal' ),
+			'quote.sent'                  => __( 'הצעות המחיר נשלחו ללקוח לבחירה', 'diromax-portal' ),
+			'quote.withdrawn'             => __( 'השוואת הצעות בוטלה', 'diromax-portal' ),
+			'quote.chosen'                => __( 'הלקוח בחר הצעת מחיר', 'diromax-portal' ),
+			'quote.committed'             => __( 'ההצעה שנבחרה נרשמה כהתחייבות', 'diromax-portal' ),
 		);
 	}
 
