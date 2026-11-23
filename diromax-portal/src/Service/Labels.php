@@ -250,6 +250,14 @@ final class Labels {
 			'signature.code_sent'     => __( 'נשלח קוד חתימה', 'diromax-portal' ),
 			'signature.signed'        => __( 'מסמך נחתם', 'diromax-portal' ),
 			'signature.viewed'        => __( 'נפתח אישור חתימה', 'diromax-portal' ),
+			'plan.added'              => __( 'נוסף תשלום לתוכנית', 'diromax-portal' ),
+			'plan.updated'            => __( 'עודכן תשלום בתוכנית', 'diromax-portal' ),
+			'plan.deleted'            => __( 'נמחק תשלום מהתוכנית', 'diromax-portal' ),
+			'plan.base'               => __( 'השתנה הבסיס של תוכנית התשלומים', 'diromax-portal' ),
+			'plan.drafted'            => __( 'נוצרה טיוטה של דרישת תשלום', 'diromax-portal' ),
+			'plan.sent'               => __( 'טיוטה אושרה ונשלחה כדרישת תשלום', 'diromax-portal' ),
+			'plan.reopened'           => __( 'טיוטה חזרה לתוכנית', 'diromax-portal' ),
+			'plan.cancelled'          => __( 'בוטל תשלום בתוכנית', 'diromax-portal' ),
 		);
 	}
 

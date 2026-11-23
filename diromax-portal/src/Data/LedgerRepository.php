@@ -172,6 +172,39 @@ final class LedgerRepository {
 	}
 
 	/**
+	 * Entries of a case by ID, in one query.
+	 *
+	 * @param int   $case_id Case.
+	 * @param int[] $ids     Entries.
+	 * @return array<int, LedgerRow> ID => row; entries of other cases are left out.
+	 */
+	public function find_many( int $case_id, array $ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+
+		if ( array() === $ids ) {
+			return array();
+		}
+
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE case_id = %d AND id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')',
+				Schema::table( 'ledger' ),
+				$case_id,
+				...$ids
+			),
+			ARRAY_A
+		);
+		$map  = array();
+
+		foreach ( (array) $rows as $row ) {
+			$entry                    = LedgerRow::from_row( $row );
+			$map[ $entry->entry->id ] = $entry;
+		}
+
+		return $map;
+	}
+
+	/**
 	 * Every entry of a case, newest first.
 	 *
 	 * @param int  $case_id      Case.

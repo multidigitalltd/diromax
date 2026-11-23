@@ -108,6 +108,25 @@ $entries = $view['entries'];
 		</div>
 	<?php endif; ?>
 
+	<?php if ( array() !== $view['plan'] ) : ?>
+		<div class="dxp-plan">
+			<h2 id="dxp-plan-title"><?php esc_html_e( 'תוכנית התשלומים', 'diromax-portal' ); ?></h2>
+			<ol class="dxp-plan__list" aria-labelledby="dxp-plan-title">
+				<?php foreach ( $view['plan'] as $payment ) : ?>
+					<li class="dxp-plan__item dxp-plan__item--<?php echo esc_attr( $payment['state'] ); ?>">
+						<span class="dxp-plan__what">
+							<b><?php echo esc_html( $payment['label'] ); ?></b>
+							<span class="dxp-plan__when"><?php echo esc_html( $payment['when'] ); ?></span>
+						</span>
+						<span class="dxp-num"><?php echo esc_html( $payment['amount'] ); ?></span>
+						<span class="dxp-plan__state"><?php echo esc_html( $payment['state_label'] ); ?></span>
+					</li>
+				<?php endforeach; ?>
+			</ol>
+			<p class="dxp-legend"><?php esc_html_e( 'התשלומים שסוכמו. כשמגיע הזמן של תשלום, נשלחת אליכם דרישת תשלום עם הסכום והמועד, והיא מופיעה גם בטבלה למעלה.', 'diromax-portal' ); ?></p>
+		</div>
+	<?php endif; ?>
+
 	<div class="dxp-split">
 		<?php if ( array() !== $view['categories'] ) : ?>
 			<?php

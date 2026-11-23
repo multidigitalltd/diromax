@@ -23,13 +23,13 @@ defined( 'ABSPATH' ) || exit;
 final class Schema {
 
 	/** Schema version; bump it with every change below. */
-	public const VERSION = '8';
+	public const VERSION = '9';
 
 	/** Option holding the installed schema version. */
 	public const OPTION = 'dx_portal_db_version';
 
 	/** Every table, without prefix. */
-	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages', 'photos', 'meetings', 'meeting_people' );
+	public const TABLES = array( 'cases', 'case_members', 'ledger', 'budget', 'updates', 'documents', 'audit', 'events', 'mail_log', 'login_tokens', 'decisions', 'acknowledgements', 'tasks', 'doc_requests', 'sign_requests', 'signatures', 'messages', 'photos', 'meetings', 'meeting_people', 'plan' );
 
 	/**
 	 * Full table name.
@@ -118,6 +118,7 @@ final class Schema {
 		$photos  = self::table( 'photos' );
 		$meets   = self::table( 'meetings' );
 		$people  = self::table( 'meeting_people' );
+		$plan    = self::table( 'plan' );
 
 		return array(
 			"CREATE TABLE {$cases} (
@@ -139,6 +140,7 @@ final class Schema {
   updated_at datetime NOT NULL,
   closed_at datetime DEFAULT NULL,
   lead_id bigint(20) unsigned DEFAULT NULL,
+  plan_base bigint(20) NOT NULL DEFAULT 0,
   PRIMARY KEY  (id),
   UNIQUE KEY public_id (public_id),
   UNIQUE KEY number (number),
@@ -482,6 +484,32 @@ final class Schema {
   PRIMARY KEY  (meeting_id,user_id),
   KEY user_id (user_id)
 ) {$c};",
+			"CREATE TABLE {$plan} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  case_id bigint(20) unsigned NOT NULL,
+  sort smallint(5) unsigned NOT NULL DEFAULT 0,
+  label varchar(120) NOT NULL,
+  trigger_on varchar(10) NOT NULL DEFAULT 'manual',
+  stage tinyint(3) unsigned NOT NULL DEFAULT 0,
+  trigger_date date DEFAULT NULL,
+  kind varchar(10) NOT NULL DEFAULT 'percent',
+  amount bigint(20) NOT NULL DEFAULT 0,
+  percent int(10) unsigned NOT NULL DEFAULT 0,
+  pay_to varchar(20) NOT NULL DEFAULT 'diromax',
+  payee varchar(120) NOT NULL DEFAULT '',
+  days smallint(5) unsigned NOT NULL DEFAULT 14,
+  status varchar(20) NOT NULL DEFAULT 'planned',
+  draft_amount bigint(20) NOT NULL DEFAULT 0,
+  draft_due date DEFAULT NULL,
+  request_id bigint(20) unsigned DEFAULT NULL,
+  triggered_at datetime DEFAULT NULL,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY case_sort (case_id,sort),
+  KEY status_trigger (status,trigger_on,trigger_date),
+  KEY request_id (request_id)
+) {$c};",
 		);
 	}
 
@@ -530,6 +558,8 @@ final class Schema {
 			'dx_meets_case'     => array( 'meetings', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
 			'dx_people_meet'    => array( 'meeting_people', 'FOREIGN KEY (meeting_id) REFERENCES ' . self::table( 'meetings' ) . ' (id) ON DELETE CASCADE' ),
 			'dx_people_user'    => array( 'meeting_people', "FOREIGN KEY (user_id) REFERENCES {$users} (ID) ON DELETE CASCADE" ),
+			'dx_plan_case'      => array( 'plan', "FOREIGN KEY (case_id) REFERENCES {$cases} (id) ON DELETE CASCADE" ),
+			'dx_plan_request'   => array( 'plan', 'FOREIGN KEY (request_id) REFERENCES ' . self::table( 'ledger' ) . ' (id) ON DELETE SET NULL' ),
 		);
 	}
 

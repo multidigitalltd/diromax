@@ -86,7 +86,7 @@ async function signIn(page, user, pass, redirect) {
   await page.click('a.row-title');
   await page.waitForLoadState('load');
   const caseUrl = page.url().split('?')[0];
-  check('case screen in the app, with stages and tabs', /\/portal\/manage\/case\/\d+\/$/.test(caseUrl) && (await page.locator('.dxa-step').count()) === 7 && (await page.locator('.dxa-tabs .nav-tab').count()) === 13, caseUrl);
+  check('case screen in the app, with stages and tabs', /\/portal\/manage\/case\/\d+\/$/.test(caseUrl) && (await page.locator('.dxa-step').count()) === 7 && (await page.locator('.dxa-tabs .nav-tab').count()) === 14, caseUrl);
   await axe(page, 'app case overview');
 
   await page.click('.dxa-head__actions a:has-text("+ תנועה")');

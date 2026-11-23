@@ -27,6 +27,7 @@ use Diromax\Portal\Service\Labels;
 use Diromax\Portal\Service\MeetingService;
 use Diromax\Portal\Service\MessageService;
 use Diromax\Portal\Service\PhotoService;
+use Diromax\Portal\Service\PlanService;
 use Diromax\Portal\Service\SignatureService;
 use Diromax\Portal\Service\Stages;
 use Diromax\Portal\Settings;
@@ -83,6 +84,7 @@ final class CaseView {
 		$budget     = self::categories( $summary, $tree );
 		$signatures = new SignatureService( $this->app );
 		$signer     = $signatures->may_sign( $client_case, $viewer );
+		$active     = in_array( $tab, Router::CASE_TABS, true ) ? $tab : 'finance';
 
 		return array(
 			'case'       => array(
@@ -136,8 +138,10 @@ final class CaseView {
 			'photos'     => ( new PhotoService( $this->app ) )->journal( $client_case, true ),
 			'messages'   => ( new MessageService( $this->app ) )->thread( $client_case, $viewer, false ),
 			'meetings'   => ( new MeetingService( $this->app ) )->for_client( $client_case, $viewer ),
+			// Only the finance tab shows the plan.
+			'plan'       => 'finance' === $active ? ( new PlanService( $this->app ) )->for_client( $client_case ) : array(),
 			'can_write'  => MessageService::may_write( $this->app->members->role( $client_case->id, $viewer ) ) && CaseStatus::Closed !== $client_case->status,
-			'tab'        => in_array( $tab, Router::CASE_TABS, true ) ? $tab : 'finance',
+			'tab'        => $active,
 			'filters'    => array(
 				'types'      => Labels::types(),
 				'categories' => self::filter_sections( $budget, $rows, $tree ),

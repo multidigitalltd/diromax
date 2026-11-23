@@ -38,6 +38,15 @@ final class Errors {
 	}
 
 	/**
+	 * The case is closed: it can be read, not changed.
+	 *
+	 * @return WP_Error
+	 */
+	public static function closed(): WP_Error {
+		return new WP_Error( 'dx_closed', __( 'התיק סגור, ואי אפשר לשנות אותו.', 'diromax-portal' ), array( 'status' => 409 ) );
+	}
+
+	/**
 	 * Validation failed.
 	 *
 	 * @param array<string, string> $fields Field => error code.

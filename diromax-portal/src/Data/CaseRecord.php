@@ -38,6 +38,7 @@ final readonly class CaseRecord {
 	 * @param string                                                                                   $created_at    UTC.
 	 * @param string|null                                                                              $closed_at     UTC.
 	 * @param int|null                                                                                 $lead_id       Lead (theme dx_lead post) the case was opened from.
+	 * @param int                                                                                      $plan_base     Base of the payment plan's shares, agorot; 0 for the budget's total.
 	 */
 	public function __construct(
 		public int $id,
@@ -57,6 +58,7 @@ final readonly class CaseRecord {
 		public string $created_at,
 		public ?string $closed_at,
 		public ?int $lead_id = null,
+		public int $plan_base = 0,
 	) {}
 
 	/**
@@ -87,6 +89,7 @@ final readonly class CaseRecord {
 			created_at: (string) $row['created_at'],
 			closed_at: $row['closed_at'] ?? null,
 			lead_id: isset( $row['lead_id'] ) ? (int) $row['lead_id'] : null,
+			plan_base: (int) ( $row['plan_base'] ?? 0 ),
 		);
 	}
 

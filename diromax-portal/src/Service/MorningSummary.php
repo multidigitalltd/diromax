@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace Diromax\Portal\Service;
 
+use Diromax\Portal\Domain\Money;
 use Diromax\Portal\Domain\StageProgress;
 use Diromax\Portal\Plugin;
 use Diromax\Portal\Portal\Router;
@@ -148,6 +149,29 @@ final class MorningSummary {
 						$row['case_title'] . ' · ' . Labels::meeting_when( $row['meeting']['starts_at'], $row['meeting']['minutes'] ),
 					),
 					array_slice( $meetings, 0, 30 )
+				),
+				amount: null,
+				note: '',
+				stage: null,
+				link: null,
+				subject: '',
+			);
+		}
+
+		$drafts = $this->app->plan->drafts( $all ? null : $user_id );
+
+		if ( array() !== $drafts ) {
+			$cards[] = new MailCard(
+				tone: 'orange',
+				badge: __( 'תוכנית תשלומים', 'diromax-portal' ),
+				/* translators: %d: number of drafts. */
+				title: sprintf( _n( 'דרישת תשלום %d מחכה לאישור שלך', '%d דרישות תשלום מחכות לאישור שלך', count( $drafts ), 'diromax-portal' ), count( $drafts ) ),
+				rows: array_map(
+					static fn( array $row ): array => array(
+						$row['payment']['label'],
+						$row['case_title'] . ' · ' . Money::format( $row['payment']['draft_amount'] ),
+					),
+					array_slice( $drafts, 0, 30 )
 				),
 				amount: null,
 				note: '',

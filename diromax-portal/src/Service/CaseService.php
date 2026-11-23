@@ -90,6 +90,8 @@ final class CaseService {
 
 		// Every case starts from the office's default budget (spec 19.2).
 		$this->app->budget->seed( $client_case->id, Settings::budget_template() );
+		// …and from its payment plan template (spec 21.5).
+		( new PlanService( $this->app ) )->seed( $client_case );
 
 		$this->app->audit->record(
 			'case.created',
@@ -625,6 +627,11 @@ final class CaseService {
 		}
 
 		$this->app->audit->record( $action, $client_case->id, 'case', $client_case->id, Errors::diff( $client_case, $after, array_keys( $fields ) ), $now );
+
+		// A stage just done brings its payments due (spec 21.3).
+		if ( array_key_exists( 'stages', $fields ) ) {
+			( new PlanService( $this->app ) )->on_stage_change( $client_case, $after );
+		}
 
 		return $after;
 	}

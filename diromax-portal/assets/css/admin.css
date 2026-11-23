@@ -407,6 +407,24 @@
 .dxa-meetings--past li:first-child { border-top: 0; }
 .dxa-tag-cancelled { display: inline-block; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--a-ink); background: var(--a-line-soft); }
 
+/* Payment plan (spec 21) */
+.dxa-plan-sum__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 32px; margin: 0 0 8px; }
+.dxa-plan-sum__list dt { font-size: 13px; color: var(--a-muted); }
+.dxa-plan-sum__list dd { margin: 2px 0 0; font-size: 15px; }
+.dxa-plan-sum__list strong { font-family: var(--a-font-num); font-size: 20px; color: var(--a-ink); }
+.dxa-plan-drafts { margin: 0 0 24px; padding: 0; list-style: none; display: grid; gap: 12px; }
+.dxa-plan-draft { margin: 0; border-inline-start: 4px solid var(--a-orange); background: var(--a-orange-tint); }
+.dxa-plan-draft h3 { margin: 0 0 4px; font-size: 16px; }
+.dxa-inline-group { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.dxa-plan__actions .dxa-box { margin: 0 0 8px; }
+.dxa-plan__actions .dxa-inline { display: inline-block; margin: 0 0 4px; }
+.dxa-plan-state { display: inline-block; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--a-ink); background: var(--a-line-soft); }
+.dxa-plan-state--draft { background: var(--a-orange-tint); color: var(--a-orange-text); box-shadow: inset 0 0 0 1px var(--a-orange); }
+.dxa-plan-state--sent { background: var(--a-blue-tint); color: var(--a-blue); box-shadow: inset 0 0 0 1px var(--a-blue); }
+.dxa-plan-state--paid { background: var(--a-teal-deep); color: var(--a-white); }
+.dxa-plan-template input[type="text"] { width: 100%; min-width: 9em; }
+.dxa-plan-template td { vertical-align: middle; }
+
 /* ---------- Small screens and motion ---------- */
 @media (max-width: 1180px) {
   .dxa-dash-grid { grid-template-columns: minmax(0, 1fr); }
