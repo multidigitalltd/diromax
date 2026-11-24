@@ -148,16 +148,17 @@ function dx_customize_register( $wp_customize ) {
 		)
 	);
 
+	// Setting => [label, default]. The before/after section is off by default (theme 2.2.4).
 	$toggles = array(
-		'dx_sticky_bar'    => __( 'סרגל קשר קבוע בתחתית המסך', 'diromax' ),
-		'dx_show_projects' => __( 'הצגת מקטע "לפני ואחרי"', 'diromax' ),
+		'dx_sticky_bar'    => array( __( 'סרגל קשר קבוע בתחתית המסך', 'diromax' ), '1' ),
+		'dx_show_projects' => array( __( 'הצגת מקטע "לפני ואחרי" בדף הבית', 'diromax' ), '' ),
 	);
 
-	foreach ( $toggles as $id => $label ) {
+	foreach ( $toggles as $id => list( $label, $default ) ) {
 		$wp_customize->add_setting(
 			$id,
 			array(
-				'default'           => '1',
+				'default'           => $default,
 				'sanitize_callback' => 'dx_sanitize_bool',
 			)
 		);

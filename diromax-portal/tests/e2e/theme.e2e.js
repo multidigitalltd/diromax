@@ -40,6 +40,8 @@ async function axe(page, label) {
   const org = (await page.$$eval('script[type="application/ld+json"]', (scripts) => scripts.map(s => JSON.parse(s.textContent)))).flatMap(d => d['@graph'] || [d]).find(n => n['@type'] === 'RealEstateAgent');
   check('the business description for search engines and the footer tagline leave out "תיווך"', !!org && org.description === 'יזמות וניהול השבחת נכסים.' && !(await page.textContent('.dx-footer')).includes('תיווך, יזמות'), org ? org.description : 'no RealEstateAgent');
 
+  check('the home page has no before/after section, and the FAQ teaser is section 07', (await page.locator('.dx-projects, #dx-s07').count()) === 0 && (await page.locator('section[aria-labelledby="dx-s08"] .dx-kicker__n').textContent()) === '07');
+
   const notice = page.locator('.dx-privacy');
   await notice.waitFor({ state: 'visible' });
   check('privacy notice shows on the first visit, as a non-modal dialog', (await notice.getAttribute('role')) === 'dialog' && (await notice.getAttribute('aria-modal')) === 'false');

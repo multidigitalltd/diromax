@@ -260,7 +260,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 </section>
 
-<?php /* ============ 07 · BEFORE / AFTER ============ */ ?>
+<?php /* ============ 07 · BEFORE / AFTER (off unless turned on in the Customizer) ============ */ ?>
 <?php if ( dx_show_projects() ) : ?>
 	<?php
 	$dx_projects = get_posts(
@@ -297,7 +297,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="dx-wrap dx-pad-lg">
 		<div class="dx-split">
 			<div>
-				<?php dx_kicker( '08', dx_content( 'improve.s8_kicker' ) ); ?>
+				<?php dx_kicker( dx_show_projects() ? '08' : '07', dx_content( 'improve.s8_kicker' ) ); ?>
 				<h2 class="dx-h2--sm dx-mb-22" id="dx-s08"><?php dx_the_lines( 'improve.s8_title' ); ?></h2>
 				<a class="dx-btn dx-btn--outline dx-btn--md" href="<?php echo esc_url( dx_view_url( 'faq' ) ); ?>"><?php dx_the_text( 'improve.s8_btn' ); ?></a>
 			</div>
