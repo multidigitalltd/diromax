@@ -189,7 +189,7 @@ function dx_schema_organization() {
 		'@id'         => home_url( '/#organization' ),
 		'name'        => get_bloginfo( 'name' ),
 		'url'         => home_url( '/' ),
-		'description' => __( 'תיווך, יזמות וניהול השבחת נכסים.', 'diromax' ),
+		'description' => __( 'יזמות וניהול השבחת נכסים.', 'diromax' ),
 		'image'       => dx_social_image(),
 		'logo'        => dx_social_image(),
 	);

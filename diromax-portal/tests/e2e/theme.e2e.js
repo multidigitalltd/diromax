@@ -36,6 +36,10 @@ async function axe(page, label) {
   const legal = await page.textContent('.dx-footer nav[aria-label="מידע משפטי ונגישות"]');
   check('footer links the privacy policy, terms and accessibility statement', legal.includes('מדיניות פרטיות') && legal.includes('תנאי שימוש') && legal.includes('הצהרת נגישות'), legal.replace(/\s+/g, ' ').trim());
 
+  // Theme 2.2.3-2.2.4: the footer and the business description Google reads leave out "תיווך".
+  const org = (await page.$$eval('script[type="application/ld+json"]', (scripts) => scripts.map(s => JSON.parse(s.textContent)))).flatMap(d => d['@graph'] || [d]).find(n => n['@type'] === 'RealEstateAgent');
+  check('the business description for search engines and the footer tagline leave out "תיווך"', !!org && org.description === 'יזמות וניהול השבחת נכסים.' && !(await page.textContent('.dx-footer')).includes('תיווך, יזמות'), org ? org.description : 'no RealEstateAgent');
+
   const notice = page.locator('.dx-privacy');
   await notice.waitFor({ state: 'visible' });
   check('privacy notice shows on the first visit, as a non-modal dialog', (await notice.getAttribute('role')) === 'dialog' && (await notice.getAttribute('aria-modal')) === 'false');
