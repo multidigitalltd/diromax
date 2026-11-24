@@ -251,12 +251,14 @@ function dx_show_sticky() {
 }
 
 /**
- * Whether the before/after section is shown.
+ * Whether the before/after section is shown on the home page. Off unless
+ * turned on in the Customizer: most improvements are inside a flat, with
+ * nothing to show from outside (theme 2.2.4).
  *
  * @return bool Whether the before/after section is shown.
  */
 function dx_show_projects() {
-	return (bool) get_theme_mod( 'dx_show_projects', true );
+	return (bool) get_theme_mod( 'dx_show_projects', false );
 }
 
 /**
